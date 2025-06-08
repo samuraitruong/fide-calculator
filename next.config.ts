@@ -1,8 +1,10 @@
 import { NextConfig } from 'next';
 
+const basePath = process.env.BASE_PATH;
+
 const nextConfig: NextConfig = {
   output: 'export',
-  basePath: '/fide-calculator',
+  basePath,
   images: {
     unoptimized: true,
   },

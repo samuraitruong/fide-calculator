@@ -37,6 +37,10 @@ export default function Home() {
   const [currentRatingChange, setCurrentRatingChange] = useState<number | null>(null);
 
   useEffect(() => {
+    const savedPlayerRating = localStorage.getItem('fidePlayerRating');
+    if (savedPlayerRating) {
+      setPlayerRating(Number(savedPlayerRating));
+    }
     const savedResults = localStorage.getItem('fideResults');
     if (savedResults) {
       const parsedResults = JSON.parse(savedResults);
@@ -45,6 +49,10 @@ export default function Home() {
       setTotalChange(total);
     }
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('fidePlayerRating', String(playerRating));
+  }, [playerRating]);
 
   const handleCalculate = () => {
     const ratingChange = calculateRatingChange(playerRating, opponentRating, result, kFactor);
