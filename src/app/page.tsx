@@ -14,16 +14,16 @@ interface Result {
   date: string;
 }
 
-function calculateRatingChange(playerRating: number, opponentRating: number, result: GameResult, kFactor: number) { 
-  let S; 
-  if (result === 'win') S = 1; 
-  else if (result === 'draw') S = 0.5; 
-  else if (result === 'loss') S = 0; 
-  else throw new Error('Invalid result. Use "win", "draw", or "loss".'); 
+function calculateRatingChange(playerRating: number, opponentRating: number, result: GameResult, kFactor: number) {
+  let S;
+  if (result === 'win') S = 1;
+  else if (result === 'draw') S = 0.5;
+  else if (result === 'loss') S = 0;
+  else throw new Error('Invalid result. Use "win", "draw", or "loss".');
 
-  const E = 1 / (1 + Math.pow(10, (opponentRating - playerRating) / 400)); 
-  const delta = kFactor * (S - E); 
-  return Math.round(delta *100)/100; 
+  const E = 1 / (1 + Math.pow(10, (opponentRating - playerRating) / 400));
+  const delta = kFactor * (S - E);
+  return Math.round(delta * 100) / 100;
 }
 
 export default function Home() {
@@ -45,7 +45,7 @@ export default function Home() {
     if (savedResults) {
       const parsedResults = JSON.parse(savedResults);
       setResults(parsedResults);
-      const total =  Math.round(100 * parsedResults.reduce((acc: number, curr: Result) => acc + curr.ratingChange, 0))/100;
+      const total = Math.round(100 * parsedResults.reduce((acc: number, curr: Result) => acc + curr.ratingChange, 0)) / 100;
       setTotalChange(total);
     }
   }, []);
@@ -62,7 +62,7 @@ export default function Home() {
   const handleTrack = () => {
     const ratingChange = calculateRatingChange(playerRating, opponentRating, result, kFactor);
     setCurrentRatingChange(ratingChange);
-    
+
     const newResult: Result = {
       playerRating,
       opponentName,
@@ -102,7 +102,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen p-8 bg-gray-50">
+    <div className="min-h-screen p-1 md:p-5 bg-gray-50">
       {/* Print CSS */}
       <style>{`
         @media print {
@@ -156,9 +156,9 @@ export default function Home() {
       </div>
       {/* Form and current change box on top */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 no-print mb-12">
-        <div id="fide-form-section" className="bg-white rounded-xl shadow-lg p-8">
-          <h1 className="text-3xl font-bold mb-8 text-center text-gray-800">FIDE Rating Calculator</h1>
-          <div className="space-y-6">
+        <div id="fide-form-section" className="bg-white rounded-xl shadow-lg p-5">
+          <h1 className="text-3xl font-bold mb-5 text-center text-gray-800">FIDE Rating Calculator</h1>
+          <div className="space-y-2">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">Player Rating</label>
@@ -169,7 +169,7 @@ export default function Home() {
                   onChange={(e) => setPlayerRating(Number(e.target.value))}
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <label className="block text-sm font-medium text-gray-700">K Factor</label>
                 <select
                   className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
@@ -184,7 +184,7 @@ export default function Home() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <label className="block text-sm font-medium text-gray-700">Opponent Name</label>
                 <input
                   type="text"
@@ -193,7 +193,7 @@ export default function Home() {
                   onChange={(e) => setOpponentName(e.target.value)}
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <label className="block text-sm font-medium text-gray-700">Opponent Rating</label>
                 <input
                   type="number"
@@ -203,7 +203,7 @@ export default function Home() {
                 />
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700 mb-3">Result</label>
               <div className="flex space-x-6">
                 {['win', 'draw', 'loss'].map((option) => (
@@ -257,25 +257,25 @@ export default function Home() {
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-gray-50">
-                <th className="border p-3 text-left text-sm font-medium text-gray-700">Date</th>
-                <th className="border p-3 text-left text-sm font-medium text-gray-700">Player Rating</th>
-                <th className="border p-3 text-left text-sm font-medium text-gray-700">Opponent</th>
-                <th className="border p-3 text-left text-sm font-medium text-gray-700">Opponent Rating</th>
-                <th className="border p-3 text-left text-sm font-medium text-gray-700">K Factor</th>
-                <th className="border p-3 text-left text-sm font-medium text-gray-700">Result</th>
-                <th className="border p-3 text-left text-sm font-medium text-gray-700">Rating Change</th>
+                <th className="border p-2 text-left text-sm font-medium text-gray-700">Date</th>
+                <th className="border p-2 text-left text-sm font-medium text-gray-700">Player Rating</th>
+                <th className="border p-2 text-left text-sm font-medium text-gray-700">Opponent</th>
+                <th className="border p-2 text-left text-sm font-medium text-gray-700">Opponent Rating</th>
+                <th className="border p-2 text-left text-sm font-medium text-gray-700">K Factor</th>
+                <th className="border p-2 text-left text-sm font-medium text-gray-700">Result</th>
+                <th className="border p-2 text-left text-sm font-medium text-gray-700">Rating Change</th>
               </tr>
             </thead>
             <tbody>
               {results.map((result, index) => (
                 <tr key={index} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleHistoryClick(result)}>
-                  <td className="border p-3 text-sm text-gray-700">{result.date}</td>
-                  <td className="border p-3 text-sm text-gray-700">{result.playerRating}</td>
-                  <td className="border p-3 text-sm text-gray-700">{result.opponentName}</td>
-                  <td className="border p-3 text-sm text-gray-700">{result.opponentRating}</td>
-                  <td className="border p-3 text-sm text-gray-700">{result.kFactor}</td>
-                  <td className="border p-3 text-sm text-gray-700 capitalize">{result.result}</td>
-                  <td className="border p-3 text-sm text-gray-700">
+                  <td className="border p-2 text-sm text-gray-700">{result.date}</td>
+                  <td className="border p-2 text-sm text-gray-700">{result.playerRating}</td>
+                  <td className="border p-2 text-sm text-gray-700">{result.opponentName}</td>
+                  <td className="border p-2 text-sm text-gray-700">{result.opponentRating}</td>
+                  <td className="border p-2 text-sm text-gray-700">{result.kFactor}</td>
+                  <td className="border p-2 text-sm text-gray-700 capitalize">{result.result}</td>
+                  <td className="border p-2 text-sm text-gray-700">
                     <div className="flex items-center justify-between">
                       <span className={result.ratingChange > 0 ? 'text-green-600' : 'text-red-600'}>
                         {result.ratingChange > 0 ? '+' : ''}{result.ratingChange}
