@@ -103,10 +103,61 @@ export default function Home() {
 
   return (
     <div className="min-h-screen p-8 bg-gray-50">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6">
+      {/* Print CSS */}
+      <style>{`
+        @media print {
+          #fide-form-section, .current-change-box, .no-print { display: none !important; }
+          .print-total-change {
+            display: flex !important;
+            justify-content: center;
+            align-items: flex-start;
+            width: 100vw;
+            height: auto;
+            position: static;
+            top: 0;
+            left: 0;
+            z-index: 9999;
+            background: white !important;
+            margin-bottom: 2rem;
+            page-break-after: avoid;
+          }
+          .print-total-change-circle {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 30vw;
+            height: 30vw;
+            min-width: 300px;
+            min-height: 300px;
+            max-width: 600px;
+            max-height: 600px;
+            border-radius: 50%;
+            border: 8px solid #e5e7eb;
+            background: #fff;
+            box-shadow: 0 0 40px rgba(0,0,0,0.08);
+            margin: 0 auto 2rem auto;
+          }
+          .print-table {
+            margin-top: 0 !important;
+          }
+          body, html {
+            background: white !important;
+          }
+        }
+        .print-total-change {
+          display: none;
+        }
+      `}</style>
+      {/* Print Total Change (hidden on screen, big on print, centered in a circle) */}
+      <div className="print-total-change w-full items-center justify-center">
+        <div className="print-total-change-circle">
+          <span className={`text-[8vw] font-bold ${totalChange > 0 ? 'text-green-600' : 'text-red-600'}`}>{totalChange > 0 ? '+' : ''}{totalChange}</span>
+        </div>
+      </div>
+      {/* Form and current change box on top */}
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 no-print mb-12">
         <div id="fide-form-section" className="bg-white rounded-xl shadow-lg p-8">
           <h1 className="text-3xl font-bold mb-8 text-center text-gray-800">FIDE Rating Calculator</h1>
-          
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -132,7 +183,6 @@ export default function Home() {
                 </select>
               </div>
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">Opponent Name</label>
@@ -153,7 +203,6 @@ export default function Home() {
                 />
               </div>
             </div>
-
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700 mb-3">Result</label>
               <div className="flex space-x-6">
@@ -170,7 +219,6 @@ export default function Home() {
                 ))}
               </div>
             </div>
-
             <div className="flex space-x-4 pt-4">
               <button
                 className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
@@ -187,28 +235,24 @@ export default function Home() {
             </div>
           </div>
         </div>
-
         <div className="flex flex-col gap-6">
           {currentRatingChange !== null && (
-            <div className="bg-white rounded-xl shadow-lg p-8 h-fit">
+            <div className="bg-white rounded-xl shadow-lg p-8 h-fit current-change-box">
               <h2 className="text-lg font-medium text-gray-700 mb-2">Current Change</h2>
-              <div className={`text-[8rem] font-bold ${currentRatingChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {currentRatingChange > 0 ? '+' : ''}{currentRatingChange}
-              </div>
+              <div className={`text-[8rem] font-bold ${currentRatingChange > 0 ? 'text-green-600' : 'text-red-600'}`}>{currentRatingChange > 0 ? '+' : ''}{currentRatingChange}</div>
             </div>
           )}
         </div>
       </div>
-
+      {/* Table always visible, even in print mode */}
       <div className="max-w-7xl mx-auto mt-12 bg-white rounded-xl shadow-lg p-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 no-print">
           <h2 className="text-2xl font-bold text-gray-800">History</h2>
           <div className="flex items-center gap-2">
             <span className="text-lg font-medium text-gray-700">Total Change:</span>
             <span className={`text-3xl font-bold ${totalChange > 0 ? 'text-green-600' : 'text-red-600'}`}>{totalChange > 0 ? '+' : ''}{totalChange}</span>
           </div>
         </div>
-        
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
