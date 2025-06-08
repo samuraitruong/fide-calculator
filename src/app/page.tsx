@@ -27,7 +27,7 @@ function calculateRatingChange(playerRating: number, opponentRating: number, res
 }
 
 export default function Home() {
-  const [playerRating, setPlayerRating] = useState<number>(0);
+  const [playerRating, setPlayerRating] = useState<number>(1881);
   const [kFactor, setKFactor] = useState<number>(40);
   const [opponentName, setOpponentName] = useState<string>('');
   const [opponentRating, setOpponentRating] = useState<number>(1400);
@@ -68,6 +68,14 @@ export default function Home() {
     const updatedResults = [...results, newResult];
     setResults(updatedResults);
     setTotalChange(totalChange + ratingChange);
+    localStorage.setItem('fideResults', JSON.stringify(updatedResults));
+  };
+
+  const handleRemove = (index: number) => {
+    const updatedResults = results.filter((_, i) => i !== index);
+    setResults(updatedResults);
+    const newTotal = updatedResults.reduce((acc, curr) => acc + curr.ratingChange, 0);
+    setTotalChange(newTotal);
     localStorage.setItem('fideResults', JSON.stringify(updatedResults));
   };
 
@@ -202,8 +210,18 @@ export default function Home() {
                   <td className="border p-3 text-sm text-gray-700">{result.opponentRating}</td>
                   <td className="border p-3 text-sm text-gray-700">{result.kFactor}</td>
                   <td className="border p-3 text-sm text-gray-700 capitalize">{result.result}</td>
-                  <td className={`border p-3 text-sm ${result.ratingChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {result.ratingChange > 0 ? '+' : ''}{result.ratingChange}
+                  <td className="border p-3 text-sm text-gray-700">
+                    <div className="flex items-center justify-between">
+                      <span className={result.ratingChange > 0 ? 'text-green-600' : 'text-red-600'}>
+                        {result.ratingChange > 0 ? '+' : ''}{result.ratingChange}
+                      </span>
+                      <button
+                        onClick={() => handleRemove(index)}
+                        className="text-red-600 hover:text-red-800 ml-4"
+                      >
+                        ×
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
