@@ -28,9 +28,9 @@ function calculateRatingChange(playerRating: number, opponentRating: number, res
 
 export default function Home() {
   const [playerRating, setPlayerRating] = useState<number>(0);
-  const [kFactor, setKFactor] = useState<number>(20);
+  const [kFactor, setKFactor] = useState<number>(40);
   const [opponentName, setOpponentName] = useState<string>('');
-  const [opponentRating, setOpponentRating] = useState<number>(0);
+  const [opponentRating, setOpponentRating] = useState<number>(1400);
   const [result, setResult] = useState<GameResult>('win');
   const [results, setResults] = useState<Result[]>([]);
   const [totalChange, setTotalChange] = useState<number>(0);
