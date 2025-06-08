@@ -45,7 +45,7 @@ export default function Home() {
     if (savedResults) {
       const parsedResults = JSON.parse(savedResults);
       setResults(parsedResults);
-      const total = parsedResults.reduce((acc: number, curr: Result) => acc + curr.ratingChange, 0);
+      const total =  Math.round(100 * parsedResults.reduce((acc: number, curr: Result) => acc + curr.ratingChange, 0))/100;
       setTotalChange(total);
     }
   }, []);
@@ -197,18 +197,17 @@ export default function Home() {
               </div>
             </div>
           )}
-
-          <div className="bg-white rounded-xl shadow-lg p-8 h-fit">
-            <h2 className="text-lg font-medium text-gray-700 mb-2">Total Change</h2>
-            <div className={`text-6xl font-bold ${totalChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {totalChange > 0 ? '+' : ''}{totalChange}
-            </div>
-          </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto mt-12 bg-white rounded-xl shadow-lg p-8">
-        <h2 className="text-2xl font-bold mb-6 text-gray-800">History</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-800">History</h2>
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-medium text-gray-700">Total Change:</span>
+            <span className={`text-3xl font-bold ${totalChange > 0 ? 'text-green-600' : 'text-red-600'}`}>{totalChange > 0 ? '+' : ''}{totalChange}</span>
+          </div>
+        </div>
         
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
@@ -239,7 +238,7 @@ export default function Home() {
                       </span>
                       <button
                         onClick={() => handleRemove(index)}
-                        className="text-red-600 hover:text-red-800 ml-4"
+                        className="pointer text-red-600 hover:text-red-800 ml-4 z-100 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
                       >
                         ×
                       </button>
