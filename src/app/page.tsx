@@ -79,10 +79,24 @@ export default function Home() {
     localStorage.setItem('fideResults', JSON.stringify(updatedResults));
   };
 
+  const handleHistoryClick = (result: Result) => {
+    setPlayerRating(result.playerRating);
+    setOpponentName(result.opponentName);
+    setOpponentRating(result.opponentRating);
+    setKFactor(result.kFactor);
+    setResult(result.result);
+    setCurrentRatingChange(result.ratingChange);
+    // Optionally scroll to form
+    const formSection = document.getElementById('fide-form-section');
+    if (formSection) {
+      formSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <div className="min-h-screen p-8 bg-gray-50">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-[1fr_auto] gap-8">
-        <div className="bg-white rounded-xl shadow-lg p-8">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6">
+        <div id="fide-form-section" className="bg-white rounded-xl shadow-lg p-8">
           <h1 className="text-3xl font-bold mb-8 text-center text-gray-800">FIDE Rating Calculator</h1>
           
           <div className="space-y-6">
@@ -166,11 +180,11 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-4 md:w-[300px]">
+        <div className="flex flex-col gap-6">
           {currentRatingChange !== null && (
             <div className="bg-white rounded-xl shadow-lg p-8 h-fit">
               <h2 className="text-lg font-medium text-gray-700 mb-2">Current Change</h2>
-              <div className={`text-6xl font-bold ${currentRatingChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <div className={`text-[8rem] font-bold ${currentRatingChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {currentRatingChange > 0 ? '+' : ''}{currentRatingChange}
               </div>
             </div>
@@ -203,7 +217,7 @@ export default function Home() {
             </thead>
             <tbody>
               {results.map((result, index) => (
-                <tr key={index} className="hover:bg-gray-50">
+                <tr key={index} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleHistoryClick(result)}>
                   <td className="border p-3 text-sm text-gray-700">{result.date}</td>
                   <td className="border p-3 text-sm text-gray-700">{result.playerRating}</td>
                   <td className="border p-3 text-sm text-gray-700">{result.opponentName}</td>
