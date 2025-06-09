@@ -8,6 +8,7 @@ import PrintTotalChange from '@/components/PrintTotalChange';
 import { useRatingList } from '@/hooks/useRatingList';
 import type { GameResult, Result } from '@/util/types';
 import InfoPopup from '@/components/InfoPopup';
+import KFactorHelp from '@/components/KFactorHelp';
 import { FaCalculator, FaSave } from 'react-icons/fa';
 
 export default function Home() {
@@ -70,6 +71,19 @@ export default function Home() {
     }
   };
 
+  function getResultButtonClass(option: GameResult, selected: GameResult) {
+    if (option === selected) {
+      if (option === 'win') return 'bg-green-600 text-white border-green-700';
+      if (option === 'draw') return 'bg-gray-500 text-white border-gray-600';
+      if (option === 'loss') return 'bg-red-600 text-white border-red-700';
+    } else {
+      if (option === 'win') return 'bg-white text-green-700 border-green-300 hover:bg-green-50';
+      if (option === 'draw') return 'bg-white text-gray-600 border-gray-300 hover:bg-gray-100';
+      if (option === 'loss') return 'bg-white text-red-600 border-red-300 hover:bg-red-50';
+    }
+    return '';
+  }
+
   return (
     <div className="min-h-screen p-1 md:p-5 bg-gray-50 max-w-7xl mx-auto">
 
@@ -97,20 +111,7 @@ export default function Home() {
                     K-Factor
                     <InfoPopup
                       title="Help notes"
-                      content={
-                        <div>
-                          <div className='hidden'><b>Rating</b> - Rating of a player.</div>
-                          <div className='hidden'><b>Rc</b> - Opponent rating.</div>
-                          <div className='hidden'><b>W</b> - Score.</div>
-                          <div><b>K val</b> - K is the development coefficient.</div>
-                          <ul className="list-disc pl-5 mt-2 space-y-1">
-                            <li>K = 40 for a player new to the rating list until he has completed events with at least 30 games</li>
-                            <li>K = 20 as long as a player's rating remains under 2400.</li>
-                            <li>K = 10 once a player's published rating has reached 2400 and remains at that level subsequently, even if the rating drops below 2400.</li>
-                            <li>K = 40 for all players until their 18th birthday, as long as their rating remains under 2300.</li>
-                          </ul>
-                        </div>
-                      }
+                      content={<KFactorHelp />}
                     />
                   </label>
                   <select
@@ -151,17 +152,7 @@ export default function Home() {
                     <button
                       key={option}
                       type="button"
-                      className={`px-4 py-2 rounded-lg font-semibold border transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2
-                        ${result === option ?
-                          option === 'win' ? 'bg-green-600 text-white border-green-700' :
-                            option === 'draw' ? 'bg-gray-500 text-white border-gray-600' :
-                              'bg-red-600 text-white border-red-700'
-                          :
-                          option === 'win' ? 'bg-white text-green-700 border-green-300 hover:bg-green-50' :
-                            option === 'draw' ? 'bg-white text-gray-600 border-gray-300 hover:bg-gray-100' :
-                              'bg-white text-red-600 border-red-300 hover:bg-red-50'
-                        }
-                      `}
+                      className={`px-4 py-2 rounded-lg font-semibold border transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${getResultButtonClass(option, result)}`}
                       onClick={() => handleResultChange(option)}
                       aria-pressed={result === option}
                     >
