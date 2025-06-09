@@ -1,4 +1,5 @@
 import Confirm from '@/components/Confirm';
+import ImportExport from '@/components/ImportExport';
 import { Result } from '@/util/types';
 import { roundNumber } from '@/util/util';
 import { useState } from 'react';
@@ -30,6 +31,14 @@ export default function ListRatingChange({ results, onRemove, onSelect }: ListRa
   const handleCancel = () => {
     setConfirmOpen(false);
     setPendingRemove(null);
+  };
+
+  // Handle import callback
+  const handleImport = (imported: Result[]) => {
+    const merged = [...results, ...imported];
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('importedResults', { detail: merged }));
+    }
   };
 
   return (
@@ -128,6 +137,7 @@ export default function ListRatingChange({ results, onRemove, onSelect }: ListRa
           </div>
         ))}
       </div>
+      <ImportExport results={results} onImport={handleImport} />
     </div>
   );
 }

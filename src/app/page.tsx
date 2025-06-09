@@ -35,6 +35,18 @@ export default function Home() {
     localStorage.setItem('fidePlayerRating', String(playerRating));
   }, [playerRating]);
 
+  useEffect(() => {
+    const handleImportedResults = (e: any) => {
+      if (e.detail && Array.isArray(e.detail)) {
+        setResults(e.detail);
+        setTotalChange(e.detail.reduce((acc: number, curr: Result) => acc + curr.ratingChange, 0));
+        localStorage.setItem('fideResults', JSON.stringify(e.detail));
+      }
+    };
+    window.addEventListener('importedResults', handleImportedResults);
+    return () => window.removeEventListener('importedResults', handleImportedResults);
+  }, []);
+
   const isValidRating = (rating: number) => rating >= 1400 && rating <= 3500;
   const isFormValid = isValidRating(playerRating) && isValidRating(opponentRating);
 
