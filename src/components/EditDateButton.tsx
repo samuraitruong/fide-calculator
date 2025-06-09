@@ -10,11 +10,24 @@ export default function EditDateButton({ date, onChange }: EditDateButtonProps) 
     const [value, setValue] = useState(dateToInputValue(date));
 
     function dateToInputValue(dateStr: string) {
-        // Try to parse MM/DD/YYYY or DD/MM/YYYY or YYYY-MM-DD
+        // Check for DD/MM/YYYY format
+        const ddmmyyyy = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+        const match = dateStr.match(ddmmyyyy);
+
+        if (match) {
+            const [, day, month, year] = match;
+            const d = new Date(`${year}-${month}-${day}`);
+            if (!isNaN(d.getTime())) {
+                return d.toISOString().slice(0, 10); // returns YYYY-MM-DD
+            }
+        }
+
+        // Fallback for ISO or parseable formats like YYYY-MM-DD
         const d = new Date(dateStr);
         if (!isNaN(d.getTime())) {
             return d.toISOString().slice(0, 10);
         }
+
         return '';
     }
 
