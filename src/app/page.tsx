@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { calculateRatingChange } from '../util/util';
+import ListRatingChange from '@/components/ListRatingChange';
 
 type GameResult = 'win' | 'draw' | 'loss';
 
@@ -14,17 +16,7 @@ interface Result {
   date: string;
 }
 
-function calculateRatingChange(playerRating: number, opponentRating: number, result: GameResult, kFactor: number) {
-  let S;
-  if (result === 'win') S = 1;
-  else if (result === 'draw') S = 0.5;
-  else if (result === 'loss') S = 0;
-  else throw new Error('Invalid result. Use "win", "draw", or "loss".');
 
-  const E = 1 / (1 + Math.pow(10, (opponentRating - playerRating) / 400));
-  const delta = kFactor * (S - E);
-  return Math.round(delta * 100) / 100;
-}
 
 export default function Home() {
   const [playerRating, setPlayerRating] = useState<number>(1881);
@@ -82,8 +74,7 @@ export default function Home() {
   const handleRemove = (index: number) => {
     const updatedResults = results.filter((_, i) => i !== index);
     setResults(updatedResults);
-    const newTotal = updatedResults.reduce((acc, curr) => acc + curr.ratingChange, 0);
-    setTotalChange(newTotal);
+    setTotalChange(updatedResults.reduce((acc, curr) => acc + curr.ratingChange, 0));
     localStorage.setItem('fideResults', JSON.stringify(updatedResults));
   };
 
@@ -244,56 +235,7 @@ export default function Home() {
           )}
         </div>
       </div>
-      {/* Table always visible, even in print mode */}
-      <div className="max-w-7xl mx-auto mt-12 bg-white rounded-xl shadow-lg p-8">
-        <div className="flex items-center justify-between mb-6 no-print">
-          <h2 className="text-2xl font-bold text-gray-800">History</h2>
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-medium text-gray-700">Total Change:</span>
-            <span className={`text-3xl font-bold ${totalChange > 0 ? 'text-green-600' : 'text-red-600'}`}>{totalChange > 0 ? '+' : ''}{totalChange}</span>
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="border p-2 text-left text-sm font-medium text-gray-700">Date</th>
-                <th className="border p-2 text-left text-sm font-medium text-gray-700">Player Rating</th>
-                <th className="border p-2 text-left text-sm font-medium text-gray-700">Opponent</th>
-                <th className="border p-2 text-left text-sm font-medium text-gray-700">Opponent Rating</th>
-                <th className="border p-2 text-left text-sm font-medium text-gray-700">K Factor</th>
-                <th className="border p-2 text-left text-sm font-medium text-gray-700">Result</th>
-                <th className="border p-2 text-left text-sm font-medium text-gray-700">Rating Change</th>
-              </tr>
-            </thead>
-            <tbody>
-              {results.map((result, index) => (
-                <tr key={index} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleHistoryClick(result)}>
-                  <td className="border p-2 text-sm text-gray-700">{result.date}</td>
-                  <td className="border p-2 text-sm text-gray-700">{result.playerRating}</td>
-                  <td className="border p-2 text-sm text-gray-700">{result.opponentName}</td>
-                  <td className="border p-2 text-sm text-gray-700">{result.opponentRating}</td>
-                  <td className="border p-2 text-sm text-gray-700">{result.kFactor}</td>
-                  <td className="border p-2 text-sm text-gray-700 capitalize">{result.result}</td>
-                  <td className="border p-2 text-sm text-gray-700">
-                    <div className="flex items-center justify-between">
-                      <span className={result.ratingChange > 0 ? 'text-green-600' : 'text-red-600'}>
-                        {result.ratingChange > 0 ? '+' : ''}{result.ratingChange}
-                      </span>
-                      <button
-                        onClick={() => handleRemove(index)}
-                        className="pointer text-red-600 hover:text-red-800 ml-4 z-100 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <ListRatingChange results={results} onRemove={handleRemove} />
     </div>
   );
 }

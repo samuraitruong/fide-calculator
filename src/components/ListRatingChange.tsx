@@ -1,0 +1,94 @@
+import { Result } from '@/util/types';
+
+interface ListRatingChangeProps {
+  results: Result[];
+  onRemove: (index: number) => void;
+}
+
+export default function ListRatingChange({ results, onRemove }: ListRatingChangeProps) {
+  const totalChange = results.reduce((acc, curr) => acc + curr.ratingChange, 0);
+
+  return (
+    <div className="max-w-7xl mx-auto mt-12 bg-white rounded-xl shadow-lg p-8">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-gray-800">Rating changes</h2>
+        <div className="flex items-center gap-2">
+          <span className="text-lg font-medium text-gray-700">Total Change:</span>
+          <span className={`text-3xl font-bold ${totalChange > 0 ? 'text-green-600' : 'text-red-600'}`}>{totalChange > 0 ? '+' : ''}{totalChange}</span>
+        </div>
+      </div>
+      {/* Desktop/Tablet View */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="border p-3 text-left text-sm font-medium text-gray-700">Date</th>
+              <th className="border p-3 text-left text-sm font-medium text-gray-700">Player Rating</th>
+              <th className="border p-3 text-left text-sm font-medium text-gray-700">Opponent</th>
+              <th className="border p-3 text-left text-sm font-medium text-gray-700">Opponent Rating</th>
+              <th className="border p-3 text-left text-sm font-medium text-gray-700">K Factor</th>
+              <th className="border p-3 text-left text-sm font-medium text-gray-700">Result</th>
+              <th className="border p-3 text-left text-sm font-medium text-gray-700">Rating Change</th>
+            </tr>
+          </thead>
+          <tbody>
+            {results.map((result, index) => (
+              <tr key={index} className="hover:bg-gray-50">
+                <td className="border p-3 text-sm text-gray-700">{result.date}</td>
+                <td className="border p-3 text-sm text-gray-700">{result.playerRating}</td>
+                <td className="border p-3 text-sm text-gray-700">{result.opponentName}</td>
+                <td className="border p-3 text-sm text-gray-700">{result.opponentRating}</td>
+                <td className="border p-3 text-sm text-gray-700">{result.kFactor}</td>
+                <td className="border p-3 text-sm text-gray-700 capitalize">{result.result}</td>
+                <td className="border p-3 text-sm text-gray-700">
+                  <div className="flex items-center justify-between">
+                    <span className={result.ratingChange > 0 ? 'text-green-600' : 'text-red-600'}>
+                      {result.ratingChange > 0 ? '+' : ''}{result.ratingChange}
+                    </span>
+                    <button
+                      onClick={() => onRemove(index)}
+                      className="text-red-600 hover:text-red-800 ml-4"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile View */}
+      <div className="md:hidden space-y-4">
+        {results.map((result, index) => (
+          <div key={index} className="bg-gray-50 p-4 rounded-lg space-y-2 text-black">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-500">{result.date}</span>
+              <button
+                onClick={() => onRemove(index)}
+                className="text-red-600 hover:text-red-800"
+              >
+                ×
+              </button>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm font-medium">YOU vs. {result.opponentName}</span>
+              <span className="text-sm capitalize">{result.result}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">
+                {result.playerRating} vs {result.opponentRating}
+              </span>
+              <span className={`text-lg font-medium ${result.ratingChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {result.ratingChange > 0 ? '+' : ''}{result.ratingChange}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
