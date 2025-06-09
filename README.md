@@ -1,3 +1,28 @@
+# FIDE Rating Calculator
+
+A simple and efficient web application to calculate FIDE chess rating changes and track your rating progress over time. Built with Next.js and Tailwind CSS.
+
+## Features
+
+- Calculate rating changes based on FIDE rules
+- Support for different K-factors (10, 20, 30, 40)
+- Track game results and rating changes (on your local storage)
+- View rating history with accumulated changes
+- Responsive design for desktop and mobile
+- Works offline after initial load
+
+## Live Demo
+
+Visit the live application at: [FIDE Calculator](https://truongnguyen.github.io/fide-calculator)
+
+## Quick Start
+
+1. Clone the repository:
+```bash
+git clone https://github.com/truongnguyen/fide-calculator.git
+cd fide-calculator
+```
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
