@@ -6,7 +6,7 @@ export function calculateRatingChange(playerRating: number, opponentRating: numb
     "draw": 0.5,
     "loss": 0
   })[result];
-  if (!S) {
+  if (S === undefined) {
     throw new Error("Invalid game result expected win/draw/loss but get " + result)
   }
   const E = 1 / (1 + Math.pow(10, (opponentRating - playerRating) / 400));
