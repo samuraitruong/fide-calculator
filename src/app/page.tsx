@@ -36,6 +36,7 @@ export default function Home() {
   }, [playerRating]);
 
   useEffect(() => {
+    //eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleImportedResults = (e: any) => {
       if (e.detail && Array.isArray(e.detail)) {
         setResults(e.detail);
