@@ -4,7 +4,7 @@ import { Result } from '@/util/types';
 import { roundNumber } from '@/util/util';
 import { useState } from 'react';
 import EditDateButton from './EditDateButton';
-import { FaArrowUp, FaArrowDown, FaMinus } from 'react-icons/fa';
+import { FaArrowUp, FaArrowDown, FaMinus, FaTrashAlt } from 'react-icons/fa';
 
 interface ListRatingChangeProps {
   results: Result[];
@@ -59,7 +59,14 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
         <h2 className="text-2xl font-bold text-gray-800">Rating changes</h2>
         <div className="flex items-center gap-2">
           <span className="text-lg font-medium text-gray-700">Total Change:</span>
-          <span className={`text-3xl font-bold ${totalChange > 0 ? 'text-green-600' : 'text-red-600'}`}>{totalChange > 0 ? '+' : ''}{totalChange}</span>
+          <span className="text-3xl font-bold flex items-center gap-2">
+            {totalChange > 0 && <FaArrowUp className="text-green-600" />}
+            {totalChange < 0 && <FaArrowDown className="text-red-600" />}
+            {totalChange === 0 && <FaMinus className="text-gray-400" />}
+            <span className={totalChange > 0 ? 'text-green-600' : totalChange < 0 ? 'text-red-600' : 'text-gray-600'}>
+              {Math.abs(totalChange)}
+            </span>
+          </span>
         </div>
       </div>
       {/* Desktop/Tablet View */}
@@ -112,8 +119,9 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
                     <button
                       onClick={e => { e.stopPropagation(); handleRemoveClick(index); }}
                       className="text-red-600 hover:text-red-800 ml-4"
+                      title="Delete entry"
                     >
-                      ×
+                      <FaTrashAlt />
                     </button>
                   </div>
                 </td>
@@ -146,8 +154,9 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
               <button
                 onClick={e => { e.stopPropagation(); handleRemoveClick(index); }}
                 className="text-red-600 hover:text-red-800"
+                title="Delete entry"
               >
-                ×
+                <FaTrashAlt />
               </button>
             </div>
             <div className="flex justify-between">
