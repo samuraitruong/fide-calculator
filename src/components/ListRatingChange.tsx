@@ -57,7 +57,7 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
       />
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Rating changes</h2>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 print:hidden">
           <span className="text-lg font-medium text-gray-700">Total Change:</span>
           <span className="text-3xl font-bold flex items-center gap-2">
             {totalChange > 0 && <FaArrowUp className="text-green-600" />}
@@ -118,7 +118,7 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
                     </span>
                     <button
                       onClick={e => { e.stopPropagation(); handleRemoveClick(index); }}
-                      className="text-red-600 hover:text-red-800 ml-4"
+                      className="text-red-600 hover:text-red-800 ml-4 print:hidden"
                       title="Delete entry"
                     >
                       <FaTrashAlt />
