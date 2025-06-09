@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { calculateRatingChange } from '../util/util';
 import ListRatingChange from '@/components/ListRatingChange';
 import CurrentChangeBox from '@/components/CurrentChangeBox';
@@ -10,6 +10,8 @@ import type { GameResult, Result } from '@/util/types';
 import InfoPopup from '@/components/InfoPopup';
 import KFactorHelp from '@/components/KFactorHelp';
 import { FaCalculator, FaSave } from 'react-icons/fa';
+import { useFideData } from '@/hooks/useFideData';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 export default function Home() {
   const {
@@ -25,6 +27,18 @@ export default function Home() {
   const [result, setResult] = useState<GameResult>('win');
   const [totalChange, setTotalChange] = useState<number>(0);
   const [currentRatingChange, setCurrentRatingChange] = useState<number | null>(null);
+  const [showOpponentDropdown, setShowOpponentDropdown] = useState(false);
+  const [opponentSearch, setOpponentSearch] = useState('');
+  const debouncedOpponentSearch = useDebouncedValue(opponentSearch, 500);
+  const { fideData, loading: fideLoading, search: fideSearch } = useFideData('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Debounce: call fideSearch only when debouncedOpponentSearch changes
+  useEffect(() => {
+    if (debouncedOpponentSearch) {
+      fideSearch(debouncedOpponentSearch);
+    }
+  }, [debouncedOpponentSearch, fideSearch]);
 
   useEffect(() => {
     setTotalChange(Math.round(100 * results.reduce((acc, curr) => acc + curr.ratingChange, 0)) / 100);
@@ -69,6 +83,21 @@ export default function Home() {
       const ratingChange = calculateRatingChange(playerRating, opponentRating, option, kFactor);
       setCurrentRatingChange(ratingChange);
     }
+  };
+
+  // When user types in opponent name, update search
+  const handleOpponentNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setOpponentName(e.target.value);
+    setOpponentSearch(e.target.value);
+    setShowOpponentDropdown(true);
+  };
+
+  // When user selects a player from dropdown
+  const handleSelectOpponent = (name: string, rating: string) => {
+    setOpponentName(name);
+    setOpponentRating(Number(rating) || 1400);
+    setShowOpponentDropdown(false);
+    inputRef.current?.blur();
   };
 
   function getResultButtonClass(option: GameResult, selected: GameResult) {
@@ -128,12 +157,40 @@ export default function Home() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="block text-sm font-medium text-gray-700">Opponent Name</label>
-                  <input
-                    type="text"
-                    className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
-                    value={opponentName}
-                    onChange={(e) => setOpponentName(e.target.value)}
-                  />
+                  <div className="relative">
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
+                      value={opponentName}
+                      onChange={handleOpponentNameChange}
+                      onFocus={() => setShowOpponentDropdown(true)}
+                      autoComplete="off"
+                    />
+                    {showOpponentDropdown && opponentSearch && (
+                      <div className="absolute z-20 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto mt-1">
+                        {fideLoading ? (
+                          <div className="p-3 text-gray-500 text-center">Loading...</div>
+                        ) : (
+                          fideData.length > 0 ? (
+                            fideData.map((player) => (
+                              <button
+                                key={player.fideId + player.name}
+                                className="w-full text-left px-4 py-2 hover:bg-blue-100 focus:bg-blue-200 focus:outline-none flex justify-between items-center text-black"
+                                onClick={() => handleSelectOpponent(player.name, player.standard)}
+                                type="button"
+                              >
+                                <span className="text-black">{player.name} ({player.federation})</span>
+                                <span className="text-gray-500 ml-2">{player.standard}</span>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="p-3 text-gray-500 text-center">No players found</div>
+                          )
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <label className="block text-sm font-medium text-gray-700">Opponent Rating</label>
