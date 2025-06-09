@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { calculateRatingChange } from '../util/util';
 import ListRatingChange from '@/components/ListRatingChange';
 import CurrentChangeBox from '@/components/CurrentChangeBox';
-import styles from './page.module.css';
+import PrintTotalChange from '@/components/PrintTotalChange';
 import type { GameResult, Result } from '@/util/types';
 
 export default function Home() {
@@ -76,11 +76,7 @@ export default function Home() {
     <div className="min-h-screen p-1 md:p-5 bg-gray-50 max-w-7xl mx-auto">
 
       {/* Print CSS moved to CSS module */}
-      <div className={styles.printTotalChange + " w-full items-center justify-center"}>
-        <div className={styles.printTotalChangeCircle}>
-          <span className={`text-[8vw] font-bold ${totalChange > 0 ? 'text-green-600' : 'text-red-600'}`}>{totalChange > 0 ? '+' : ''}{totalChange}</span>
-        </div>
-      </div>
+      <PrintTotalChange totalChange={totalChange} />
       {/* Form and current change box on top */}
 
       <div className='flex flex-col md:flex-row w-full max-w-7xl gap-3'>
@@ -179,7 +175,7 @@ export default function Home() {
       <ListRatingChange
         results={results}
         onRemove={handleRemove}
-        onSelect={(result, _) => {
+        onSelect={(result) => {
           setPlayerRating(result.playerRating);
           setOpponentName(result.opponentName);
           setOpponentRating(result.opponentRating);

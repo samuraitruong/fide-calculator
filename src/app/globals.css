@@ -27,8 +27,10 @@ body {
 
 
 @media print {
-  .no-print {
-    display: none !important;
+
+  body,
+  html {
+    background: white !important;
   }
 
   .md\:block {
