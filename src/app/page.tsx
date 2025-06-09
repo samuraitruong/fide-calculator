@@ -78,20 +78,6 @@ export default function Home() {
     localStorage.setItem('fideResults', JSON.stringify(updatedResults));
   };
 
-  const handleHistoryClick = (result: Result) => {
-    setPlayerRating(result.playerRating);
-    setOpponentName(result.opponentName);
-    setOpponentRating(result.opponentRating);
-    setKFactor(result.kFactor);
-    setResult(result.result);
-    setCurrentRatingChange(result.ratingChange);
-    // Optionally scroll to form
-    const formSection = document.getElementById('fide-form-section');
-    if (formSection) {
-      formSection.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
   return (
     <div className="min-h-screen p-1 md:p-5 bg-gray-50">
       {/* Print CSS */}
@@ -235,7 +221,23 @@ export default function Home() {
           )}
         </div>
       </div>
-      <ListRatingChange results={results} onRemove={handleRemove} />
+      <ListRatingChange
+        results={results}
+        onRemove={handleRemove}
+        onSelect={(result, _) => {
+          setPlayerRating(result.playerRating);
+          setOpponentName(result.opponentName);
+          setOpponentRating(result.opponentRating);
+          setKFactor(result.kFactor);
+          setResult(result.result);
+          setCurrentRatingChange(result.ratingChange);
+          // Optionally scroll to form
+          const formSection = document.getElementById('fide-form-section');
+          if (formSection) {
+            formSection.scrollIntoView({ behavior: 'smooth' });
+          }
+        }}
+      />
     </div>
   );
 }

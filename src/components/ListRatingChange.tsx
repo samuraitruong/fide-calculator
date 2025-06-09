@@ -3,9 +3,10 @@ import { Result } from '@/util/types';
 interface ListRatingChangeProps {
   results: Result[];
   onRemove: (index: number) => void;
+  onSelect?: (result: Result, index: number) => void;
 }
 
-export default function ListRatingChange({ results, onRemove }: ListRatingChangeProps) {
+export default function ListRatingChange({ results, onRemove, onSelect }: ListRatingChangeProps) {
   const totalChange = results.reduce((acc, curr) => acc + curr.ratingChange, 0);
 
   return (
@@ -33,7 +34,11 @@ export default function ListRatingChange({ results, onRemove }: ListRatingChange
           </thead>
           <tbody>
             {results.map((result, index) => (
-              <tr key={index} className="hover:bg-gray-50">
+              <tr
+                key={index}
+                className="hover:bg-gray-50 cursor-pointer"
+                onClick={() => onSelect && onSelect(result, index)}
+              >
                 <td className="border p-3 text-sm text-gray-700">{result.date}</td>
                 <td className="border p-3 text-sm text-gray-700">{result.playerRating}</td>
                 <td className="border p-3 text-sm text-gray-700">{result.opponentName}</td>
@@ -62,7 +67,11 @@ export default function ListRatingChange({ results, onRemove }: ListRatingChange
       {/* Mobile View */}
       <div className="md:hidden space-y-4">
         {results.map((result, index) => (
-          <div key={index} className="bg-gray-50 p-4 rounded-lg space-y-2 text-black">
+          <div
+            key={index}
+            className="bg-gray-50 p-4 rounded-lg space-y-2 text-black cursor-pointer"
+            onClick={() => onSelect && onSelect(result, index)}
+          >
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-500">{result.date}</span>
               <button
