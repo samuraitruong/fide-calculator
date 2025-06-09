@@ -7,6 +7,8 @@ import CurrentChangeBox from '@/components/CurrentChangeBox';
 import PrintTotalChange from '@/components/PrintTotalChange';
 import { useRatingList } from '@/hooks/useRatingList';
 import type { GameResult, Result } from '@/util/types';
+import InfoPopup from '@/components/InfoPopup';
+import { FaCalculator, FaSave } from 'react-icons/fa';
 
 export default function Home() {
   const {
@@ -60,6 +62,14 @@ export default function Home() {
     updateResult(index, { date });
   };
 
+  const handleResultChange = (option: GameResult) => {
+    setResult(option);
+    if (isFormValid) {
+      const ratingChange = calculateRatingChange(playerRating, opponentRating, option, kFactor);
+      setCurrentRatingChange(ratingChange);
+    }
+  };
+
   return (
     <div className="min-h-screen p-1 md:p-5 bg-gray-50 max-w-7xl mx-auto">
 
@@ -83,16 +93,34 @@ export default function Home() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-sm font-medium text-gray-700">K-Factor</label>
+                  <label className="block text-sm font-medium text-gray-700 flex items-center gap-1">
+                    K-Factor
+                    <InfoPopup
+                      title="Help notes"
+                      content={
+                        <div>
+                          <div className='hidden'><b>Rating</b> - Rating of a player.</div>
+                          <div className='hidden'><b>Rc</b> - Opponent rating.</div>
+                          <div className='hidden'><b>W</b> - Score.</div>
+                          <div><b>K val</b> - K is the development coefficient.</div>
+                          <ul className="list-disc pl-5 mt-2 space-y-1">
+                            <li>K = 40 for a player new to the rating list until he has completed events with at least 30 games</li>
+                            <li>K = 20 as long as a player's rating remains under 2400.</li>
+                            <li>K = 10 once a player's published rating has reached 2400 and remains at that level subsequently, even if the rating drops below 2400.</li>
+                            <li>K = 40 for all players until their 18th birthday, as long as their rating remains under 2300.</li>
+                          </ul>
+                        </div>
+                      }
+                    />
+                  </label>
                   <select
-                    className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
+                    className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black h-[42px]"
                     value={kFactor}
                     onChange={(e) => setKFactor(Number(e.target.value))}
                   >
-                    <option value={10}>10</option>
-                    <option value={20}>20</option>
-                    <option value={30}>30</option>
                     <option value={40}>40</option>
+                    <option value={20}>20</option>
+                    <option value={10}>10</option>
                   </select>
                 </div>
               </div>
@@ -116,36 +144,46 @@ export default function Home() {
                   />
                 </div>
               </div>
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700 mb-3">Result</label>
-                <div className="flex space-x-6">
-                  {['win', 'draw', 'loss'].map((option) => (
-                    <label key={option} className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        className="w-4 h-4 text-blue-600 focus:ring-blue-500"
-                        checked={result === option}
-                        onChange={() => setResult(option as GameResult)}
-                      />
-                      <span className="text-sm font-medium text-gray-700 capitalize">{option}</span>
-                    </label>
+              <div className="flex items-center gap-3 mt-2">
+                <label className="block text-sm font-medium text-gray-700 mb-0">Result</label>
+                <div className="flex space-x-2">
+                  {(['win', 'draw', 'loss'] as GameResult[]).map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      className={`px-4 py-2 rounded-lg font-semibold border transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2
+                        ${result === option ?
+                          option === 'win' ? 'bg-green-600 text-white border-green-700' :
+                            option === 'draw' ? 'bg-gray-500 text-white border-gray-600' :
+                              'bg-red-600 text-white border-red-700'
+                          :
+                          option === 'win' ? 'bg-white text-green-700 border-green-300 hover:bg-green-50' :
+                            option === 'draw' ? 'bg-white text-gray-600 border-gray-300 hover:bg-gray-100' :
+                              'bg-white text-red-600 border-red-300 hover:bg-red-50'
+                        }
+                      `}
+                      onClick={() => handleResultChange(option)}
+                      aria-pressed={result === option}
+                    >
+                      {option.charAt(0).toUpperCase() + option.slice(1)}
+                    </button>
                   ))}
                 </div>
               </div>
               <div className="flex space-x-4 pt-4">
                 <button
-                  className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   onClick={handleCalculate}
                   disabled={!isFormValid}
                 >
-                  Calculate
+                  <FaCalculator /> Calculate
                 </button>
                 <button
-                  className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   onClick={handleTrack}
                   disabled={!isFormValid}
                 >
-                  Save
+                  <FaSave /> Save
                 </button>
               </div>
               {(!isValidRating(playerRating) || !isValidRating(opponentRating)) && (

@@ -4,6 +4,7 @@ import { Result } from '@/util/types';
 import { roundNumber } from '@/util/util';
 import { useState } from 'react';
 import EditDateButton from './EditDateButton';
+import { FaArrowUp, FaArrowDown, FaMinus } from 'react-icons/fa';
 
 interface ListRatingChangeProps {
   results: Result[];
@@ -100,8 +101,13 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
                 <td className="border border-gray-200 p-3 text-sm text-gray-700 capitalize">{result.result}</td>
                 <td className="border border-gray-200 p-3 text-sm text-gray-700">
                   <div className="flex items-center justify-between">
-                    <span className={result.ratingChange > 0 ? 'text-green-600' : 'text-red-600'}>
-                      {result.ratingChange > 0 ? '+' : ''}{result.ratingChange}
+                    <span className="flex items-center gap-1">
+                      {result.ratingChange > 0 && <FaArrowUp className="text-green-600" />}
+                      {result.ratingChange < 0 && <FaArrowDown className="text-red-600" />}
+                      {result.ratingChange === 0 && <FaMinus className="text-gray-400" />}
+                      <span className={result.ratingChange > 0 ? 'text-green-600' : result.ratingChange < 0 ? 'text-red-600' : 'text-gray-600'}>
+                        {Math.abs(result.ratingChange)}
+                      </span>
                     </span>
                     <button
                       onClick={e => { e.stopPropagation(); handleRemoveClick(index); }}
