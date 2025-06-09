@@ -22,10 +22,11 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const basePath = `${process.env.BASE_PATH || ""}/manifest.webmanifest`;
   return (
     <html lang="en">
       <head>
-        <link rel="manifest" href="/manifest.json" />
+        <link rel="manifest" href={basePath} />
         <meta name="theme-color" content="#0a1128" />
       </head>
       <body
