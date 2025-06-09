@@ -5,48 +5,27 @@ import { calculateRatingChange } from '../util/util';
 import ListRatingChange from '@/components/ListRatingChange';
 import CurrentChangeBox from '@/components/CurrentChangeBox';
 import PrintTotalChange from '@/components/PrintTotalChange';
+import { useRatingList } from '@/hooks/useRatingList';
 import type { GameResult, Result } from '@/util/types';
 
 export default function Home() {
+  const {
+    results,
+    addResult,
+    removeResult,
+    updateResult,
+  } = useRatingList();
   const [playerRating, setPlayerRating] = useState<number>(1881);
   const [kFactor, setKFactor] = useState<number>(40);
   const [opponentName, setOpponentName] = useState<string>('');
   const [opponentRating, setOpponentRating] = useState<number>(1400);
   const [result, setResult] = useState<GameResult>('win');
-  const [results, setResults] = useState<Result[]>([]);
   const [totalChange, setTotalChange] = useState<number>(0);
   const [currentRatingChange, setCurrentRatingChange] = useState<number | null>(null);
 
   useEffect(() => {
-    const savedPlayerRating = localStorage.getItem('fidePlayerRating');
-    if (savedPlayerRating) {
-      setPlayerRating(Number(savedPlayerRating));
-    }
-    const savedResults = localStorage.getItem('fideResults');
-    if (savedResults) {
-      const parsedResults = JSON.parse(savedResults);
-      setResults(parsedResults);
-      const total = Math.round(100 * parsedResults.reduce((acc: number, curr: Result) => acc + curr.ratingChange, 0)) / 100;
-      setTotalChange(total);
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('fidePlayerRating', String(playerRating));
-  }, [playerRating]);
-
-  useEffect(() => {
-    //eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const handleImportedResults = (e: any) => {
-      if (e.detail && Array.isArray(e.detail)) {
-        setResults(e.detail);
-        setTotalChange(e.detail.reduce((acc: number, curr: Result) => acc + curr.ratingChange, 0));
-        localStorage.setItem('fideResults', JSON.stringify(e.detail));
-      }
-    };
-    window.addEventListener('importedResults', handleImportedResults);
-    return () => window.removeEventListener('importedResults', handleImportedResults);
-  }, []);
+    setTotalChange(Math.round(100 * results.reduce((acc, curr) => acc + curr.ratingChange, 0)) / 100);
+  }, [results]);
 
   const isValidRating = (rating: number) => rating >= 1400 && rating <= 3500;
   const isFormValid = isValidRating(playerRating) && isValidRating(opponentRating);
@@ -61,7 +40,6 @@ export default function Home() {
     if (!isFormValid) return;
     const ratingChange = calculateRatingChange(playerRating, opponentRating, result, kFactor);
     setCurrentRatingChange(ratingChange);
-
     const newResult: Result = {
       playerRating,
       opponentName,
@@ -71,18 +49,15 @@ export default function Home() {
       ratingChange,
       date: new Date().toLocaleDateString()
     };
-
-    const updatedResults = [...results, newResult];
-    setResults(updatedResults);
-    setTotalChange(totalChange + ratingChange);
-    localStorage.setItem('fideResults', JSON.stringify(updatedResults));
+    addResult(newResult);
   };
 
   const handleRemove = (index: number) => {
-    const updatedResults = results.filter((_, i) => i !== index);
-    setResults(updatedResults);
-    setTotalChange(updatedResults.reduce((acc, curr) => acc + curr.ratingChange, 0));
-    localStorage.setItem('fideResults', JSON.stringify(updatedResults));
+    removeResult(index);
+  };
+
+  const handleUpdateDate = (index: number, date: string) => {
+    updateResult(index, { date });
   };
 
   return (
@@ -201,6 +176,7 @@ export default function Home() {
             formSection.scrollIntoView({ behavior: 'smooth' });
           }
         }}
+        onUpdateDate={handleUpdateDate}
       />
     </div>
   );

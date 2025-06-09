@@ -3,14 +3,16 @@ import ImportExport from '@/components/ImportExport';
 import { Result } from '@/util/types';
 import { roundNumber } from '@/util/util';
 import { useState } from 'react';
+import EditDateButton from './EditDateButton';
 
 interface ListRatingChangeProps {
   results: Result[];
   onRemove: (index: number) => void;
   onSelect?: (result: Result, index: number) => void;
+  onUpdateDate?: (index: number, date: string) => void;
 }
 
-export default function ListRatingChange({ results, onRemove, onSelect }: ListRatingChangeProps) {
+export default function ListRatingChange({ results, onRemove, onSelect, onUpdateDate }: ListRatingChangeProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingRemove, setPendingRemove] = useState<number | null>(null);
   const totalChange = roundNumber(results.reduce((acc, curr) => acc + curr.ratingChange, 0));
@@ -80,7 +82,17 @@ export default function ListRatingChange({ results, onRemove, onSelect }: ListRa
                 className="hover:bg-gray-50 cursor-pointer"
                 onClick={() => onSelect && onSelect(result, index)}
               >
-                <td className="border border-gray-200 p-3 text-sm text-gray-700">{result.date}</td>
+                <td className="border border-gray-200 p-3 text-sm text-gray-700 flex items-center gap-2 group">
+                  <span>{result.date}</span>
+                  {onUpdateDate && (
+                    <span style={{ zIndex: 10, position: 'relative' }}>
+                      <EditDateButton
+                        date={result.date}
+                        onChange={(date: string) => onUpdateDate(index, date)}
+                      />
+                    </span>
+                  )}
+                </td>
                 <td className="border border-gray-200 p-3 text-sm text-gray-700">{result.playerRating}</td>
                 <td className="border border-gray-200 p-3 text-sm text-gray-700">{result.opponentName}</td>
                 <td className="border border-gray-200 p-3 text-sm text-gray-700">{result.opponentRating}</td>
@@ -114,7 +126,17 @@ export default function ListRatingChange({ results, onRemove, onSelect }: ListRa
             onClick={() => onSelect && onSelect(result, index)}
           >
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-500">{result.date}</span>
+              <span className="text-sm text-gray-500 flex items-center gap-2 group">
+                {result.date}
+                {onUpdateDate && (
+                  <span style={{ zIndex: 10, position: 'relative' }}>
+                    <EditDateButton
+                      date={result.date}
+                      onChange={(date: string) => onUpdateDate(index, date)}
+                    />
+                  </span>
+                )}
+              </span>
               <button
                 onClick={e => { e.stopPropagation(); handleRemoveClick(index); }}
                 className="text-red-600 hover:text-red-800"
