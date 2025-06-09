@@ -68,7 +68,7 @@ export default function ListRatingChange({ results, onRemove, onSelect }: ListRa
               <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">Player Rating</th>
               <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">Opponent</th>
               <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">Opponent Rating</th>
-              <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">K Factor</th>
+              <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">K-Factor</th>
               <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">Result</th>
               <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">Rating Change</th>
             </tr>

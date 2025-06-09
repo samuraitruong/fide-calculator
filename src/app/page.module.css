@@ -1,0 +1,15 @@
+/* src/app/page.module.css */
+
+@media print {
+
+    #fide-form-section,
+    .current-change-box,
+    .no-print {
+        display: none !important;
+    }
+
+    body,
+    html {
+        background: white !important;
+    }
+}
