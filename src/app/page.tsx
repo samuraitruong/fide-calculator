@@ -79,7 +79,7 @@ export default function Home() {
       {/* Form and current change box on top */}
 
       <div className='flex flex-col md:flex-row w-full max-w-7xl gap-3'>
-        <div className="flex-1 w-full md:w-2/3 p-1">
+        <div className="w-full md:w-2/3 p-1">
           <div id="fide-form-section" className="bg-white rounded-xl shadow-lg p-5 w-full h-full print:hidden">
             <h1 className="text-3xl font-bold mb-5 text-center text-gray-800">FIDE Rating Calculator</h1>
             <div className="space-y-2">
@@ -160,7 +160,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-        <div className="flex-1 w-full md:w-1/3 p-1 print:hidden">
+        <div className="w-full md:w-1/3 p-1 print:hidden">
           {currentRatingChange !== null && (
             <CurrentChangeBox currentRatingChange={currentRatingChange} />
           )}

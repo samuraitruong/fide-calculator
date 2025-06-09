@@ -33,7 +33,7 @@ export default function ListRatingChange({ results, onRemove, onSelect }: ListRa
   };
 
   return (
-    <div className="w-full mt-12 bg-white rounded-xl shadow-lg p-8 print:p-0 print:shadow-none print:border-0 print:rounded-none">
+    <div className="w-full mt-5 md:mt-8 bg-white rounded-xl shadow-lg p-3 md:p-8 print:p-0 print:shadow-none print:border-0 print:rounded-none">
       <Confirm
         open={confirmOpen}
         title="Remove Rating Change"
