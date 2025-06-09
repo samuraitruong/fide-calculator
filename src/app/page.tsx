@@ -35,12 +35,17 @@ export default function Home() {
     localStorage.setItem('fidePlayerRating', String(playerRating));
   }, [playerRating]);
 
+  const isValidRating = (rating: number) => rating >= 1400 && rating <= 3500;
+  const isFormValid = isValidRating(playerRating) && isValidRating(opponentRating);
+
   const handleCalculate = () => {
+    if (!isFormValid) return;
     const ratingChange = calculateRatingChange(playerRating, opponentRating, result, kFactor);
     setCurrentRatingChange(ratingChange);
   };
 
   const handleTrack = () => {
+    if (!isFormValid) return;
     const ratingChange = calculateRatingChange(playerRating, opponentRating, result, kFactor);
     setCurrentRatingChange(ratingChange);
 
@@ -145,18 +150,23 @@ export default function Home() {
               </div>
               <div className="flex space-x-4 pt-4">
                 <button
-                  className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={handleCalculate}
+                  disabled={!isFormValid}
                 >
                   Calculate
                 </button>
                 <button
-                  className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                  className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={handleTrack}
+                  disabled={!isFormValid}
                 >
-                  Track
+                  Save
                 </button>
               </div>
+              {(!isValidRating(playerRating) || !isValidRating(opponentRating)) && (
+                <div className="text-red-600 text-sm mt-2">Player and Opponent ratings must be between 1400 and 3500.</div>
+              )}
             </div>
           </div>
         </div>
