@@ -13,3 +13,7 @@ export function calculateRatingChange(playerRating: number, opponentRating: numb
   const delta = kFactor * (S - E);
   return Math.round(delta * 100) / 100;
 }
+
+export function roundNumber(change: number): number {
+  return Math.round(change * 100) / 100;
+}

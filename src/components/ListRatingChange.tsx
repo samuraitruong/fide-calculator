@@ -1,4 +1,7 @@
+import Confirm from '@/components/Confirm';
 import { Result } from '@/util/types';
+import { roundNumber } from '@/util/util';
+import { useState } from 'react';
 
 interface ListRatingChangeProps {
   results: Result[];
@@ -7,10 +10,39 @@ interface ListRatingChangeProps {
 }
 
 export default function ListRatingChange({ results, onRemove, onSelect }: ListRatingChangeProps) {
-  const totalChange = results.reduce((acc, curr) => acc + curr.ratingChange, 0);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingRemove, setPendingRemove] = useState<number | null>(null);
+  const totalChange = roundNumber(results.reduce((acc, curr) => acc + curr.ratingChange, 0));
+
+  const handleRemoveClick = (index: number) => {
+    setPendingRemove(index);
+    setConfirmOpen(true);
+  };
+
+  const handleConfirm = () => {
+    if (pendingRemove !== null) {
+      onRemove(pendingRemove);
+    }
+    setConfirmOpen(false);
+    setPendingRemove(null);
+  };
+
+  const handleCancel = () => {
+    setConfirmOpen(false);
+    setPendingRemove(null);
+  };
 
   return (
-    <div className="max-w-7xl mx-auto mt-12 bg-white rounded-xl shadow-lg p-8">
+    <div className="w-full mt-12 bg-white rounded-xl shadow-lg p-8">
+      <Confirm
+        open={confirmOpen}
+        title="Remove Rating Change"
+        message="Are you sure you want to remove this rating change?"
+        confirmText="Remove"
+        cancelText="Cancel"
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Rating changes</h2>
         <div className="flex items-center gap-2">
@@ -22,14 +54,14 @@ export default function ListRatingChange({ results, onRemove, onSelect }: ListRa
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-gray-50">
-              <th className="border p-3 text-left text-sm font-medium text-gray-700">Date</th>
-              <th className="border p-3 text-left text-sm font-medium text-gray-700">Player Rating</th>
-              <th className="border p-3 text-left text-sm font-medium text-gray-700">Opponent</th>
-              <th className="border p-3 text-left text-sm font-medium text-gray-700">Opponent Rating</th>
-              <th className="border p-3 text-left text-sm font-medium text-gray-700">K Factor</th>
-              <th className="border p-3 text-left text-sm font-medium text-gray-700">Result</th>
-              <th className="border p-3 text-left text-sm font-medium text-gray-700">Rating Change</th>
+            <tr className="bg-gray-100">
+              <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">Date</th>
+              <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">Player Rating</th>
+              <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">Opponent</th>
+              <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">Opponent Rating</th>
+              <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">K Factor</th>
+              <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">Result</th>
+              <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">Rating Change</th>
             </tr>
           </thead>
           <tbody>
@@ -39,19 +71,19 @@ export default function ListRatingChange({ results, onRemove, onSelect }: ListRa
                 className="hover:bg-gray-50 cursor-pointer"
                 onClick={() => onSelect && onSelect(result, index)}
               >
-                <td className="border p-3 text-sm text-gray-700">{result.date}</td>
-                <td className="border p-3 text-sm text-gray-700">{result.playerRating}</td>
-                <td className="border p-3 text-sm text-gray-700">{result.opponentName}</td>
-                <td className="border p-3 text-sm text-gray-700">{result.opponentRating}</td>
-                <td className="border p-3 text-sm text-gray-700">{result.kFactor}</td>
-                <td className="border p-3 text-sm text-gray-700 capitalize">{result.result}</td>
-                <td className="border p-3 text-sm text-gray-700">
+                <td className="border border-gray-200 p-3 text-sm text-gray-700">{result.date}</td>
+                <td className="border border-gray-200 p-3 text-sm text-gray-700">{result.playerRating}</td>
+                <td className="border border-gray-200 p-3 text-sm text-gray-700">{result.opponentName}</td>
+                <td className="border border-gray-200 p-3 text-sm text-gray-700">{result.opponentRating}</td>
+                <td className="border border-gray-200 p-3 text-sm text-gray-700">{result.kFactor}</td>
+                <td className="border border-gray-200 p-3 text-sm text-gray-700 capitalize">{result.result}</td>
+                <td className="border border-gray-200 p-3 text-sm text-gray-700">
                   <div className="flex items-center justify-between">
                     <span className={result.ratingChange > 0 ? 'text-green-600' : 'text-red-600'}>
                       {result.ratingChange > 0 ? '+' : ''}{result.ratingChange}
                     </span>
                     <button
-                      onClick={() => onRemove(index)}
+                      onClick={e => { e.stopPropagation(); handleRemoveClick(index); }}
                       className="text-red-600 hover:text-red-800 ml-4"
                     >
                       ×
@@ -75,7 +107,7 @@ export default function ListRatingChange({ results, onRemove, onSelect }: ListRa
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-500">{result.date}</span>
               <button
-                onClick={() => onRemove(index)}
+                onClick={e => { e.stopPropagation(); handleRemoveClick(index); }}
                 className="text-red-600 hover:text-red-800"
               >
                 ×
