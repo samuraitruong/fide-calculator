@@ -36,8 +36,12 @@ export function useFideData(initialKeyword: string): {
             }
             const data = parseFideTable(await response.text());
             setFideData(data);
-        } catch (err: any) {
-            setError(err.message || String(err));
+        } catch (err) {
+            setError(
+                err && typeof err === "object" && "message" in err
+                    ? String((err as { message: unknown }).message)
+                    : String(err)
+            );
         } finally {
             setLoading(false);
         }
