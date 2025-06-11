@@ -1,6 +1,7 @@
 export type GameResult = 'win' | 'draw' | 'loss';
 
 export interface Result {
+  id?: string;
   playerRating: number;
   opponentName: string;
   opponentRating: number;

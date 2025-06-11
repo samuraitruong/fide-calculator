@@ -12,7 +12,6 @@ import KFactorHelp from '@/components/KFactorHelp';
 import { FaCalculator, FaSave } from 'react-icons/fa';
 import { useFideData } from '@/hooks/useFideData';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
-
 export default function Home() {
   const {
     results,
@@ -20,6 +19,7 @@ export default function Home() {
     removeResult,
     updateResult,
   } = useRatingList();
+  const [selectedResult, setSelectedResult] = useState<Result | null>(null);
   const [playerRating, setPlayerRating] = useState<number>(1881);
   const [kFactor, setKFactor] = useState<number>(40);
   const [opponentName, setOpponentName] = useState<string>('');
@@ -58,6 +58,8 @@ export default function Home() {
     const ratingChange = calculateRatingChange(playerRating, opponentRating, result, kFactor);
     setCurrentRatingChange(ratingChange);
     const newResult: Result = {
+      id: selectedResult?.id || (Date.now().toString() + Math.random().toString().slice(2)),
+      ...(selectedResult || {}),
       playerRating,
       opponentName,
       opponentRating,
@@ -98,6 +100,22 @@ export default function Home() {
     setOpponentRating(Number(rating) || 1400);
     setShowOpponentDropdown(false);
     inputRef.current?.blur();
+  };
+
+  // Handler for selecting a result from the list
+  const handleSelectResult = (result: Result) => {
+    setPlayerRating(result.playerRating);
+    setOpponentName(result.opponentName);
+    setOpponentRating(result.opponentRating);
+    setKFactor(result.kFactor);
+    setResult(result.result);
+    setCurrentRatingChange(result.ratingChange);
+    setSelectedResult(result);
+    // Optionally scroll to form
+    const formSection = document.getElementById('fide-form-section');
+    if (formSection) {
+      formSection.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   function getResultButtonClass(option: GameResult, selected: GameResult) {
@@ -249,19 +267,7 @@ export default function Home() {
       <ListRatingChange
         results={results}
         onRemove={handleRemove}
-        onSelect={(result) => {
-          setPlayerRating(result.playerRating);
-          setOpponentName(result.opponentName);
-          setOpponentRating(result.opponentRating);
-          setKFactor(result.kFactor);
-          setResult(result.result);
-          setCurrentRatingChange(result.ratingChange);
-          // Optionally scroll to form
-          const formSection = document.getElementById('fide-form-section');
-          if (formSection) {
-            formSection.scrollIntoView({ behavior: 'smooth' });
-          }
-        }}
+        onSelect={handleSelectResult}
         onUpdateDate={handleUpdateDate}
       />
     </div>

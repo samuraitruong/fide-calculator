@@ -10,7 +10,10 @@ export function useRatingList() {
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
-      setResults(JSON.parse(saved));
+      let loaded: Result[] = JSON.parse(saved);
+      // Add id if missing
+      loaded = loaded.map(r => r.id ? r : { ...r, id: Date.now().toString() + Math.random().toString().slice(2) });
+      setResults(loaded);
     }
   }, []);
 
@@ -33,15 +36,30 @@ export function useRatingList() {
   }, []);
 
   const addResult = useCallback((result: Result) => {
-    setResults(prev => [...prev, result]);
+    setResults(prev => {
+      if (result.id) {
+        // If id exists, update by id
+        const idx = prev.findIndex(r => r.id === result.id);
+        if (idx !== -1) {
+          return prev.map((r, i) => i === idx ? { ...result } : r);
+        }
+      }
+      // Otherwise, add new with id
+      return [...prev, { ...result, id: result.id || (Date.now().toString() + Math.random().toString().slice(2)) }];
+    });
   }, []);
 
   const removeResult = useCallback((index: number) => {
     setResults(prev => prev.filter((_, i) => i !== index));
   }, []);
 
-  const updateResult = useCallback((index: number, updated: Partial<Result>) => {
-    setResults(prev => prev.map((r, i) => i === index ? { ...r, ...updated } : r));
+  const updateResult = useCallback((indexOrId: number | string, updated: Partial<Result>) => {
+    setResults(prev => prev.map((r, i) => {
+      if ((typeof indexOrId === 'number' && i === indexOrId) || (typeof indexOrId === 'string' && r.id === indexOrId)) {
+        return { ...r, ...updated };
+      }
+      return r;
+    }));
   }, []);
 
   const setAllResults = useCallback((newResults: Result[]) => {
