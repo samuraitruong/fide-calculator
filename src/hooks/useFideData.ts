@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 export interface FidePlayer {
     fideId: string;
@@ -22,12 +22,14 @@ export function useFideData(initialKeyword: string): {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [keyword, setKeyword] = useState(initialKeyword);
+    const latestKeyword = useRef(initialKeyword);
 
     const search = useCallback(async (kw: string) => {
         setLoading(true);
         setError(null);
         setFideData([]);
         setKeyword(kw);
+        latestKeyword.current = kw;
         try {
             const url = `https://ratings.fide.com/incl_search_l.php?search=${kw}&simple=1`;
             const response = await fetch('https://no-cors.fly.dev/cors/' + url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
@@ -35,15 +37,22 @@ export function useFideData(initialKeyword: string): {
                 throw new Error('Failed to fetch FIDE data');
             }
             const data = parseFideTable(await response.text());
-            setFideData(data);
+            // Only update if keyword hasn't changed
+            if (latestKeyword.current === kw) {
+                setFideData(data);
+            }
         } catch (err) {
-            setError(
-                err && typeof err === "object" && "message" in err
-                    ? String((err as { message: unknown }).message)
-                    : String(err)
-            );
+            if (latestKeyword.current === kw) {
+                setError(
+                    err && typeof err === "object" && "message" in err
+                        ? String((err as { message: unknown }).message)
+                        : String(err)
+                );
+            }
         } finally {
-            setLoading(false);
+            if (latestKeyword.current === kw) {
+                setLoading(false);
+            }
         }
     }, []);
 
