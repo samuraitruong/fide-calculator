@@ -18,6 +18,7 @@ export default function Home() {
     addResult,
     removeResult,
     updateResult,
+    setAllResults,
   } = useRatingList();
   const [selectedResult, setSelectedResult] = useState<Result | null>(null);
   const [playerRating, setPlayerRating] = useState<number>(1881);
@@ -116,6 +117,11 @@ export default function Home() {
     if (formSection) {
       formSection.scrollIntoView({ behavior: 'smooth' });
     }
+  };
+
+  // Handler for row reordering
+  const handleReorder = (newResults: Result[]) => {
+    setAllResults(newResults);
   };
 
   function getResultButtonClass(option: GameResult, selected: GameResult) {
@@ -269,6 +275,7 @@ export default function Home() {
         onRemove={handleRemove}
         onSelect={handleSelectResult}
         onUpdateDate={handleUpdateDate}
+        onReorder={handleReorder}
       />
     </div>
   );
