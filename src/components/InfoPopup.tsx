@@ -8,7 +8,6 @@ interface InfoPopupProps {
 
 export default function InfoPopup({ title, content }: InfoPopupProps) {
     const [open, setOpen] = useState(false);
-    console.log('InfoPopup rendered with title:', open);
     return (
         <span className="relative inline-block align-middle">
             <button
@@ -21,7 +20,12 @@ export default function InfoPopup({ title, content }: InfoPopupProps) {
             </button>
             {open && (
                 <>
-                    <div className="fixed inset-0 z-40" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={e => { e.preventDefault(); e.stopPropagation(); setOpen(false); }} />
+                    <div 
+                        role="presentation"
+                        className="fixed inset-0 z-40" 
+                        style={{ background: 'rgba(0,0,0,0.5)' }} 
+                        onClick={e => { e.preventDefault(); e.stopPropagation(); setOpen(false); }} 
+                    />
                     <div className="fixed inset-0 flex items-center justify-center z-50" onClick={e => { e.preventDefault(); e.stopPropagation(); }}>
                         <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative">
                             <button
