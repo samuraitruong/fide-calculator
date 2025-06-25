@@ -56,3 +56,83 @@ body {
     display: none !important;
   }
 }
+
+/* PDF export root: force hex/rgb colors for html2canvas compatibility */
+/* (Removed .pdf-export-root, .pdf-export-root * global override to restore Tailwind backgrounds in normal mode) */
+
+.pdf-bg-light {
+  background-color: #f3f4f6 !important; /* Tailwind gray-100 as hex */
+}
+
+.pdf-bg-table-header {
+  background-color: #f3f4f6 !important; /* Tailwind gray-100 as hex */
+}
+
+.pdf-border-table-row {
+  border-color: #e5e7eb !important; /* Tailwind gray-200 as hex */
+}
+
+/* PDF export: ensure table layout and borders are visible in PDF mode only */
+.pdf-export-mode table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+  background: #fff !important;
+}
+.pdf-export-mode th, .pdf-export-mode td {
+  border: 1px solid #e5e7eb !important;
+  background: #fff !important;
+  color: #111827 !important;
+}
+.pdf-export-mode th {
+  background: #f3f4f6 !important;
+  font-weight: 600 !important;
+}
+
+/* PDF export: force all descendants to use hex/rgb colors to prevent oklch errors */
+.pdf-export-mode, .pdf-export-mode * {
+  background-color: #fff !important;
+  color: #111 !important;
+  box-shadow: none !important;
+  border-color: #e5e7eb !important;
+}
+.pdf-export-mode .pdf-bg-light,
+.pdf-export-mode .pdf-bg-table-header {
+  background-color: #f3f4f6 !important;
+}
+.pdf-export-mode .pdf-border-table-row,
+.pdf-export-mode .border-b {
+  border-color: #e5e7eb !important;
+}
+.pdf-export-mode .bg-green-500 {
+  background-color: #22c55e !important;
+}
+.pdf-export-mode .bg-red-500 {
+  background-color: #ef4444 !important;
+}
+.pdf-export-mode .bg-green-100 {
+  background-color: #dcfce7 !important;
+}
+.pdf-export-mode .bg-red-100 {
+  background-color: #fee2e2 !important;
+}
+.pdf-export-mode .bg-gray-100 {
+  background-color: #f3f4f6 !important;
+}
+.pdf-export-mode .text-green-800 {
+  color: #166534 !important;
+}
+.pdf-export-mode .text-red-800 {
+  color: #991b1b !important;
+}
+.pdf-export-mode .text-gray-800 {
+  color: #1f2937 !important;
+}
+.pdf-export-mode .text-gray-900 {
+  color: #111827 !important;
+}
+.pdf-export-mode .text-green-700 {
+  color: #15803d !important;
+}
+.pdf-export-mode .text-red-700 {
+  color: #b91c1c !important;
+}
