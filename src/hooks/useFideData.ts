@@ -17,12 +17,14 @@ export function useFideData(initialKeyword: string): {
     loading: boolean;
     error: string | null;
     search: (keyword: string) => Promise<void>;
+    history: Record<string, FidePlayer[]>;
 } {
     const [fideData, setFideData] = useState<FidePlayer[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [keyword, setKeyword] = useState(initialKeyword);
     const latestKeyword = useRef(initialKeyword);
+    const [history, setHistory] = useState<Record<string, FidePlayer[]>>({});
 
     const search = useCallback(async (kw: string) => {
         setLoading(true);
@@ -37,6 +39,7 @@ export function useFideData(initialKeyword: string): {
                 throw new Error('Failed to fetch FIDE data');
             }
             const data = parseFideTable(await response.text());
+            setHistory(prev => ({ ...prev, [kw]: data }));
             // Only update if keyword hasn't changed
             if (latestKeyword.current === kw) {
                 setFideData(data);
@@ -60,7 +63,7 @@ export function useFideData(initialKeyword: string): {
         search(keyword);
     }, [keyword, search]);
 
-    return { fideData, loading, error, search };
+    return { fideData, loading, error, search, history };
 }
 
 export function parseFideTable(html: string): FidePlayer[] {

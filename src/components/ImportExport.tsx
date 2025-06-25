@@ -1,13 +1,14 @@
 import { useRef } from 'react';
 import { Result } from '@/util/types';
-import { FaFileImport, FaFileExport } from 'react-icons/fa';
+import { FaFileImport, FaFileExport, FaDownload } from 'react-icons/fa';
 
 interface ImportExportProps {
     results: Result[];
     onImport: (imported: Result[]) => void;
+    onCreateBackup?: () => void;
 }
 
-export default function ImportExport({ results, onImport }: ImportExportProps) {
+export default function ImportExport({ results, onImport, onCreateBackup }: ImportExportProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Export to CSV
@@ -97,6 +98,13 @@ export default function ImportExport({ results, onImport }: ImportExportProps) {
             </button>
             <button onClick={() => fileInputRef.current?.click()} className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm flex items-center gap-2">
                 <FaFileImport /> Import CSV
+            </button>
+            <button 
+                onClick={onCreateBackup} 
+                className="px-3 py-1 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm flex items-center gap-2"
+                disabled={!results || results.length === 0}
+            >
+                <FaDownload /> Create Backup
             </button>
             <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
         </div>

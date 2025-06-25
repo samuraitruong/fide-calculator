@@ -6,12 +6,17 @@ import ListRatingChange from '@/components/ListRatingChange';
 import CurrentChangeBox from '@/components/CurrentChangeBox';
 import PrintTotalChange from '@/components/PrintTotalChange';
 import { useRatingList } from '@/hooks/useRatingList';
+import { useBackup } from '@/hooks/useBackup';
 import type { GameResult, Result } from '@/util/types';
 import InfoPopup from '@/components/InfoPopup';
 import KFactorHelp from '@/components/KFactorHelp';
+import BackupDetailsModal from '@/components/BackupDetailsModal';
+import Snackbar from '@/components/Snackbar';
 import { FaCalculator, FaSave } from 'react-icons/fa';
 import { useFideData } from '@/hooks/useFideData';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import type { BackupData } from '@/hooks/useBackup';
+
 export default function Home() {
   const {
     results,
@@ -20,6 +25,13 @@ export default function Home() {
     updateResult,
     setAllResults,
   } = useRatingList();
+  
+  const {
+    backups,
+    createBackup,
+    deleteBackup
+  } = useBackup();
+
   const [selectedResult, setSelectedResult] = useState<Result | null>(null);
   const [playerRating, setPlayerRating] = useState<number>(1881);
   const [kFactor, setKFactor] = useState<number>(40);
@@ -30,6 +42,16 @@ export default function Home() {
   const [currentRatingChange, setCurrentRatingChange] = useState<number | null>(null);
   const [showOpponentDropdown, setShowOpponentDropdown] = useState(false);
   const [opponentSearch, setOpponentSearch] = useState('');
+  const [selectedBackup, setSelectedBackup] = useState<BackupData | null>(null);
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    type: 'success' | 'error' | 'info';
+  }>({
+    open: false,
+    message: '',
+    type: 'success'
+  });
   const debouncedOpponentSearch = useDebouncedValue(opponentSearch, 500);
   const { fideData, loading: fideLoading, search: fideSearch } = useFideData('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -122,6 +144,36 @@ export default function Home() {
   // Handler for row reordering
   const handleReorder = (newResults: Result[]) => {
     setAllResults(newResults);
+  };
+
+  // Backup handlers
+  const handleCreateBackup = () => {
+    const success = createBackup(results);
+    if (success) {
+      setSnackbar({
+        open: true,
+        message: 'Backup created successfully!',
+        type: 'success'
+      });
+    } else {
+      setSnackbar({
+        open: true,
+        message: 'No data to backup. Please add some games first.',
+        type: 'info'
+      });
+    }
+  };
+
+  const handleViewBackup = (backup: BackupData) => {
+    setSelectedBackup(backup);
+  };
+
+  const handleDeleteBackup = (backupId: string) => {
+    deleteBackup(backupId);
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
   };
 
   function getResultButtonClass(option: GameResult, selected: GameResult) {
@@ -276,6 +328,24 @@ export default function Home() {
         onSelect={handleSelectResult}
         onUpdateDate={handleUpdateDate}
         onReorder={handleReorder}
+        backups={backups}
+        onViewBackup={handleViewBackup}
+        onCreateBackup={handleCreateBackup}
+      />
+      
+      {/* Backup Details Modal */}
+      <BackupDetailsModal
+        backup={selectedBackup}
+        onClose={() => setSelectedBackup(null)}
+        onDelete={handleDeleteBackup}
+      />
+
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        message={snackbar.message}
+        type={snackbar.type}
+        onClose={handleCloseSnackbar}
       />
     </div>
   );

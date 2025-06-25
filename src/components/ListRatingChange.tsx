@@ -10,6 +10,8 @@ import { FaArrowUp, FaArrowDown, FaMinus, FaTrashAlt } from 'react-icons/fa';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import type { DropTargetMonitor } from 'react-dnd';
+import BackupList from '@/components/BackupList';
+import { BackupData } from '@/hooks/useBackup';
 
 interface DragItem {
   index: number;
@@ -22,6 +24,9 @@ interface ListRatingChangeProps {
   onSelect?: (result: Result, index: number) => void;
   onUpdateDate?: (index: number, date: string) => void;
   onReorder?: (newResults: Result[]) => void;
+  backups?: BackupData[];
+  onViewBackup?: (backup: BackupData) => void;
+  onCreateBackup?: () => void;
 }
 
 // Draggable row component
@@ -117,7 +122,7 @@ const DraggableRow = ({
   );
 };
 
-export default function ListRatingChange({ results, onRemove, onSelect, onUpdateDate, onReorder }: ListRatingChangeProps) {
+export default function ListRatingChange({ results, onRemove, onSelect, onUpdateDate, onReorder, backups, onViewBackup, onCreateBackup }: ListRatingChangeProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingRemove, setPendingRemove] = useState<number | null>(null);
   const [tableData, setTableData] = useState(results);
@@ -262,10 +267,25 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
             </div>
           ))}
         </div>
-        <ImportExport results={results} onImport={handleImport} />
+        <ImportExport 
+          results={results} 
+          onImport={handleImport}
+          onCreateBackup={onCreateBackup}
+        />
+        
+        {/* Backup List */}
+        {backups && onViewBackup && (
+          <div className="mt-6">
+            <BackupList
+              backups={backups}
+              onView={onViewBackup}
+            />
+          </div>
+        )}
       </div>
     </DndProvider>
   );
 }
+
 
 
