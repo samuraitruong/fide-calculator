@@ -37,7 +37,7 @@ export default function Home() {
   const { isOpen: confirmOpen, title: confirmTitle, message: confirmMessage, openConfirm, handleConfirm, handleCancel } = useConfirm();
 
   const [selectedResult, setSelectedResult] = useState<Result | null>(null);
-  const [playerRating, setPlayerRating] = useState<number>(1881);
+  const [playerRating, setPlayerRating] = useState<number>(1888);
   const [kFactor, setKFactor] = useState<number>(40);
   const [opponentName, setOpponentName] = useState<string>('');
   const [opponentRating, setOpponentRating] = useState<number>(1400);
