@@ -12,10 +12,12 @@ import InfoPopup from '@/components/InfoPopup';
 import KFactorHelp from '@/components/KFactorHelp';
 import BackupDetailsModal from '@/components/BackupDetailsModal';
 import Snackbar from '@/components/Snackbar';
+import Confirm from '@/components/Confirm';
 import { FaCalculator, FaSave } from 'react-icons/fa';
 import { useFideData } from '@/hooks/useFideData';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import type { BackupData } from '@/hooks/useBackup';
+import { useConfirm } from '@/hooks/useConfirm';
 
 export default function Home() {
   const {
@@ -31,6 +33,8 @@ export default function Home() {
     createBackup,
     deleteBackup
   } = useBackup();
+
+  const { isOpen: confirmOpen, title: confirmTitle, message: confirmMessage, openConfirm, handleConfirm, handleCancel } = useConfirm();
 
   const [selectedResult, setSelectedResult] = useState<Result | null>(null);
   const [playerRating, setPlayerRating] = useState<number>(1881);
@@ -170,6 +174,43 @@ export default function Home() {
 
   const handleDeleteBackup = (backupId: string) => {
     deleteBackup(backupId);
+  };
+
+  const handleReset = () => {
+    // First create a backup of current data
+    const backupSuccess = createBackup(results);
+    
+    // Then clear all results
+    setAllResults([]);
+    
+    // Reset form state
+    setSelectedResult(null);
+    setCurrentRatingChange(null);
+    
+    // Show success message
+    setSnackbar({
+      open: true,
+      message: backupSuccess 
+        ? 'Data reset successfully! A backup has been created.' 
+        : 'Data reset successfully!',
+      type: 'success'
+    });
+  };
+
+  const handleResetClick = () => {
+    if (results.length === 0) {
+      setSnackbar({
+        open: true,
+        message: 'No data to reset.',
+        type: 'info'
+      });
+      return;
+    }
+    
+    openConfirm(
+      'Reset All Data',
+      'This will create a backup of your current data and then remove all entries. Are you sure you want to continue?'
+    );
   };
 
   const handleCloseSnackbar = () => {
@@ -331,6 +372,7 @@ export default function Home() {
         backups={backups}
         onViewBackup={handleViewBackup}
         onCreateBackup={handleCreateBackup}
+        onReset={handleResetClick}
       />
       
       {/* Backup Details Modal */}
@@ -338,6 +380,17 @@ export default function Home() {
         backup={selectedBackup}
         onClose={() => setSelectedBackup(null)}
         onDelete={handleDeleteBackup}
+      />
+
+      {/* Reset Confirmation Modal */}
+      <Confirm
+        open={confirmOpen}
+        title={confirmTitle}
+        message={confirmMessage}
+        confirmText="Reset"
+        cancelText="Cancel"
+        onConfirm={() => handleConfirm(handleReset)}
+        onCancel={() => handleCancel(() => {})}
       />
 
       {/* Snackbar */}

@@ -27,6 +27,7 @@ interface ListRatingChangeProps {
   backups?: BackupData[];
   onViewBackup?: (backup: BackupData) => void;
   onCreateBackup?: () => void;
+  onReset?: () => void;
 }
 
 // Draggable row component
@@ -122,7 +123,7 @@ const DraggableRow = ({
   );
 };
 
-export default function ListRatingChange({ results, onRemove, onSelect, onUpdateDate, onReorder, backups, onViewBackup, onCreateBackup }: ListRatingChangeProps) {
+export default function ListRatingChange({ results, onRemove, onSelect, onUpdateDate, onReorder, backups, onViewBackup, onCreateBackup, onReset }: ListRatingChangeProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingRemove, setPendingRemove] = useState<number | null>(null);
   const [tableData, setTableData] = useState(results);
@@ -271,6 +272,7 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
           results={results} 
           onImport={handleImport}
           onCreateBackup={onCreateBackup}
+          onReset={onReset}
         />
         
         {/* Backup List */}
