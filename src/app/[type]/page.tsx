@@ -1,13 +1,23 @@
-'use client';
-
-import { notFound, useParams } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import FideCalculator from '@/components/FideCalculator';
 import RatingTypeNav from '@/components/RatingTypeNav';
 import { RatingType } from '@/util/types';
 
-export default function RatingTypePage() {
-  const { type } = useParams<{ type: string }>();
-  
+export function generateStaticParams() {
+  return [
+    { type: 'standard' },
+    { type: 'blitz' },
+    { type: 'rapid' },
+  ];
+}
+
+interface PageProps {
+  params: Promise<{ type: string }>;
+}
+
+export default async function RatingTypePage({ params }: PageProps) {
+  const { type } = await params;
+
   // Validate the rating type
   const validTypes: RatingType[] = ['standard', 'blitz', 'rapid'];
   if (!type || !validTypes.includes(type as RatingType)) {
