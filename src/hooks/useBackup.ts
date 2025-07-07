@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Result } from '@/util/types';
+import { Result, RatingType } from '@/util/types';
 
 export interface BackupData {
   id: string;
@@ -8,30 +8,67 @@ export interface BackupData {
   createdAt: string;
   totalChange: number;
   gameCount: number;
+  type: RatingType; // Add type to backup data
 }
 
-const BACKUP_STORAGE_KEY = 'fideBackups';
+const getBackupStorageKey = (type: RatingType) => `fideBackups_${type}`;
+const OLD_BACKUP_STORAGE_KEY = 'fideBackups'; // Old format key
 
-export function useBackup() {
+export function useBackup(type: RatingType = 'standard') {
   const [backups, setBackups] = useState<BackupData[]>([]);
+  const storageKey = getBackupStorageKey(type);
+
+  // Migration function to handle old backup data format
+  const migrateOldBackupData = useCallback((type: RatingType) => {
+    if (type !== 'standard') return null; // Only migrate to standard
+    const oldData = localStorage.getItem(OLD_BACKUP_STORAGE_KEY);
+    if (!oldData) return null;
+    try {
+      const parsedData: BackupData[] = JSON.parse(oldData);
+      if (Array.isArray(parsedData) && parsedData.length > 0) {
+        // Migrate the data to new format
+        const migratedData = parsedData.map(backup => ({
+          ...backup,
+          type: 'standard' as RatingType // Add type to old backups
+        }));
+        if (migratedData.length > 0) {
+          localStorage.setItem(storageKey, JSON.stringify(migratedData));
+          localStorage.removeItem(OLD_BACKUP_STORAGE_KEY);
+          console.log(`Migrated ${migratedData.length} backups from old format to standard`);
+          return migratedData;
+        }
+      }
+    } catch (error) {
+      console.error('Error migrating old backup data:', error);
+    }
+    return null;
+  }, [storageKey]);
 
   // Load backups from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem(BACKUP_STORAGE_KEY);
+    const saved = localStorage.getItem(storageKey);
     if (saved) {
       try {
         const loaded: BackupData[] = JSON.parse(saved);
         setBackups(loaded);
       } catch (error) {
         console.error('Error loading backups:', error);
+        setBackups([]);
       }
+    } else {
+      // Try to migrate old backup data if no new data exists
+      const migratedData = migrateOldBackupData(type);
+      if (Array.isArray(migratedData) && migratedData.length > 0) {
+        setBackups(migratedData);
+      }
+      // If migration is skipped or fails, do not set state or localStorage
     }
-  }, []);
+  }, [storageKey, migrateOldBackupData, type]);
 
   // Save backups to localStorage on change
   useEffect(() => {
-    localStorage.setItem(BACKUP_STORAGE_KEY, JSON.stringify(backups));
-  }, [backups]);
+    localStorage.setItem(storageKey, JSON.stringify(backups));
+  }, [backups, storageKey]);
 
   // Get the most popular month from the data
   const getMostPopularMonth = useCallback((results: Result[]): string => {
@@ -108,7 +145,8 @@ export function useBackup() {
       data: [...results],
       createdAt: new Date().toISOString(),
       totalChange,
-      gameCount: results.length
+      gameCount: results.length,
+      type // Add type to backup
     };
 
     setBackups(prev => {
@@ -124,7 +162,7 @@ export function useBackup() {
     });
 
     return true;
-  }, [getMostPopularMonth]);
+  }, [getMostPopularMonth, type]);
 
   // Restore a backup
   const restoreBackup = useCallback((backupId: string): Result[] | null => {

@@ -1,4 +1,5 @@
 export type GameResult = 'win' | 'draw' | 'loss';
+export type RatingType = 'standard' | 'blitz' | 'rapid';
 
 export interface Result {
   id?: string;
