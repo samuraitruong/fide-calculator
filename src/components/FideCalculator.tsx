@@ -108,6 +108,14 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
       date: new Date().toLocaleDateString()
     };
     addResult(newResult);
+    // Reset form after add/update
+    setSelectedResult(null);
+    setPlayerRating(1888);
+    setOpponentName('');
+    setOpponentRating(1400);
+    setKFactor(getDefaultK(type));
+    setResult('win');
+    setCurrentRatingChange(null);
   };
 
   const handleRemove = (index: number) => {
@@ -344,7 +352,7 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
               </div>
               <div className="flex items-center gap-3 mt-4">
                 <label className="block text-sm font-medium text-gray-700 mb-0 hidden md:block">Result</label>
-                <div className="flex w-full">
+                <div className="flex w-full gap-x-2">
                   {(['win', 'draw', 'loss'] as GameResult[]).map((option) => (
                     <button
                       key={option}
