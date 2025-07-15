@@ -29,6 +29,8 @@ function getCurrentMonthKey() {
 }
 
 async function fetchAndCacheFidePlayer(keyword: string): Promise<FidePlayer | null> {
+  if (!keyword || keyword.trim() === '') return null;
+  
   const cacheKey = `fide_player_${keyword}_${getCurrentMonthKey()}`;
   const cached = localStorage.getItem(cacheKey);
   if (cached) {
@@ -37,13 +39,23 @@ async function fetchAndCacheFidePlayer(keyword: string): Promise<FidePlayer | nu
   try {
     const url = `https://ratings.fide.com/incl_search_l.php?search=${encodeURIComponent(keyword)}&simple=1`;
     const response = await fetch('https://no-cors.fly.dev/cors/' + url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.warn('FIDE search failed:', response.status, response.statusText);
+      return null;
+    }
     const html = await response.text();
     const parser = new window.DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
     const table = doc.querySelector('#table_results');
-    if (!table) return null;
+    if (!table) {
+      console.warn('No results table found in FIDE response');
+      return null;
+    }
     const rows = Array.from(table.querySelectorAll('tbody tr'));
+    if (rows.length === 0) {
+      console.warn('No player rows found in FIDE response');
+      return null;
+    }
     const players = rows.map((row) => {
       const cells = row.querySelectorAll('td');
       return {
@@ -58,11 +70,17 @@ async function fetchAndCacheFidePlayer(keyword: string): Promise<FidePlayer | nu
         birthYear: cells[8]?.textContent?.trim() || '',
       };
     });
+    console.log(`FIDE search for "${keyword}" returned ${players.length} players:`, players.map(p => p.name));
+    
     const player = players.find(p => p.name.toLowerCase() === keyword.toLowerCase());
     if (player) { localStorage.setItem(cacheKey, JSON.stringify(player)); return player; }
+    // If no exact match, return the first result if any (for partial matches)
     if (players.length > 0) { localStorage.setItem(cacheKey, JSON.stringify(players[0])); return players[0]; }
     return null;
-  } catch { return null; }
+  } catch (error) {
+    console.error('Error fetching FIDE player:', error);
+    return null;
+  }
 }
 
 export function usePlayerInfo(initialName: string, type: RatingType) {
@@ -80,7 +98,25 @@ export function usePlayerInfo(initialName: string, type: RatingType) {
     if (!player) setError('Player not found');
   }, []);
 
-  useEffect(() => { fetchPlayer(playerName); }, [playerName, fetchPlayer]);
+  // Update internal playerName when initialName changes
+  useEffect(() => {
+    setPlayerName(initialName);
+  }, [initialName]);
+
+  useEffect(() => {
+    const windowWithRefetch = window as Window & { playerInfoRefetch?: () => void };
+    windowWithRefetch.playerInfoRefetch = () => fetchPlayer(playerName);
+    return () => { 
+      delete windowWithRefetch.playerInfoRefetch; 
+    };
+  }, [fetchPlayer, playerName]);
+
+  // Fetch player data when playerName changes
+  useEffect(() => {
+    if (playerName) {
+      fetchPlayer(playerName);
+    }
+  }, [playerName, fetchPlayer]);
 
   const getRating = useCallback(() => {
     if (!playerInfo) return '';

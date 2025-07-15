@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { FaUser } from 'react-icons/fa';
 import type { FidePlayer } from '@/hooks/usePlayerInfo';
 import { useFideData } from '@/hooks/useFideData';
@@ -13,14 +13,23 @@ interface PlayerInfoModalProps {
   loading: boolean;
   error: string;
   onSave: () => void;
+  forceRefetchOnOpen?: boolean; // NEW
+  showSaveButton?: boolean; // NEW
 }
 
-export default function PlayerInfoModal({ open, onClose, playerName, setPlayerName, playerInfo, loading, error, onSave }: PlayerInfoModalProps) {
+export default function PlayerInfoModal({ open, onClose, playerName, setPlayerName, playerInfo, loading, error, onSave, forceRefetchOnOpen = false, showSaveButton = true }: PlayerInfoModalProps) {
   const [search, setSearch] = useState(playerName);
   const [showDropdown, setShowDropdown] = useState(false);
   const debouncedSearch = useDebouncedValue(search, 500);
   const { fideData, loading: fideLoading, search: fideSearch } = useFideData('');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleSelect = useCallback((name: string) => {
+    setPlayerName(name);
+    setSearch(name);
+    setShowDropdown(false);
+    inputRef.current?.blur();
+  }, [setPlayerName]);
 
   // Trigger FIDE search on debounced input
   useEffect(() => {
@@ -29,17 +38,33 @@ export default function PlayerInfoModal({ open, onClose, playerName, setPlayerNa
     }
   }, [debouncedSearch, showDropdown, fideSearch]);
 
+  // Auto-select if only one result
+  useEffect(() => {
+    if (fideData.length === 1 && !fideLoading && showDropdown) {
+      const player = fideData[0];
+      handleSelect(player.name);
+    }
+  }, [fideData, fideLoading, showDropdown, handleSelect]);
+
   // When modal opens, reset search to playerName
   useEffect(() => {
-    if (open) setSearch(playerName);
+    if (open) {
+      setSearch(playerName);
+      setShowDropdown(!!playerName);
+      // Focus the input when modal opens
+      setTimeout(() => { inputRef.current?.focus(); }, 0);
+    }
   }, [open, playerName]);
 
-  const handleSelect = (name: string) => {
-    setPlayerName(name);
-    setSearch(name);
-    setShowDropdown(false);
-    inputRef.current?.blur();
-  };
+  useEffect(() => {
+    if (open && forceRefetchOnOpen) {
+      // Call refetch if available
+      const windowWithRefetch = window as Window & { playerInfoRefetch?: () => void };
+      if (typeof windowWithRefetch.playerInfoRefetch === 'function') {
+        windowWithRefetch.playerInfoRefetch();
+      }
+    }
+  }, [open, forceRefetchOnOpen]);
 
   if (!open) return null;
   return (
@@ -139,11 +164,13 @@ export default function PlayerInfoModal({ open, onClose, playerName, setPlayerNa
             onClick={onClose}
             disabled={loading}
           >Cancel</button>
-          <button
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
-            onClick={onSave}
-            disabled={loading || !playerInfo}
-          >Save</button>
+          {showSaveButton && (
+            <button
+              className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+              onClick={onSave}
+              disabled={loading || !search.trim()}
+            >Save</button>
+          )}
         </div>
       </div>
     </div>

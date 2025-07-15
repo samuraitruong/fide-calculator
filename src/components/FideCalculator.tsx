@@ -152,9 +152,14 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
       date: new Date().toLocaleDateString()
     };
     addResult(newResult);
-    // Reset form after add/update
+    // Reset form after add/update, but preserve player rating from playerInfo
     setSelectedResult(null);
-    setPlayerRating(1888);
+    if (playerInfo) {
+      const rating = getPlayerInfoRating();
+      setPlayerRating(Number(rating) || 1888);
+    } else {
+      setPlayerRating(1888);
+    }
     setOpponentName('');
     setOpponentRating(1400);
     setKFactor(getDefaultK(type));
@@ -509,6 +514,7 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
         loading={playerInfoLoading}
         error={playerInfoError}
         onSave={handleSavePlayerInfo}
+        forceRefetchOnOpen={false}
       />
     </div>
   );
