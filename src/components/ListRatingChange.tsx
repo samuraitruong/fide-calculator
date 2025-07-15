@@ -144,17 +144,6 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
   // Keep tableData in sync with results
   useEffect(() => { setTableData(results); }, [results]);
 
-  // Update usePlayerInfo when modalPlayerName changes by triggering refetch
-  useEffect(() => {
-    if (modalPlayerName && playerInfoModalOpen) {
-      // Trigger refetch when modal opens with a new name
-      const windowWithRefetch = window as Window & { playerInfoRefetch?: () => void };
-      if (typeof windowWithRefetch.playerInfoRefetch === 'function') {
-        windowWithRefetch.playerInfoRefetch();
-      }
-    }
-  }, [modalPlayerName, playerInfoModalOpen]);
-
   const handleRemoveClick = (index: number) => {
     setPendingRemove(index);
     setConfirmOpen(true);
@@ -182,9 +171,23 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
   };
 
   const handleOpponentNameClick = (name: string) => {
+    console.log('ListRatingChange: opponent clicked:', name);
     setModalPlayerName(name);
     setPlayerInfoModalOpen(true);
   };
+
+  // Update usePlayerInfo when modalPlayerName changes by triggering refetch
+  useEffect(() => {
+    console.log('ListRatingChange: modalPlayerName changed to:', modalPlayerName, 'modal open:', playerInfoModalOpen);
+    if (modalPlayerName && playerInfoModalOpen) {
+      // Trigger refetch when modal opens with a new name
+      const windowWithRefetch = window as Window & { playerInfoRefetch?: () => void };
+      if (typeof windowWithRefetch.playerInfoRefetch === 'function') {
+        console.log('ListRatingChange: triggering refetch for:', modalPlayerName);
+        windowWithRefetch.playerInfoRefetch();
+      }
+    }
+  }, [modalPlayerName, playerInfoModalOpen]);
 
   // Handle import callback
   const handleImport = (imported: Result[]) => {
