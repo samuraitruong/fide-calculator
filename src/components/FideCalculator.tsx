@@ -13,14 +13,35 @@ import KFactorHelp from '@/components/KFactorHelp';
 import BackupDetailsModal from '@/components/BackupDetailsModal';
 import Snackbar from '@/components/Snackbar';
 import Confirm from '@/components/Confirm';
-import { FaCalculator, FaSave } from 'react-icons/fa';
-import { useFideData } from '@/hooks/useFideData';
+import { FaCalculator, FaSave, FaUser } from 'react-icons/fa';
+import PlayerInfoModal from './PlayerInfoModal';
+import { usePlayerInfo } from '@/hooks/usePlayerInfo';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import type { FidePlayer } from '@/hooks/usePlayerInfo';
 import type { BackupData } from '@/hooks/useBackup';
 import { useConfirm } from '@/hooks/useConfirm';
+import { useFideData } from '@/hooks/useFideData';
 
 interface FideCalculatorProps {
   type: RatingType;
+}
+
+// Helper to get the correct rating for the current type, with fallback
+function getPlayerRatingForType(player: FidePlayer, type: RatingType): string {
+  // Try the selected type first
+  let rating = '';
+  if (type === 'standard') {
+    rating = player.standard;
+  } else if (type === 'blitz') {
+    rating = player.blitz;
+  } else if (type === 'rapid') {
+    rating = player.rapid;
+  }
+  // Fallback order: standard > rapid > blitz
+  if (!rating || rating === '-') {
+    rating = player.standard || player.rapid || player.blitz || '';
+  }
+  return rating && rating !== '-' ? rating : '';
 }
 
 export default function FideCalculator({ type }: FideCalculatorProps) {
@@ -63,25 +84,48 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
     message: '',
     type: 'success'
   });
+  // Removed useFideData and related code
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [playerRatingManuallyChanged, setPlayerRatingManuallyChanged] = useState(false);
+  const [playerInfoModalOpen, setPlayerInfoModalOpen] = useState(false);
   const debouncedOpponentSearch = useDebouncedValue(opponentSearch, 500);
   const { fideData, loading: fideLoading, search: fideSearch } = useFideData('');
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Update kFactor when type changes
-  useEffect(() => {
-    setKFactor(getDefaultK(type));
-  }, [type]);
+  // Use the new player info hook
+  const {
+    playerName,
+    setPlayerName,
+    playerInfo,
+    loading: playerInfoLoading,
+    error: playerInfoError,
+    getRating: getPlayerInfoRating,
+  } = usePlayerInfo('Nguyen, Anh Kiet', type);
 
+  // Sync player rating with player info unless manually changed
   useEffect(() => {
-    setTotalChange(Math.round(100 * results.reduce((acc, curr) => acc + curr.ratingChange, 0)) / 100);
-  }, [results]);
-
-  // Restore search functionality: trigger FIDE search when debouncedOpponentSearch changes
-  useEffect(() => {
-    if (debouncedOpponentSearch && showOpponentDropdown) {
-      fideSearch(debouncedOpponentSearch);
+    if (!playerRatingManuallyChanged && playerInfo) {
+      const rating = getPlayerInfoRating();
+      setPlayerRating(Number(rating) || 1888);
     }
-  }, [debouncedOpponentSearch, showOpponentDropdown, fideSearch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playerInfo, type]);
+
+  // If user changes player rating manually, set flag
+  const handlePlayerRatingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPlayerRating(Number(e.target.value));
+    setPlayerRatingManuallyChanged(true);
+  };
+
+  // Handle save in player info modal
+  const handleSavePlayerInfo = () => {
+    setPlayerInfoModalOpen(false);
+    setPlayerRatingManuallyChanged(false); // allow auto update on next type change
+    // After save, update player rating to match new player if not manually changed
+    if (playerInfo) {
+      const rating = getPlayerInfoRating();
+      setPlayerRating(Number(rating) || 1888);
+    }
+  };
 
   const isValidRating = (rating: number) => rating >= 1400 && rating <= 3500;
   const isFormValid = isValidRating(playerRating) && isValidRating(opponentRating);
@@ -142,12 +186,20 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
   };
 
   // When user selects a player from dropdown
-  const handleSelectOpponent = (name: string, rating: string) => {
+  const handleSelectOpponent = (name: string, player: FidePlayer) => {
+    const rating = getPlayerRatingForType(player, type);
     setOpponentName(name);
     setOpponentRating(Number(rating) || 1400);
     setShowOpponentDropdown(false);
     inputRef.current?.blur();
   };
+
+  // Restore search functionality: trigger FIDE search when debouncedOpponentSearch changes
+  useEffect(() => {
+    if (debouncedOpponentSearch && showOpponentDropdown) {
+      fideSearch(debouncedOpponentSearch);
+    }
+  }, [debouncedOpponentSearch, showOpponentDropdown, fideSearch]);
 
   // Handler for selecting a result from the list
   const handleSelectResult = (result: Result) => {
@@ -259,6 +311,10 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
     }
   };
 
+  useEffect(() => {
+    setTotalChange(Math.round(100 * results.reduce((acc, curr) => acc + curr.ratingChange, 0)) / 100);
+  }, [results]);
+
   return (
     <div className="min-h-screen p-1 md:p-5 bg-gray-50 max-w-7xl mx-auto">
 
@@ -275,12 +331,22 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
             <div className="space-y-2">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Player Rating</label>
+                  <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                    Player Rating
+                    <button
+                      type="button"
+                      className="ml-1 text-blue-500 hover:text-blue-700 focus:outline-none"
+                      aria-label="View player info"
+                      onClick={() => setPlayerInfoModalOpen(true)}
+                    >
+                      <FaUser className="inline w-5 h-5 align-text-bottom" />
+                    </button>
+                  </label>
                   <input
                     type="number"
                     className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
                     value={playerRating}
-                    onChange={(e) => setPlayerRating(Number(e.target.value))}
+                    onChange={handlePlayerRatingChange}
                   />
                 </div>
                 <div className="space-y-1">
@@ -301,8 +367,6 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
                     <option value={10}>10</option>
                   </select>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="block text-sm font-medium text-gray-700">Opponent Name</label>
                   <div className="relative">
@@ -321,17 +385,20 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
                           <div className="p-3 text-gray-500 text-center">Loading...</div>
                         ) : (
                           fideData.length > 0 ? (
-                            fideData.map((player) => (
-                              <button
-                                key={player.fideId + player.name}
-                                className="w-full text-left px-4 py-2 hover:bg-blue-100 focus:bg-blue-200 focus:outline-none flex justify-between items-center text-black"
-                                onClick={() => handleSelectOpponent(player.name, player.standard)}
-                                type="button"
-                              >
-                                <span className="text-black">{player.name} ({player.federation})</span>
-                                <span className="text-gray-500 ml-2">{player.standard}</span>
-                              </button>
-                            ))
+                            fideData.map((player) => {
+                              const rating = getPlayerRatingForType(player, type);
+                              return (
+                                <button
+                                  key={player.fideId + player.name}
+                                  className="w-full text-left px-4 py-2 hover:bg-blue-100 focus:bg-blue-200 focus:outline-none flex justify-between items-center text-black"
+                                  onClick={() => handleSelectOpponent(player.name, player)}
+                                  type="button"
+                                >
+                                  <span className="text-black">{player.name} ({player.federation})</span>
+                                  <span className="text-gray-500 ml-2">{rating || '—'}</span>
+                                </button>
+                              );
+                            })
                           ) : (
                             <div className="p-3 text-gray-500 text-center">No players found</div>
                           )
@@ -430,6 +497,18 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
         message={snackbar.message}
         type={snackbar.type}
         onClose={handleCloseSnackbar}
+      />
+
+      {/* Player Info Modal */}
+      <PlayerInfoModal
+        open={playerInfoModalOpen}
+        onClose={() => setPlayerInfoModalOpen(false)}
+        playerName={playerName}
+        setPlayerName={setPlayerName}
+        playerInfo={playerInfo}
+        loading={playerInfoLoading}
+        error={playerInfoError}
+        onSave={handleSavePlayerInfo}
       />
     </div>
   );
