@@ -319,10 +319,11 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
         </div>
       </DndProvider>
       <PlayerInfoModal
+        key={modalPlayerName || 'empty'}
         open={playerInfoModalOpen}
         onClose={() => setPlayerInfoModalOpen(false)}
         playerName={modalPlayerName}
-        setPlayerName={() => {}} // setPlayerName is removed
+        setPlayerName={setModalPlayerName}
         playerInfo={playerInfo}
         loading={playerInfoLoading}
         error={playerInfoError}

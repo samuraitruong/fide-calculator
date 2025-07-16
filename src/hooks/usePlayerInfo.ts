@@ -100,19 +100,14 @@ export function usePlayerInfo(initialName: string, type: RatingType) {
 
   // Update internal playerName when initialName changes
   useEffect(() => {
-    console.log('usePlayerInfo: initialName changed from', playerName, 'to', initialName);
     if (initialName !== playerName) {
-      console.log('usePlayerInfo: updating playerName to', initialName);
       setPlayerName(initialName);
     }
   }, [initialName, playerName]);
 
   useEffect(() => {
     const windowWithRefetch = window as Window & { playerInfoRefetch?: () => void };
-    windowWithRefetch.playerInfoRefetch = () => {
-      console.log('usePlayerInfo: refetch called for', playerName);
-      fetchPlayer(playerName);
-    };
+    windowWithRefetch.playerInfoRefetch = () => fetchPlayer(playerName);
     return () => { 
       delete windowWithRefetch.playerInfoRefetch; 
     };
@@ -120,12 +115,10 @@ export function usePlayerInfo(initialName: string, type: RatingType) {
 
   // Fetch player data when playerName changes
   useEffect(() => {
-    console.log('usePlayerInfo: playerName changed to', playerName);
     if (playerName) {
       // Clear previous data before fetching new data
       setPlayerInfo(null);
       setError('');
-      console.log('usePlayerInfo: fetching data for', playerName);
       fetchPlayer(playerName);
     } else {
       // Clear data if no player name

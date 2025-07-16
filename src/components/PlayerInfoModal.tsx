@@ -18,15 +18,13 @@ interface PlayerInfoModalProps {
 }
 
 export default function PlayerInfoModal({ open, onClose, playerName, setPlayerName, playerInfo, loading, error, onSave, forceRefetchOnOpen = false, showSaveButton = true }: PlayerInfoModalProps) {
-  const [search, setSearch] = useState(playerName);
   const [showDropdown, setShowDropdown] = useState(false);
-  const debouncedSearch = useDebouncedValue(search, 500);
+  const debouncedSearch = useDebouncedValue(playerName, 500);
   const { fideData, loading: fideLoading, search: fideSearch } = useFideData('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSelect = useCallback((name: string) => {
     setPlayerName(name);
-    setSearch(name);
     setShowDropdown(false);
     inputRef.current?.blur();
   }, [setPlayerName]);
@@ -46,12 +44,10 @@ export default function PlayerInfoModal({ open, onClose, playerName, setPlayerNa
     }
   }, [fideData, fideLoading, showDropdown, handleSelect]);
 
-  // When modal opens, reset search to playerName
+  // When modal opens, show dropdown if playerName is present and focus input
   useEffect(() => {
     if (open) {
-      setSearch(playerName);
       setShowDropdown(!!playerName);
-      // Focus the input when modal opens
       setTimeout(() => { inputRef.current?.focus(); }, 0);
     }
   }, [open, playerName]);
@@ -88,13 +84,13 @@ export default function PlayerInfoModal({ open, onClose, playerName, setPlayerNa
               ref={inputRef}
               type="text"
               className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
-              value={search}
-              onChange={e => { setSearch(e.target.value); setShowDropdown(true); }}
+              value={playerName}
+              onChange={e => { setPlayerName(e.target.value); setShowDropdown(true); }}
               onFocus={() => setShowDropdown(true)}
               autoComplete="off"
               disabled={loading}
             />
-            {showDropdown && search && (
+            {showDropdown && playerName && (
               <div className="absolute z-20 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto mt-1">
                 {fideLoading ? (
                   <div className="p-3 text-gray-500 text-center">Loading...</div>
@@ -168,7 +164,7 @@ export default function PlayerInfoModal({ open, onClose, playerName, setPlayerNa
             <button
               className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
               onClick={onSave}
-              disabled={loading || !search.trim()}
+              disabled={loading || !playerName.trim()}
             >Save</button>
           )}
         </div>
