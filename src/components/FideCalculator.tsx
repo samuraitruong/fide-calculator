@@ -21,6 +21,7 @@ import type { FidePlayer } from '@/hooks/usePlayerInfo';
 import type { BackupData } from '@/hooks/useBackup';
 import { useConfirm } from '@/hooks/useConfirm';
 import { useFideData } from '@/hooks/useFideData';
+import LiveRatingBox from '@/components/LiveRatingBox';
 
 interface FideCalculatorProps {
   type: RatingType;
@@ -461,9 +462,12 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
           </div>
         </div>
         <div className="w-full md:w-1/3 p-1 print:hidden">
-          {currentRatingChange !== null && (
+          {currentRatingChange !== null ? (
             <CurrentChangeBox currentRatingChange={currentRatingChange} />
-          )}
+          ) : (
+            <LiveRatingBox currentRatingChange={totalChange} currentRating={playerRating} />
+          )
+          }
         </div>
       </div>
       <ListRatingChange

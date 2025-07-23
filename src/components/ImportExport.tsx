@@ -25,7 +25,7 @@ export default function ImportExport({ results, onImport, onCreateBackup, onRese
                 r.kFactor,
                 r.result,
                 r.ratingChange
-            ].join(','))
+            ].join(';'))
         ];
         const csvContent = csvRows.join('\n');
         const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -48,7 +48,7 @@ export default function ImportExport({ results, onImport, onCreateBackup, onRese
             if (lines.length < 2) return;
             const imported: Result[] = [];
             for (let i = 1; i < lines.length; i++) {
-                const [date, playerRating, opponentName, opponentRating, kFactor, result, ratingChange] = lines[i].split(',');
+                const [date, playerRating, opponentName, opponentRating, kFactor, result, ratingChange] = lines[i].split(';');
                 if (!date) continue;
                 imported.push({
                     date,

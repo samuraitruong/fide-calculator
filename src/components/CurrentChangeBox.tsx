@@ -3,9 +3,10 @@ import { FaArrowUp, FaArrowDown, FaMinus } from 'react-icons/fa';
 
 interface CurrentChangeBoxProps {
     currentRatingChange: number;
+
 }
 
-export default function CurrentChangeBox({ currentRatingChange }: CurrentChangeBoxProps) {
+export default function CurrentChangeBox({ currentRatingChange}: CurrentChangeBoxProps) {
     return (
         <div className="bg-white rounded-xl shadow-lg current-change-box h-auto md:h-full flex flex-col items-center justify-start md:justify-center md:items-center w-full">
             <h2 className="text-3xl font-bold text-gray-700 mb-2 text-center">Rating change</h2>
