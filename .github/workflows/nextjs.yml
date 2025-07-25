@@ -79,7 +79,7 @@ jobs:
         run: ${{ steps.detect-package-manager.outputs.manager }} test
       - name: Build with Next.js
         env:
-          BASE_PATH: "/fide-calculator"
+          BASE_PATH: "/"
         run: ${{ steps.detect-package-manager.outputs.runner }} next build
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
