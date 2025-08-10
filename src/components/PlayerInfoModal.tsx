@@ -10,6 +10,7 @@ interface PlayerInfoModalProps {
   playerName: string;
   setPlayerName: (name: string) => void;
   playerInfo: FidePlayer | null;
+  setPlayerInfo?: (info: FidePlayer | null) => void; // NEW
   loading: boolean;
   error: string;
   onSave: () => void;
@@ -17,7 +18,7 @@ interface PlayerInfoModalProps {
   showSaveButton?: boolean; // NEW
 }
 
-export default function PlayerInfoModal({ open, onClose, playerName, setPlayerName, playerInfo, loading, error, onSave, forceRefetchOnOpen = false, showSaveButton = true }: PlayerInfoModalProps) {
+export default function PlayerInfoModal({ open, onClose, playerName, setPlayerName, playerInfo, setPlayerInfo, loading, error, onSave, forceRefetchOnOpen = false, showSaveButton = true }: PlayerInfoModalProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const debouncedSearch = useDebouncedValue(playerName, 500);
   const { fideData, loading: fideLoading, search: fideSearch } = useFideData('');
@@ -25,9 +26,14 @@ export default function PlayerInfoModal({ open, onClose, playerName, setPlayerNa
 
   const handleSelect = useCallback((name: string) => {
     setPlayerName(name);
+    if (setPlayerInfo) {
+      const selected = fideData.find(p => p.name === name);
+      console.log(`Selected player: ${name}`, selected);
+      setPlayerInfo(selected || null);
+    }
     setShowDropdown(false);
     inputRef.current?.blur();
-  }, [setPlayerName]);
+  }, [setPlayerName, setPlayerInfo, fideData]);
 
   // Trigger FIDE search on debounced input
   useEffect(() => {
@@ -171,4 +177,4 @@ export default function PlayerInfoModal({ open, onClose, playerName, setPlayerNa
       </div>
     </div>
   );
-} 
+}

@@ -53,7 +53,7 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
     updateResult,
     setAllResults,
   } = useRatingList(type);
-  
+
   const {
     backups,
     createBackup,
@@ -66,7 +66,18 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
   const getDefaultK = (type: RatingType) => (type === 'standard' ? 40 : 20);
 
   const [selectedResult, setSelectedResult] = useState<Result | null>(null);
-  const [playerRating, setPlayerRating] = useState<number>(1888);
+  // On first load, use localStorage rating, else last saved result, else default
+  const getInitialPlayerRating = () => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(`fide-player-rating-${type}`);
+      if (stored && !isNaN(Number(stored))) return Number(stored);
+    }
+    if (Array.isArray(results) && results.length > 0) {
+      return results[results.length - 1].playerRating;
+    }
+    return 1888;
+  };
+  const [playerRating, setPlayerRating] = useState<number>(getInitialPlayerRating());
   const [kFactor, setKFactor] = useState<number>(getDefaultK(type));
   const [opponentName, setOpponentName] = useState<string>('');
   const [opponentRating, setOpponentRating] = useState<number>(1400);
@@ -99,33 +110,53 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
     playerInfo,
     loading: playerInfoLoading,
     error: playerInfoError,
-    getRating: getPlayerInfoRating,
   } = usePlayerInfo('Nguyen, Anh Kiet', type);
+
+  // Add playerInfoModal state for modal selection
+  const [playerInfoModal, setPlayerInfoModal] = useState<FidePlayer | null>(null);
+
+  // Handle save in player info modal
+  const handleSavePlayerInfo = () => {
+    setPlayerInfoModalOpen(false);
+    setPlayerRatingManuallyChanged(false);
+    // Persist modal-selected player info and rating to localStorage
+    if (playerInfoModal) {
+      const rating = getPlayerRatingForType(playerInfoModal, type);
+      setPlayerRating(Number(rating) || 1888);
+      // Save to localStorage for persistence
+      try {
+        localStorage.setItem(`fide-player-rating-${type}`, String(rating));
+      } catch (e) {
+        console.error('Error saving player info to localStorage:', e);
+      }
+    }
+  };
 
   // Sync player rating with player info unless manually changed
   useEffect(() => {
-    if (!playerRatingManuallyChanged && playerInfo) {
-      const rating = getPlayerInfoRating();
-      setPlayerRating(Number(rating) || 1888);
+    if (!playerRatingManuallyChanged) {
+      // Prefer localStorage value if available
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem(`fide-player-rating-${type}`);
+        if (stored && !isNaN(Number(stored))) {
+          setPlayerRating(Number(stored));
+          return;
+        }
+      }
+      // Fallback to modal-selected player info or hook
+      const info = playerInfoModal || playerInfo;
+      if (info) {
+        const rating = getPlayerRatingForType(info, type);
+        setPlayerRating(Number(rating) || 1888);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playerInfo, type]);
+  }, [playerInfo, playerInfoModal, type]);
 
   // If user changes player rating manually, set flag
   const handlePlayerRatingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPlayerRating(Number(e.target.value));
     setPlayerRatingManuallyChanged(true);
-  };
-
-  // Handle save in player info modal
-  const handleSavePlayerInfo = () => {
-    setPlayerInfoModalOpen(false);
-    setPlayerRatingManuallyChanged(false); // allow auto update on next type change
-    // After save, update player rating to match new player if not manually changed
-    if (playerInfo) {
-      const rating = getPlayerInfoRating();
-      setPlayerRating(Number(rating) || 1888);
-    }
   };
 
   const isValidRating = (rating: number) => rating >= 1400 && rating <= 3500;
@@ -153,10 +184,11 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
       date: new Date().toLocaleDateString()
     };
     addResult(newResult);
-    // Reset form after add/update, but preserve player rating from playerInfo
+    // Reset form after add/update, but preserve player rating from modal or playerInfo
     setSelectedResult(null);
-    if (playerInfo) {
-      const rating = getPlayerInfoRating();
+    const info = playerInfoModal || playerInfo;
+    if (info) {
+      const rating = getPlayerRatingForType(info, type);
       setPlayerRating(Number(rating) || 1888);
     } else {
       setPlayerRating(1888);
@@ -257,19 +289,24 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
   const handleReset = () => {
     // First create a backup of current data
     const backupSuccess = createBackup(results);
-    
     // Then clear all results
     setAllResults([]);
-    
     // Reset form state
     setSelectedResult(null);
     setCurrentRatingChange(null);
-    
+    // After reset, use modal-selected player info if available
+    const info = playerInfoModal || playerInfo;
+    if (info) {
+      const rating = getPlayerRatingForType(info, type);
+      setPlayerRating(Number(rating) || 1888);
+    } else {
+      setPlayerRating(1888);
+    }
     // Show success message
     setSnackbar({
       open: true,
-      message: backupSuccess 
-        ? 'Data reset successfully! A backup has been created.' 
+      message: backupSuccess
+        ? 'Data reset successfully! A backup has been created.'
         : 'Data reset successfully!',
       type: 'success'
     });
@@ -284,7 +321,7 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
       });
       return;
     }
-    
+
     openConfirm(
       'Reset All Data',
       'This will create a backup of your current data and then remove all entries. Are you sure you want to continue?'
@@ -481,7 +518,7 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
         onCreateBackup={handleCreateBackup}
         onReset={handleResetClick}
       />
-      
+
       {/* Backup Details Modal */}
       <BackupDetailsModal
         backup={selectedBackup}
@@ -497,7 +534,7 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
         confirmText="Reset"
         cancelText="Cancel"
         onConfirm={() => handleConfirm(handleReset)}
-        onCancel={() => handleCancel(() => {})}
+        onCancel={() => handleCancel(() => { })}
       />
 
       {/* Snackbar */}
@@ -514,7 +551,8 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
         onClose={() => setPlayerInfoModalOpen(false)}
         playerName={playerName}
         setPlayerName={setPlayerName}
-        playerInfo={playerInfo}
+        playerInfo={playerInfoModal}
+        setPlayerInfo={setPlayerInfoModal}
         loading={playerInfoLoading}
         error={playerInfoError}
         onSave={handleSavePlayerInfo}
@@ -522,4 +560,4 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
       />
     </div>
   );
-} 
+}
