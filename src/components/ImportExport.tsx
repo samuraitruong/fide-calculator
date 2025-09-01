@@ -3,13 +3,14 @@ import { Result } from '@/util/types';
 import { FaFileImport, FaFileExport, FaDownload, FaUndo } from 'react-icons/fa';
 
 interface ImportExportProps {
-    results: Result[];
-    onImport: (imported: Result[]) => void;
-    onCreateBackup?: () => void;
-    onReset?: () => void;
+  results: Result[];
+  onImport: (imported: Result[]) => void;
+ onCreateBackup?: () => void;
+ onReset?: () => void;
+ ratingType?: 'standard' | 'blitz' | 'rapid';
 }
 
-export default function ImportExport({ results, onImport, onCreateBackup, onReset }: ImportExportProps) {
+export default function ImportExport({ results, onImport, onCreateBackup, onReset, ratingType }: ImportExportProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Export to CSV
@@ -50,14 +51,22 @@ export default function ImportExport({ results, onImport, onCreateBackup, onRese
             for (let i = 1; i < lines.length; i++) {
                 const [date, playerRating, opponentName, opponentRating, kFactor, result, ratingChange] = lines[i].split(';');
                 if (!date) continue;
+                
+                // Parse the date to get month key
+                const dateObj = new Date(date);
+                const monthKey = `${dateObj.getFullYear()}-${dateObj.toLocaleDateString('en-US', { month: 'short' })}`;
+                
                 imported.push({
+                    id: Date.now().toString() + Math.random().toString().slice(2), // Generate unique ID
                     date,
                     playerRating: Number(playerRating),
                     opponentName,
                     opponentRating: Number(opponentRating),
                     kFactor: Number(kFactor),
                     result: result as Result['result'],
-                    ratingChange: Number(ratingChange)
+                    ratingChange: Number(ratingChange),
+                    ratingType: ratingType || 'standard', // Use provided rating type or default to standard
+                    monthKey
                 });
             }
             if (imported.length > 0) {

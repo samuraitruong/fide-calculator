@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import FideCalculator from '@/components/FideCalculator';
-import RatingTypeNav from '@/components/RatingTypeNav';
+import Navbar from '@/components/Navbar';
 import { RatingType } from '@/util/types';
 
 export function generateStaticParams() {
@@ -28,12 +28,8 @@ export default async function RatingTypePage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Navbar />
       <div className="max-w-7xl mx-auto p-1 md:p-5">
-        {/* Navigation */}
-        <div className="mb-6">
-          <RatingTypeNav />
-        </div>
-        
         {/* Calculator */}
         <FideCalculator type={ratingType} />
       </div>

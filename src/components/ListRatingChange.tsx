@@ -2,7 +2,7 @@ import Confirm from '@/components/Confirm';
 import ImportExport from '@/components/ImportExport';
 import { Result } from '@/util/types';
 import { roundNumber } from '@/util/util';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import EditDateButton from './EditDateButton';
 import { FaArrowUp, FaArrowDown, FaMinus, FaTrashAlt } from 'react-icons/fa';
 
@@ -10,10 +10,7 @@ import { FaArrowUp, FaArrowDown, FaMinus, FaTrashAlt } from 'react-icons/fa';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import type { DropTargetMonitor } from 'react-dnd';
-import BackupList from '@/components/BackupList';
-import { BackupData } from '@/hooks/useBackup';
-import PlayerInfoModal from './PlayerInfoModal';
-import { usePlayerInfo } from '@/hooks/usePlayerInfo';
+
 
 interface DragItem {
   index: number;
@@ -22,14 +19,18 @@ interface DragItem {
 
 interface ListRatingChangeProps {
   results: Result[];
-  onRemove: (index: number) => void;
+  onRemove?: (index: number) => void;
   onSelect?: (result: Result, index: number) => void;
   onUpdateDate?: (index: number, date: string) => void;
   onReorder?: (newResults: Result[]) => void;
-  backups?: BackupData[];
-  onViewBackup?: (backup: BackupData) => void;
+
   onCreateBackup?: () => void;
   onReset?: () => void;
+  readOnly?: boolean;
+
+  storageMode?: 'local' | 'cloud';
+  currentProfile?: { id: string; name: string; standardRating: number; rapidRating: number; blitzRating: number };
+  ratingType?: 'standard' | 'blitz' | 'rapid';
 }
 
 // Draggable row component
@@ -42,7 +43,8 @@ const DraggableRow = ({
   handleRemoveClick,
   hoveredIndex,
   setHoveredIndex,
-  onOpponentNameClick
+  onOpponentNameClick,
+  readOnly = false
 }: {
   result: Result;
   index: number;
@@ -53,6 +55,7 @@ const DraggableRow = ({
   hoveredIndex: number | null;
   setHoveredIndex: (index: number | null) => void;
   onOpponentNameClick: (name: string) => void;
+  readOnly?: boolean;
 }) => {
   const ref = useRef<HTMLTableRowElement>(null);
   const [, drop] = useDrop<DragItem, void, { isOver: boolean }>({
@@ -84,13 +87,15 @@ const DraggableRow = ({
       className={`hover:bg-gray-50 cursor-pointer ${hoveredIndex === index ? 'ring-2 ring-blue-400' : ''}`}
       onClick={() => onSelect && onSelect(result, index)}
     >
-      <td className="border border-gray-200 p-3 text-sm text-gray-700 cursor-move print:hidden" style={{ width: 24 }}>
-        <span title="Drag to reorder" className="cursor-move">☰</span>
-      </td>
+      {!readOnly && (
+        <td className="border border-gray-200 p-3 text-sm text-gray-700 cursor-move print:hidden" style={{ width: 24 }}>
+          <span title="Drag to reorder" className="cursor-move">☰</span>
+        </td>
+      )}
       {/* Date cell */}
       <td className="border border-gray-200 p-3 text-sm text-gray-700 flex items-center gap-2 group">
         <span>{result.date}</span>
-        {onUpdateDate && (
+        {onUpdateDate && !readOnly && (
           <span style={{ zIndex: 10, position: 'relative' }}>
             <EditDateButton
               date={result.date}
@@ -127,30 +132,25 @@ const DraggableRow = ({
   );
 };
 
-export default function ListRatingChange({ results, onRemove, onSelect, onUpdateDate, onReorder, backups, onViewBackup, onCreateBackup, onReset }: ListRatingChangeProps) {
+export default function ListRatingChange({ results, onRemove, onSelect, onUpdateDate, onReorder, onCreateBackup, onReset, readOnly = false, storageMode, currentProfile, ratingType }: ListRatingChangeProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingRemove, setPendingRemove] = useState<number | null>(null);
-  const [tableData, setTableData] = useState(results);
+  const [tableData, setTableData] = useState<Result[]>(results);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const totalChange = roundNumber(results.reduce((acc, curr) => acc + curr.ratingChange, 0));
-  const [playerInfoModalOpen, setPlayerInfoModalOpen] = useState(false);
-  const [modalPlayerName, setModalPlayerName] = useState<string>('');
-  const {
-    playerInfo,
-    loading: playerInfoLoading,
-    error: playerInfoError,
-  } = usePlayerInfo(modalPlayerName, 'standard');
+
 
   // Keep tableData in sync with results
   useEffect(() => { setTableData(results); }, [results]);
 
   const handleRemoveClick = (index: number) => {
+    if (readOnly || !onRemove) return;
     setPendingRemove(index);
     setConfirmOpen(true);
   };
 
   const handleConfirm = () => {
-    if (pendingRemove !== null) {
+    if (pendingRemove !== null && onRemove) {
       onRemove(pendingRemove);
     }
     setConfirmOpen(false);
@@ -163,37 +163,32 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
   };
 
   const moveRow = (from: number, to: number) => {
+    if (readOnly || !onReorder) return;
     const updated = [...tableData];
     const [moved] = updated.splice(from, 1);
     updated.splice(to, 0, moved);
     setTableData(updated);
-    if (onReorder) onReorder(updated);
+    onReorder(updated);
   };
 
   const handleOpponentNameClick = (name: string) => {
     console.log('ListRatingChange: opponent clicked:', name);
-    setModalPlayerName(name);
-    setPlayerInfoModalOpen(true);
+    // For now, just log the click - could be used for future features
   };
-
-  // Update usePlayerInfo when modalPlayerName changes by triggering refetch
-  useEffect(() => {
-    console.log('ListRatingChange: modalPlayerName changed to:', modalPlayerName, 'modal open:', playerInfoModalOpen);
-    if (modalPlayerName && playerInfoModalOpen) {
-      // Trigger refetch when modal opens with a new name
-      const windowWithRefetch = window as Window & { playerInfoRefetch?: () => void };
-      if (typeof windowWithRefetch.playerInfoRefetch === 'function') {
-        console.log('ListRatingChange: triggering refetch for:', modalPlayerName);
-        windowWithRefetch.playerInfoRefetch();
-      }
-    }
-  }, [modalPlayerName, playerInfoModalOpen]);
 
   // Handle import callback
   const handleImport = (imported: Result[]) => {
+    // Merge existing results with imported results
     const merged = [...results, ...imported];
+    
+    // Dispatch custom event for backward compatibility
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('importedResults', { detail: merged }));
+    }
+    
+    // Also call onReorder to update the data in the current storage system
+    if (onReorder) {
+      onReorder(merged);
     }
   };
 
@@ -228,7 +223,7 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-gray-100">
-                  <th style={{ width: 24 }} className='print:hidden'></th>
+                  {!readOnly && <th style={{ width: 24 }} className='print:hidden'></th>}
                   <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">Date</th>
                   <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">Player Rating</th>
                   <th className="border border-gray-200 p-3 text-left text-sm font-medium text-gray-700">Opponent</th>
@@ -251,6 +246,7 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
                     hoveredIndex={hoveredIndex}
                     setHoveredIndex={setHoveredIndex}
                     onOpponentNameClick={handleOpponentNameClick}
+                    readOnly={readOnly}
                   />
                 ))}
               </tbody>
@@ -268,7 +264,7 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-500 flex items-center gap-2 group">
                     {result.date}
-                    {onUpdateDate && (
+                    {onUpdateDate && !readOnly && (
                       <span style={{ zIndex: 10, position: 'relative' }}>
                         <EditDateButton
                           date={result.date}
@@ -277,13 +273,15 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
                       </span>
                     )}
                   </span>
-                  <button
-                    onClick={e => { e.stopPropagation(); handleRemoveClick(index); }}
-                    className="text-red-600 hover:text-red-800"
-                    title="Delete entry"
-                  >
-                    <FaTrashAlt />
-                  </button>
+                  {!readOnly && (
+                    <button
+                      onClick={e => { e.stopPropagation(); handleRemoveClick(index); }}
+                      className="text-red-600 hover:text-red-800"
+                      title="Delete entry"
+                    >
+                      <FaTrashAlt />
+                    </button>
+                  )}
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm font-medium text-blue-700 underline cursor-pointer hover:text-blue-900" onClick={e => { e.stopPropagation(); handleOpponentNameClick(result.opponentName); }}>YOU vs. {result.opponentName}</span>
@@ -300,37 +298,22 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
               </div>
             ))}
           </div>
-          <ImportExport 
-            results={results} 
-            onImport={handleImport}
-            onCreateBackup={onCreateBackup}
-            onReset={onReset}
-          />
-          
-          {/* Backup List */}
-          {backups && onViewBackup && (
-            <div className="mt-6">
-              <BackupList
-                backups={backups}
-                onView={onViewBackup}
-              />
-            </div>
+          {!readOnly && (
+            <ImportExport 
+              results={results} 
+              onImport={handleImport}
+              onCreateBackup={onCreateBackup}
+              onReset={onReset}
+              storageMode={storageMode}
+              currentProfile={currentProfile}
+              ratingType={ratingType}
+            />
           )}
+          
+
         </div>
       </DndProvider>
-      <PlayerInfoModal
-        key={modalPlayerName || 'empty'}
-        open={playerInfoModalOpen}
-        onClose={() => setPlayerInfoModalOpen(false)}
-        playerName={modalPlayerName}
-        setPlayerName={setModalPlayerName}
-        playerInfo={playerInfo}
-        loading={playerInfoLoading}
-        error={playerInfoError}
-        onSave={() => setPlayerInfoModalOpen(false)}
-        forceRefetchOnOpen={true}
-        showSaveButton={false}
-      />
+
     </>
   );
 }
