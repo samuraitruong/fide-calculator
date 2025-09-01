@@ -12,6 +12,7 @@ interface MonthlyRatingListProps {
   onUpdateDate: (index: number, date: string) => void;
   onReorder: (newResults: Result[]) => void;
   onReset: () => void;
+  onViewDetails?: () => void;
   type: RatingType;
 }
 
@@ -22,6 +23,7 @@ export default function MonthlyRatingList({
   onUpdateDate,
   onReorder,
   onReset,
+  onViewDetails,
   type,
 }: MonthlyRatingListProps) {
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(() => {
@@ -113,11 +115,9 @@ export default function MonthlyRatingList({
                 onSelect={onSelect}
                 onUpdateDate={monthData.isReadOnly ? undefined : onUpdateDate}
                 onReorder={monthData.isReadOnly ? undefined : onReorder}
-
+                onViewDetails={onViewDetails}
                 onReset={monthData.isReadOnly ? undefined : onReset}
                 readOnly={monthData.isReadOnly}
-
-
                 ratingType={type}
               />
             </div>

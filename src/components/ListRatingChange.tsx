@@ -24,7 +24,7 @@ interface ListRatingChangeProps {
   onUpdateDate?: (index: number, date: string) => void;
   onReorder?: (newResults: Result[]) => void;
 
-  onCreateBackup?: () => void;
+  onViewDetails?: () => void;
   onReset?: () => void;
   readOnly?: boolean;
 
@@ -130,7 +130,7 @@ const DraggableRow = ({
   );
 };
 
-export default function ListRatingChange({ results, onRemove, onSelect, onUpdateDate, onReorder, onCreateBackup, onReset, readOnly = false, ratingType }: ListRatingChangeProps) {
+export default function ListRatingChange({ results, onRemove, onSelect, onUpdateDate, onReorder, onViewDetails, onReset, readOnly = false, ratingType }: ListRatingChangeProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingRemove, setPendingRemove] = useState<number | null>(null);
   const [tableData, setTableData] = useState<Result[]>(results);
@@ -300,7 +300,7 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
                         <ImportExport
               results={results}
               onImport={handleImport}
-              onCreateBackup={onCreateBackup}
+                              onViewDetails={onViewDetails}
               onReset={onReset}
               ratingType={ratingType}
             />

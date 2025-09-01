@@ -5,12 +5,12 @@ import { FaFileImport, FaFileExport, FaDownload, FaUndo } from 'react-icons/fa';
 interface ImportExportProps {
   results: Result[];
   onImport: (imported: Result[]) => void;
- onCreateBackup?: () => void;
+ onViewDetails?: () => void;
  onReset?: () => void;
  ratingType?: 'standard' | 'blitz' | 'rapid';
 }
 
-export default function ImportExport({ results, onImport, onCreateBackup, onReset, ratingType }: ImportExportProps) {
+export default function ImportExport({ results, onImport, onViewDetails, onReset, ratingType }: ImportExportProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Export to CSV
@@ -88,12 +88,12 @@ export default function ImportExport({ results, onImport, onCreateBackup, onRese
                 <span className="hidden md:inline">Import CSV</span>
             </button>
             <button 
-                onClick={onCreateBackup} 
+                onClick={onViewDetails} 
                 className="flex-1 flex flex-col items-center justify-center px-2 py-1 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm gap-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={!results || results.length === 0}
             >
                 <FaDownload className="text-2xl md:text-lg" />
-                <span className="hidden md:inline">Create Backup</span>
+                <span className="hidden md:inline">View Details</span>
             </button>
             <button 
                 onClick={onReset} 

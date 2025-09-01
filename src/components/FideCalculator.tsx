@@ -7,7 +7,7 @@ import CurrentChangeBox from '@/components/CurrentChangeBox';
 import PrintTotalChange from '@/components/PrintTotalChange';
 import { useSupabaseRatingList } from '@/hooks/useSupabaseRatingList';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import type { GameResult, Result, RatingType } from '@/util/types';
+import type { GameResult, Result, RatingType, MonthlyData } from '@/util/types';
 import InfoPopup from '@/components/InfoPopup';
 import KFactorHelp from '@/components/KFactorHelp';
 import MonthlyRatingList from '@/components/MonthlyRatingList';
@@ -22,6 +22,7 @@ import { useFideData } from '@/hooks/useFideData';
 import type { FidePlayer } from '@/hooks/useFideData';
 import LiveRatingBox from '@/components/LiveRatingBox';
 import { useAuth } from '@/contexts/AuthContext';
+import MonthlyView from '@/components/MonthlyView';
 
 interface FideCalculatorProps {
   type: RatingType;
@@ -140,6 +141,7 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
     message: '',
     type: 'success'
   });
+  const [selectedMonthData, setSelectedMonthData] = useState<MonthlyData | null>(null);
   // Removed useFideData and related code
   const inputRef = useRef<HTMLInputElement>(null);
   const [playerRatingManuallyChanged, setPlayerRatingManuallyChanged] = useState(false);
@@ -373,6 +375,18 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
 
   const handleCloseSnackbar = () => {
     setSnackbar(prev => ({ ...prev, open: false }));
+  };
+
+  const handleViewDetails = () => {
+    // Find the current month's data
+    const currentMonth = monthlyData.find(month => month.isCurrentMonth);
+    if (currentMonth) {
+      setSelectedMonthData(currentMonth);
+    }
+  };
+
+  const handleCloseViewDetailsModal = () => {
+    setSelectedMonthData(null);
   };
 
 
@@ -657,8 +671,8 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
         onUpdateDate={handleUpdateDate}
         onReorder={handleReorder}
         onReset={handleResetClick}
+        onViewDetails={handleViewDetails}
         type={type}
-
       />
 
 
@@ -680,6 +694,12 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
         message={snackbar.message}
         type={snackbar.type}
         onClose={handleCloseSnackbar}
+      />
+
+      {/* Monthly View Modal */}
+      <MonthlyView
+        monthlyData={selectedMonthData}
+        onClose={handleCloseViewDetailsModal}
       />
 
 
