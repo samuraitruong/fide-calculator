@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 
+
 import ProfileModal from './ProfileModal';
 import ChangePasswordModal from './ChangePasswordModal';
 import { FaHdd, FaCloud, FaUser, FaSignOutAlt, FaBars, FaTimes, FaEdit, FaKey, FaEnvelope, FaChevronDown, FaPlus } from 'react-icons/fa';
@@ -25,7 +26,13 @@ export default function Navbar() {
   const isLocalMode = localStorage.getItem('fide-calculator-mode') === 'local';
   const currentProfile = isLocalMode ? localActiveProfile : activeProfile;
   const currentProfiles = isLocalMode ? localProfiles : profiles;
-  const currentSetActiveProfile = isLocalMode ? setLocalActiveProfile : setActiveProfile;
+  const handleProfileSelect = (profile: { id: string; name: string; fideId?: string; title?: string; federation?: string; birthYear?: number; standardRating: number; rapidRating: number; blitzRating: number; isLocal: boolean }) => {
+    if (isLocalMode) {
+      setLocalActiveProfile(profile);
+    } else {
+      setActiveProfile(profile.id);
+    }
+  };
   const currentSignOut = isLocalMode ? localSignOut : signOut;
 
   const navigation = [
@@ -178,7 +185,7 @@ export default function Navbar() {
                           >
                             <button
                               onClick={() => {
-                                currentSetActiveProfile(profile);
+                                handleProfileSelect(profile);
                                 setUserMenuOpen(false);
                               }}
                               className="flex items-center space-x-3 flex-1"
@@ -337,7 +344,7 @@ export default function Navbar() {
                     >
                       <button
                         onClick={() => {
-                          currentSetActiveProfile(profile);
+                          handleProfileSelect(profile);
                           setMobileMenuOpen(false);
                         }}
                         className="flex items-center space-x-3 flex-1"

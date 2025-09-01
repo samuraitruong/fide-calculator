@@ -108,7 +108,7 @@ export default function ProfileModal({ open, onClose, onSuccess, isLocalMode = f
         if (currentProfile) {
           updateLocalProfile(profileData);
         } else {
-          createLocalProfile(profileData);
+          createLocalProfile({ ...profileData, isLocal: true });
         }
         console.log('ProfileModal: Local profile saved successfully');
       } else {

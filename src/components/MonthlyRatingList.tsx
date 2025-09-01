@@ -120,7 +120,7 @@ export default function MonthlyRatingList({
 
                 onReset={monthData.isReadOnly ? undefined : onReset}
                 readOnly={monthData.isReadOnly}
-                monthKey={monthData.monthKey}
+
                 storageMode={storageMode}
                 currentProfile={currentProfile}
                 ratingType={type}

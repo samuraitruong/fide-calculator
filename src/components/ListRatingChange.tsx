@@ -28,8 +28,6 @@ interface ListRatingChangeProps {
   onReset?: () => void;
   readOnly?: boolean;
 
-  storageMode?: 'local' | 'cloud';
-  currentProfile?: { id: string; name: string; standardRating: number; rapidRating: number; blitzRating: number };
   ratingType?: 'standard' | 'blitz' | 'rapid';
 }
 
@@ -132,7 +130,7 @@ const DraggableRow = ({
   );
 };
 
-export default function ListRatingChange({ results, onRemove, onSelect, onUpdateDate, onReorder, onCreateBackup, onReset, readOnly = false, storageMode, currentProfile, ratingType }: ListRatingChangeProps) {
+export default function ListRatingChange({ results, onRemove, onSelect, onUpdateDate, onReorder, onCreateBackup, onReset, readOnly = false, ratingType }: ListRatingChangeProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingRemove, setPendingRemove] = useState<number | null>(null);
   const [tableData, setTableData] = useState<Result[]>(results);
@@ -299,13 +297,11 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
             ))}
           </div>
           {!readOnly && (
-            <ImportExport 
-              results={results} 
+                        <ImportExport
+              results={results}
               onImport={handleImport}
               onCreateBackup={onCreateBackup}
               onReset={onReset}
-              storageMode={storageMode}
-              currentProfile={currentProfile}
               ratingType={ratingType}
             />
           )}

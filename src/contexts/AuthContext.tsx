@@ -42,10 +42,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const converted: Record<string, unknown> = {};
-    for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
+    const objRecord = obj as Record<string, unknown>;
+    for (const key in objRecord) {
+      if (objRecord.hasOwnProperty(key)) {
         const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-        converted[camelKey] = convertToCamelCase(obj[key]);
+        converted[camelKey] = convertToCamelCase(objRecord[key]);
       }
     }
     return converted;

@@ -19,13 +19,13 @@ export default function LocalStorageModal({ open, onClose, onSuccess }: LocalSto
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleFidePlayerSelect = (player: { name: string; fideId: string; federation: string; title?: string; birthYear?: number; standardRating?: number; rapidRating?: number; blitzRating?: number }) => {
+  const handleFidePlayerSelect = (player: { name: string; fideId: string; federation: string; title?: string; birthYear?: string; standardRating?: number; rapidRating?: number; blitzRating?: number }) => {
     setName(player.name || '');
     setFideId(player.fideId || '');
     setTitle(player.title || '');
     setFederation(player.federation || '');
     if (player.birthYear) {
-      setBirthYear(player.birthYear.toString());
+      setBirthYear(player.birthYear);
     }
   };
 
