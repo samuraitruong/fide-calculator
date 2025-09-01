@@ -111,6 +111,7 @@ export interface Result {
   kFactor: number;
   result: GameResult;
   ratingChange: number;
+  ratingType: RatingType;
   date: string;
   monthKey?: string;
 }
