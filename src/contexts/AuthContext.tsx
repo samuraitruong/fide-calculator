@@ -187,15 +187,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .from('user_profiles')
         .insert({
           user_id: user.id,
-          name: profileData.name,
-          fide_id: profileData.fideId,
-          title: profileData.title,
-          federation: profileData.federation,
-          birth_year: profileData.birthYear,
-          standard_rating: profileData.standardRating,
-          rapid_rating: profileData.rapidRating,
-          blitz_rating: profileData.blitzRating,
-        } as Record<string, unknown>);
+          name: profileData.name || '',
+          fide_id: profileData.fideId || null,
+          title: profileData.title || null,
+          federation: profileData.federation || null,
+          birth_year: profileData.birthYear || null,
+          standard_rating: profileData.standardRating || 1200,
+          rapid_rating: profileData.rapidRating || 1200,
+          blitz_rating: profileData.blitzRating || 1200,
+        });
 
       if (error) {
         console.error('AuthContext: Error creating profile:', error);
@@ -220,15 +220,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase
         .from('user_profiles')
         .update({
-          name: profileData.name,
-          fide_id: profileData.fideId,
-          title: profileData.title,
-          federation: profileData.federation,
-          birth_year: profileData.birthYear,
-          standard_rating: profileData.standardRating,
-          rapid_rating: profileData.rapidRating,
-          blitz_rating: profileData.blitzRating,
-        } as Record<string, unknown>)
+          name: profileData.name || activeProfile.name,
+          fide_id: profileData.fideId || activeProfile.fideId || null,
+          title: profileData.title || activeProfile.title || null,
+          federation: profileData.federation || activeProfile.federation || null,
+          birth_year: profileData.birthYear || activeProfile.birthYear || null,
+          standard_rating: profileData.standardRating || activeProfile.standardRating,
+          rapid_rating: profileData.rapidRating || activeProfile.rapidRating,
+          blitz_rating: profileData.blitzRating || activeProfile.blitzRating,
+        })
         .eq('id', activeProfile.id);
 
       if (error) {
