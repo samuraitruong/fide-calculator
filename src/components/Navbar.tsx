@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 
 import ProfileModal from './ProfileModal';
+import ChangePasswordModal from './ChangePasswordModal';
 import { FaHdd, FaCloud, FaUser, FaSignOutAlt, FaBars, FaTimes, FaEdit, FaKey, FaEnvelope, FaChevronDown, FaPlus } from 'react-icons/fa';
 
 export default function Navbar() {
@@ -17,6 +18,7 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Determine storage mode and current profile
@@ -146,7 +148,7 @@ export default function Navbar() {
                       <div className="py-1">
                         <button
                           onClick={() => {
-                            // TODO: Implement change password
+                            setShowChangePassword(true);
                             setUserMenuOpen(false);
                           }}
                           className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
@@ -154,6 +156,7 @@ export default function Navbar() {
                           <FaKey className="w-4 h-4" />
                           <span>Change Password</span>
                         </button>
+
                       </div>
                     )}
 
@@ -304,7 +307,7 @@ export default function Navbar() {
                 <div className="space-y-1 mb-3">
                   <button
                     onClick={() => {
-                      // TODO: Implement change password
+                      setShowChangePassword(true);
                       setMobileMenuOpen(false);
                     }}
                     className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
@@ -312,6 +315,7 @@ export default function Navbar() {
                     <FaKey className="w-4 h-4" />
                     <span>Change Password</span>
                   </button>
+
                 </div>
               )}
 
@@ -396,6 +400,7 @@ export default function Navbar() {
         isLocalMode={isLocalMode}
         localProfile={localActiveProfile}
       />
+      <ChangePasswordModal open={showChangePassword} onClose={() => setShowChangePassword(false)} />
     </nav>
   );
 }

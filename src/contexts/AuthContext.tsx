@@ -18,6 +18,8 @@ interface AuthContextType {
   updateProfile: (profileData: Partial<UserProfile>) => Promise<{ error: Error | null }>;
   setActiveProfile: (profileId: string) => Promise<void>;
   refreshSession: () => Promise<{ data?: unknown; error?: Error | null }>;
+  requestPasswordReset: (email: string) => Promise<{ error: Error | null }>;
+  updatePassword: (newPassword: string) => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,6 +30,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [activeProfile, setActiveProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Helper function to convert snake_case to camelCase
+  const convertToCamelCase = useCallback((obj: unknown): unknown => {
+    if (obj === null || typeof obj !== 'object') {
+      return obj;
+    }
+
+    if (Array.isArray(obj)) {
+      return obj.map(convertToCamelCase);
+    }
+
+    const converted: Record<string, unknown> = {};
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+        converted[camelKey] = convertToCamelCase(obj[key]);
+      }
+    }
+    return converted;
+  }, []);
+
+  const fetchProfiles = useCallback(async (userId: string) => {
+    try {
+      console.log('AuthContext: Fetching profiles for user:', userId);
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('AuthContext: Error fetching profiles:', error);
+        setProfiles([]);
+        setActiveProfile(null);
+      } else if (data && data.length > 0) {
+        console.log('AuthContext: Profiles found:', data);
+        const convertedProfiles = data.map(profile => convertToCamelCase(profile) as UserProfile);
+        setProfiles(convertedProfiles);
+        // Set the first profile as active by default
+        setActiveProfile(convertedProfiles[0]);
+      } else {
+        console.log('AuthContext: No profiles found for user');
+        setProfiles([]);
+        setActiveProfile(null);
+      }
+    } catch (error) {
+      console.error('AuthContext: Error fetching profiles:', error);
+      setProfiles([]);
+      setActiveProfile(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [convertToCamelCase]);
 
   useEffect(() => {
     console.log('AuthContext: Initializing auth state...');
@@ -83,40 +139,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [fetchProfiles]);
 
-  const fetchProfiles = useCallback(async (userId: string) => {
-    try {
-      console.log('AuthContext: Fetching profiles for user:', userId);
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('is_active', true)
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('AuthContext: Error fetching profiles:', error);
-        setProfiles([]);
-        setActiveProfile(null);
-      } else if (data && data.length > 0) {
-        console.log('AuthContext: Profiles found:', data);
-        const convertedProfiles = data.map(profile => convertToCamelCase(profile) as UserProfile);
-        setProfiles(convertedProfiles);
-        // Set the first profile as active by default
-        setActiveProfile(convertedProfiles[0]);
-      } else {
-        console.log('AuthContext: No profiles found for user');
-        setProfiles([]);
-        setActiveProfile(null);
-      }
-    } catch (error) {
-      console.error('AuthContext: Error fetching profiles:', error);
-      setProfiles([]);
-      setActiveProfile(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [convertToCamelCase]);
-
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -135,6 +157,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+  };
+
+  // Request a password reset email (forgot password)
+  const requestPasswordReset = async (email: string) => {
+    try {
+      const redirectTo = `${window.location.origin}/reset-password`;
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+      return { error: error as unknown as Error | null };
+    } catch (err) {
+      return { error: err as Error };
+    }
+  };
+
+  // Update current user's password (change password or after recovery)
+  const updatePassword = async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    return { error: error as unknown as Error | null };
   };
 
   const createProfile = async (profileData: Partial<UserProfile>) => {
@@ -228,26 +267,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Helper function to convert snake_case to camelCase
-  const convertToCamelCase = useCallback((obj: unknown): unknown => {
-    if (obj === null || typeof obj !== 'object') {
-      return obj;
-    }
-
-    if (Array.isArray(obj)) {
-      return obj.map(convertToCamelCase);
-    }
-
-    const converted: Record<string, unknown> = {};
-    for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
-        const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-        converted[camelKey] = convertToCamelCase(obj[key]);
-      }
-    }
-    return converted;
-  }, []);
-
   const value: AuthContextType = {
     user,
     session,
@@ -261,6 +280,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     updateProfile,
     setActiveProfile: switchActiveProfile,
     refreshSession,
+    requestPasswordReset,
+    updatePassword,
   };
 
   return (
