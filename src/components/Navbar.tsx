@@ -26,9 +26,9 @@ export default function Navbar() {
   const isLocalMode = localStorage.getItem('fide-calculator-mode') === 'local';
   const currentProfile = isLocalMode ? localActiveProfile : activeProfile;
   const currentProfiles = isLocalMode ? localProfiles : profiles;
-  const handleProfileSelect = (profile: { id: string; name: string; fideId?: string; title?: string; federation?: string; birthYear?: number; standardRating: number; rapidRating: number; blitzRating: number; isLocal: boolean }) => {
+  const handleProfileSelect = (profile: { id: string; name: string; fideId?: string; title?: string; federation?: string; birthYear?: number; standardRating: number; rapidRating: number; blitzRating: number; isLocal?: boolean }) => {
     if (isLocalMode) {
-      setLocalActiveProfile(profile);
+      setLocalActiveProfile({ ...profile, isLocal: true });
     } else {
       setActiveProfile(profile.id);
     }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { Result, RatingType, MonthlyData } from '../../supabase/types';
+import type { Result, RatingType, MonthlyData } from '@/util/types';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Helper function to generate month key
@@ -165,6 +165,7 @@ export function useSupabaseRatingList(type: RatingType = 'standard') {
         kFactor: data.k_factor as number,
         result: data.result as 'win' | 'draw' | 'loss',
         ratingChange: data.rating_change as number,
+        ratingType: data.rating_type as RatingType,
         date: data.game_date as string,
         monthKey: data.month_key as string,
       };
@@ -249,6 +250,7 @@ export function useSupabaseRatingList(type: RatingType = 'standard') {
           kFactor: data.k_factor as number,
           result: data.result as 'win' | 'draw' | 'loss',
           ratingChange: data.rating_change as number,
+          ratingType: data.rating_type as RatingType,
           date: data.game_date as string,
           monthKey: data.month_key as string,
         };

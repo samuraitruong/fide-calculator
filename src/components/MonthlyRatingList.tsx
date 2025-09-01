@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
-import type { MonthlyData, Result, RatingType } from '../../supabase/types';
+import type { MonthlyData, Result, RatingType } from '@/util/types';
 import ListRatingChange from './ListRatingChange';
 
 interface MonthlyRatingListProps {
@@ -13,8 +13,6 @@ interface MonthlyRatingListProps {
   onReorder: (newResults: Result[]) => void;
   onReset: () => void;
   type: RatingType;
-  storageMode?: 'local' | 'cloud';
-  currentProfile?: { id: string; name: string; standardRating: number; rapidRating: number; blitzRating: number };
 }
 
 export default function MonthlyRatingList({
@@ -25,8 +23,6 @@ export default function MonthlyRatingList({
   onReorder,
   onReset,
   type,
-  storageMode,
-  currentProfile,
 }: MonthlyRatingListProps) {
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(() => {
     // Initialize with current month expanded by default
@@ -121,8 +117,7 @@ export default function MonthlyRatingList({
                 onReset={monthData.isReadOnly ? undefined : onReset}
                 readOnly={monthData.isReadOnly}
 
-                storageMode={storageMode}
-                currentProfile={currentProfile}
+
                 ratingType={type}
               />
             </div>

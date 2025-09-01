@@ -658,8 +658,7 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
         onReorder={handleReorder}
         onReset={handleResetClick}
         type={type}
-        storageMode={storageMode}
-        currentProfile={activeProfile || undefined}
+
       />
 
 

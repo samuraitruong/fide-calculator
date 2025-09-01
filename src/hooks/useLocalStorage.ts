@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Result, MonthlyData } from '../supabase/types';
+import type { Result, MonthlyData } from '@/util/types';
 
 export interface LocalProfile {
   id: string;

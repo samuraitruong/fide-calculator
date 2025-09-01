@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import type { UserProfile } from '../../supabase/types';
+import type { UserProfile } from '@/util/types';
 
 interface AuthContextType {
   user: User | null;
@@ -195,11 +195,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           standard_rating: profileData.standardRating,
           rapid_rating: profileData.rapidRating,
           blitz_rating: profileData.blitzRating,
-        });
+        } as Record<string, unknown>);
 
       if (error) {
         console.error('AuthContext: Error creating profile:', error);
-        return { error };
+        return { error: error as Error };
       }
 
       // Refresh profiles data
@@ -207,7 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: null };
     } catch (error) {
       console.error('AuthContext: Exception creating profile:', error);
-      return { error };
+      return { error: error as Error };
     }
   };
 
@@ -228,12 +228,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           standard_rating: profileData.standardRating,
           rapid_rating: profileData.rapidRating,
           blitz_rating: profileData.blitzRating,
-        })
+        } as Record<string, unknown>)
         .eq('id', activeProfile.id);
 
       if (error) {
         console.error('AuthContext: Error updating profile:', error);
-        return { error };
+        return { error: error as Error };
       }
 
       // Refresh profiles data
@@ -241,7 +241,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: null };
     } catch (error) {
       console.error('AuthContext: Exception updating profile:', error);
-      return { error };
+      return { error: error as Error };
     }
   };
 
