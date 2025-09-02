@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
+  import { useState, useEffect, useRef } from 'react';
+  import Link from 'next/link';
+  import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
@@ -80,10 +81,9 @@ export default function Navbar() {
           {/* Logo and Brand */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">♔</span>
+              <div className="py-1">
+                <Image src="/logo1.png" alt="FIDE Calculator" width={75} height={75} />
               </div>
-              <span className="hidden md:block text-xl font-bold text-gray-900">FIDE Calculator</span>
             </Link>
           </div>
 

@@ -181,12 +181,17 @@ export function useLocalStorage() {
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const monthIndex = monthNames.indexOf(month);
       const monthDate = new Date(parseInt(year), monthIndex, 1);
+      
       const isCurrentMonth = monthDate.getMonth() === currentDate.getMonth() && 
                            monthDate.getFullYear() === currentDate.getFullYear();
       
+      // Convert month abbreviation to full name for better display
+      const monthFullNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      const monthFullName = monthFullNames[monthIndex];
+      
       return {
         monthKey,
-        month: `${month} ${year}`,
+        month: `${monthFullName} ${year}`,
         results: monthResults,
         totalChange,
         gameCount: monthResults.length,

@@ -404,6 +404,8 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
     setTotalChange(Math.round(100 * results.reduce((acc, curr) => acc + curr.ratingChange, 0)) / 100);
   }, [results]);
 
+
+
   return (
     <div className="min-h-screen p-1 md:p-5 bg-gray-50 max-w-7xl mx-auto">
 

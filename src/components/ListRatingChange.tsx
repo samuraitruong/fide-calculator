@@ -193,7 +193,7 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
   return (
     <>
       <DndProvider backend={HTML5Backend}>
-        <div className="w-full mt-5 md:mt-8 bg-white rounded-xl shadow-lg p-3 md:p-8 print:p-0 print:shadow-none print:border-0 print:rounded-none">
+        <div className="w-full">
           <Confirm
             open={confirmOpen}
             title="Remove Rating Change"
@@ -204,7 +204,6 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
             onCancel={handleCancel}
           />
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">Rating changes</h2>
             <div className="flex items-center gap-2 print:hidden">
               <span className="text-3xl font-bold flex items-center gap-2">
                 {totalChange > 0 && <FaArrowUp className="text-green-600" />}
