@@ -5,6 +5,8 @@ import { roundNumber } from '@/util/util';
 import { useState, useRef, useEffect } from 'react';
 import EditDateButton from './EditDateButton';
 import { FaArrowUp, FaArrowDown, FaMinus, FaTrashAlt } from 'react-icons/fa';
+import { useAuth } from '@/contexts/AuthContext';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 
 // Add react-dnd imports
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
@@ -136,6 +138,10 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
   const [tableData, setTableData] = useState<Result[]>(results);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const totalChange = roundNumber(results.reduce((acc, curr) => acc + curr.ratingChange, 0));
+  const { activeProfile } = useAuth();
+  const { activeProfile: localActiveProfile } = useLocalStorage();
+  const isLocalMode = typeof window !== 'undefined' && localStorage.getItem('fide-calculator-mode') === 'local';
+  const currentProfileName = isLocalMode ? localActiveProfile?.name : activeProfile?.name;
 
 
   // Keep tableData in sync with results
@@ -281,7 +287,7 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
                   )}
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm font-medium text-blue-700 underline cursor-pointer hover:text-blue-900" onClick={e => { e.stopPropagation(); handleOpponentNameClick(result.opponentName); }}>YOU vs. {result.opponentName}</span>
+                  <span className="text-sm font-medium text-blue-700 underline cursor-pointer hover:text-blue-900" onClick={e => { e.stopPropagation(); handleOpponentNameClick(result.opponentName); }}>{currentProfileName || 'YOU'} vs. {result.opponentName}</span>
                   <span className="text-sm capitalize">{result.result}</span>
                 </div>
                 <div className="flex justify-between items-center">
