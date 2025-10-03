@@ -404,6 +404,13 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
     setTotalChange(Math.round(100 * results.reduce((acc, curr) => acc + curr.ratingChange, 0)) / 100);
   }, [results]);
 
+  // Only the current month's change should be added to the official rating for live rating
+  const currentMonthChange = useMemo(() => {
+    if (!monthlyData || monthlyData.length === 0) return 0;
+    const current = monthlyData.find(m => m.isCurrentMonth);
+    return current ? current.totalChange : 0;
+  }, [monthlyData]);
+
 
 
   return (
@@ -658,9 +665,9 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
                 )}
               </div>
               
-              {/* Live Rating Box - Always visible at bottom (total progress) */}
+              {/* Live Rating Box - Always visible at bottom (uses current month progress only) */}
               <div className="flex-1">
-                <LiveRatingBox currentRatingChange={totalChange} currentRating={playerRating} />
+                <LiveRatingBox currentRatingChange={currentMonthChange} currentRating={playerRating} />
               </div>
             </div>
           </div>
