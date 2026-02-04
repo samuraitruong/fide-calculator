@@ -56,7 +56,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: |
-            apps/web/.next/cache
+            apps/web/.next
           # Generate a new cache whenever packages or source files change.
           key: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('apps/web/**/*.js', 'apps/web/**/*.jsx', 'apps/web/**/*.ts', 'apps/web/**/*.tsx') }}
           # If source files changed but packages didn't, rebuild from a prior cache.
