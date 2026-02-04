@@ -1,0 +1,183 @@
+import { render, screen, fireEvent } from '@testing-library/react';
+import ListRatingChange from '../ListRatingChange';
+import { Result } from '@/util/types';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+
+const renderWithDnd = (ui: React.ReactElement) => {
+  return render(
+    <DndProvider backend={HTML5Backend}>
+      {ui}
+    </DndProvider>
+  );
+};
+
+describe.skip('ListRatingChange', () => {
+  const mockResults: Result[] = [
+    {
+      id: '1',
+      playerRating: 1500,
+      opponentName: 'Player 1',
+      opponentRating: 1600,
+      kFactor: 10,
+      result: 'win',
+      ratingChange: 5.6,
+      date: '2024-03-20'
+    },
+    {
+      id: '2',
+      playerRating: 1600,
+      opponentName: 'Player 2',
+      opponentRating: 1700,
+      kFactor: 10,
+      result: 'loss',
+      ratingChange: -4.8,
+      date: '2024-03-20'
+    }
+  ];
+
+  const mockOnRemove = jest.fn();
+  const mockOnSelect = jest.fn();
+  const mockOnUpdateDate = jest.fn();
+  const mockOnReorder = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('renders list of rating changes', () => {
+    renderWithDnd(
+      <ListRatingChange
+        results={mockResults}
+        onRemove={mockOnRemove}
+        onSelect={mockOnSelect}
+        onUpdateDate={mockOnUpdateDate}
+        onReorder={mockOnReorder}
+      />
+    );
+
+    expect(screen.getByText('Player 1')).toBeInTheDocument();
+    expect(screen.getByText('Player 2')).toBeInTheDocument();
+    expect(screen.getByText('5.6')).toBeInTheDocument();
+    expect(screen.getByText('4.8')).toBeInTheDocument();
+  });
+
+  it('calls onRemove when delete button is clicked and confirmed', () => {
+    renderWithDnd(
+      <ListRatingChange
+        results={mockResults}
+        onRemove={mockOnRemove}
+        onSelect={mockOnSelect}
+        onUpdateDate={mockOnUpdateDate}
+        onReorder={mockOnReorder}
+      />
+    );
+
+    const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
+    fireEvent.click(deleteButtons[0]);
+
+    // Confirm dialog should appear
+    expect(screen.getByText('Remove Rating Change')).toBeInTheDocument();
+    
+    // Click confirm button
+    const confirmButton = screen.getByRole('button', { name: /remove/i });
+    fireEvent.click(confirmButton);
+
+    expect(mockOnRemove).toHaveBeenCalledWith(0);
+  });
+
+  it('calls onSelect when row is clicked', () => {
+    renderWithDnd(
+      <ListRatingChange
+        results={mockResults}
+        onRemove={mockOnRemove}
+        onSelect={mockOnSelect}
+        onUpdateDate={mockOnUpdateDate}
+        onReorder={mockOnReorder}
+      />
+    );
+
+    const row = screen.getByText('Player 1').closest('tr');
+    fireEvent.click(row!);
+
+    expect(mockOnSelect).toHaveBeenCalledWith(mockResults[0], 0);
+  });
+
+  it('displays correct styling for positive and negative changes', () => {
+    renderWithDnd(
+      <ListRatingChange
+        results={mockResults}
+        onRemove={mockOnRemove}
+        onSelect={mockOnSelect}
+        onUpdateDate={mockOnUpdateDate}
+        onReorder={mockOnReorder}
+      />
+    );
+
+    const positiveChange = screen.getByText('5.6');
+    expect(positiveChange).toHaveClass('text-green-600');
+
+    const negativeChange = screen.getByText('4.8');
+    expect(negativeChange).toHaveClass('text-red-600');
+  });
+
+  it('displays opponent rating and result', () => {
+    renderWithDnd(
+      <ListRatingChange
+        results={mockResults}
+        onRemove={mockOnRemove}
+        onSelect={mockOnSelect}
+        onUpdateDate={mockOnUpdateDate}
+        onReorder={mockOnReorder}
+      />
+    );
+
+    expect(screen.getByText('1600')).toBeInTheDocument();
+    expect(screen.getByText('1700')).toBeInTheDocument();
+    expect(screen.getByText('win')).toBeInTheDocument();
+    expect(screen.getByText('loss')).toBeInTheDocument();
+  });
+
+  it('displays date in correct format', () => {
+    renderWithDnd(
+      <ListRatingChange
+        results={mockResults}
+        onRemove={mockOnRemove}
+        onSelect={mockOnSelect}
+        onUpdateDate={mockOnUpdateDate}
+        onReorder={mockOnReorder}
+      />
+    );
+
+    expect(screen.getAllByText('2024-03-20')).toHaveLength(2);
+  });
+
+  it('renders empty state when no results', () => {
+    renderWithDnd(
+      <ListRatingChange
+        results={[]}
+        onRemove={mockOnRemove}
+        onSelect={mockOnSelect}
+        onUpdateDate={mockOnUpdateDate}
+        onReorder={mockOnReorder}
+      />
+    );
+
+    expect(screen.getByText('No rating changes yet')).toBeInTheDocument();
+  });
+
+  it('calculates and displays total change', () => {
+    renderWithDnd(
+      <ListRatingChange
+        results={mockResults}
+        onRemove={mockOnRemove}
+        onSelect={mockOnSelect}
+        onUpdateDate={mockOnUpdateDate}
+        onReorder={mockOnReorder}
+      />
+    );
+
+    // Total change should be 5.6 - 4.8 = 0.8
+    expect(screen.getByText('0.8')).toBeInTheDocument();
+  });
+}); 

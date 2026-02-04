@@ -1,0 +1,33 @@
+{
+  "name": "mobile",
+  "version": "0.1.0",
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "lint": "eslint .",
+    "test": "jest",
+    "clean": "rm -rf node_modules .expo"
+  },
+  "dependencies": {
+    "@fide-calculator/shared": "workspace:*",
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "@supabase/supabase-js": "^2.45.4",
+    "expo": "~54.0.30",
+    "expo-status-bar": "~3.0.9",
+    "react": "19.1.0",
+    "react-native": "0.81.5"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0",
+    "@types/react": "~19.1.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "babel-plugin-module-resolver": "^5.0.0",
+    "eslint": "^8.19.0",
+    "typescript": "~5.9.2"
+  },
+  "private": true
+}

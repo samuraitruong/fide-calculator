@@ -1,48 +1,25 @@
 {
-  "name": "fide-calculator",
+  "name": "fide-calculator-monorepo",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "next dev --turbopack --experimental-https",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "prepare": "husky install",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.45.4",
-    "html2canvas": "^1.4.1",
-    "jspdf": "^3.0.1",
-    "next": "15.3.3",
-    "react": "^19.0.0",
-    "react-dnd": "^16.0.1",
-    "react-dnd-html5-backend": "^16.0.1",
-    "react-dom": "^19.0.0",
-    "react-icons": "^5.5.0",
-    "supabase": "^2.39.2"
+    "dev:web": "pnpm --filter web dev",
+    "dev:mobile": "pnpm --filter mobile start",
+    "build:web": "pnpm --filter web build",
+    "build:shared": "pnpm --filter shared build",
+    "test": "pnpm --filter \"*\" test",
+    "lint": "pnpm -r --if-present lint",
+    "clean": "pnpm --filter \"*\" clean && rm -rf node_modules"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
-    "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^16.3.0",
-    "@testing-library/user-event": "^14.6.1",
-    "@types/jest": "^29.5.14",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "15.3.3",
-    "husky": "^9.1.7",
-    "identity-obj-proxy": "^3.0.0",
-    "jest": "^30.0.0",
-    "jest-environment-jsdom": "^30.0.0",
-    "lint-staged": "^16.1.0",
-    "tailwindcss": "^4",
-    "ts-jest": "^29.4.0",
     "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
   }
 }

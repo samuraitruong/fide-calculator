@@ -19,6 +19,8 @@ supabase/.pgdata/
 # next.js
 /.next/
 /out/
+apps/web/.next/
+apps/web/out/
 
 # production
 /build
@@ -42,5 +44,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+apps/web/next-env.d.ts
+
+# monorepo
+packages/*/dist/
+packages/*/node_modules/
+apps/*/node_modules/
 
 certificates

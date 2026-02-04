@@ -1,25 +1,40 @@
-# FIDE Rating Calculator
+# FIDE Calculator Monorepo
 
-A simple and efficient web application to calculate FIDE chess rating changes and track your rating progress over time. Built with Next.js, Tailwind CSS, and Supabase for data persistence and user authentication.
+A monorepo containing both web and mobile versions of the FIDE Chess Rating Calculator. Built with Next.js for web and React Native for mobile, sharing common logic through a shared package.
+
+## Project Structure
+
+```
+fide-calculator/
+├── apps/
+│   ├── web/          # Next.js web application
+│   └── mobile/       # React Native mobile application
+├── packages/
+│   └── shared/       # Shared types, utilities, and database logic
+└── supabase/         # Database migrations and types
+```
 
 ## Features
 
 - **User Authentication**: Secure signup and login with Supabase Auth
-- **Profile Management**: Create and manage your chess player profile
+- **Profile Management**: Create and manage chess player profiles
 - **Multi-Rating Support**: Track standard, rapid, and blitz ratings separately
 - **Calculate rating changes** based on FIDE rules
 - **Support for different K-factors** (10, 20, 40)
 - **Track game results and rating changes** with cloud storage
 - **View rating history** with accumulated changes
 - **Backup System**: Monthly backups of your game data
-- **Responsive design** for desktop and mobile
-- **Real-time data sync** across devices
+- **Cross-platform**: Web and mobile apps sharing the same logic
 
-## Live Demo
+## Getting Started
 
-Visit the live application at: [FIDE Calculator](https://truongnguyen.github.io/fide-calculator)
+### Prerequisites
 
-## Quick Start
+- Node.js >= 18.0.0
+- pnpm >= 8.0.0
+- For mobile development: React Native development environment set up
+
+### Installation
 
 1. Clone the repository:
 ```bash
@@ -27,75 +42,140 @@ git clone https://github.com/truongnguyen/fide-calculator.git
 cd fide-calculator
 ```
 
-2. Set up Supabase (see [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) for detailed instructions):
+2. Install dependencies:
+```bash
+pnpm install
+```
+
+3. Set up Supabase (see [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) for detailed instructions):
    - Create a Supabase project
    - Copy your project URL and anon key
-   - Create `.env.local` with your credentials
+   - Create `.env.local` in `apps/web/` with your credentials
+   - Create `.env` in `apps/mobile/` with your credentials
    - Run the database migrations
 
-3. Install dependencies:
-```bash
-npm install
-```
+### Environment Variables
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
-## Getting Started
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-## Environment Variables
-
-Create a `.env.local` file in the root directory with the following variables:
-
+#### Web App (`apps/web/.env.local`)
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
-See `env.example` for the complete list of environment variables.
+#### Mobile App (`apps/mobile/.env`)
+```env
+EXPO_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Development
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Build Shared Package
 
-## Learn More
+First, build the shared package:
+```bash
+pnpm build:shared
+```
 
-To learn more about the technologies used in this project:
+Or watch for changes:
+```bash
+cd packages/shared && pnpm dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Supabase Documentation](https://supabase.com/docs) - learn about Supabase features and API.
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs) - learn about Tailwind CSS.
+### Run Web App
+
+```bash
+pnpm dev:web
+# or
+cd apps/web && pnpm dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser.
+
+### Run Mobile App
+
+```bash
+pnpm dev:mobile
+# or
+cd apps/mobile && pnpm start
+```
+
+Then run on iOS or Android:
+```bash
+cd apps/mobile
+pnpm ios    # for iOS
+pnpm android # for Android
+```
+
+## Building
+
+### Build Shared Package
+```bash
+pnpm build:shared
+```
+
+### Build Web App
+```bash
+pnpm build:web
+```
+
+### Build Mobile App
+```bash
+cd apps/mobile
+pnpm android  # Build Android
+pnpm ios      # Build iOS
+```
+
+## Testing
+
+Run tests for all packages:
+```bash
+pnpm test
+```
+
+Run tests for a specific package:
+```bash
+cd apps/web && pnpm test
+cd apps/mobile && pnpm test
+cd packages/shared && pnpm test
+```
+
+## Shared Package
+
+The `packages/shared` package contains:
+
+- **Types**: All TypeScript interfaces and types (`types.ts`)
+- **Utilities**: Rating calculation functions and helpers (`utils.ts`)
+- **Database**: Supabase client creation and profile operations (`database.ts`)
+- **FIDE**: FIDE player search and parsing utilities (`fide.ts`)
+
+Both web and mobile apps import from this shared package to ensure consistency.
 
 ## Architecture
 
-This application uses:
-
+### Web App (Next.js)
 - **Frontend**: Next.js 15 with React 19 and TypeScript
 - **Styling**: Tailwind CSS for responsive design
 - **Backend**: Supabase for authentication, database, and real-time features
-- **Database**: PostgreSQL with Row Level Security (RLS)
-- **Authentication**: Supabase Auth with email/password
-- **State Management**: React hooks with custom Supabase hooks
+
+### Mobile App (React Native)
+- **Framework**: React Native 0.74
+- **Navigation**: React Navigation (to be added)
+- **State Management**: React Context API
+- **Backend**: Supabase for authentication, database, and real-time features
+
+### Shared Package
+- **Types**: Common TypeScript types and interfaces
+- **Utilities**: Business logic (rating calculations, data transformations)
+- **Database**: Supabase client and database operations
 
 ## Contributing
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Make changes in the appropriate app or shared package
+2. If changing shared code, rebuild the shared package: `pnpm build:shared`
+3. Test your changes in both web and mobile apps
+4. Submit a pull request
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See [LICENSE](./LICENSE) file for details.
