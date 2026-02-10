@@ -71,7 +71,7 @@ jobs:
       - name: Build with Next.js
         env:
           # Default GitHub Pages base path: /<repo>
-          BASE_PATH: "/${{ github.event.repository.name }}"
+          BASE_PATH: "/"
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         run: pnpm --filter web build
