@@ -15,12 +15,14 @@ export default function HomeScreen() {
     results: localResults,
     addResult: localAddResult,
     updateResult: localUpdateResult,
+    removeResult: localRemoveResult,
   } = useLocalStorage();
   const [ratingType, setRatingType] = useState<RatingType>('standard');
   const {
     results: cloudResults,
     addResult: cloudAddResult,
     updateResult: cloudUpdateResult,
+    removeResult: cloudRemoveResult,
   } = useSupabaseRatingList(ratingType);
 
   const isLocal = storageMode === 'local';
@@ -28,6 +30,7 @@ export default function HomeScreen() {
   const results = isLocal ? localResults : cloudResults;
   const addResult = isLocal ? localAddResult : cloudAddResult;
   const updateResult = isLocal ? localUpdateResult : cloudUpdateResult;
+  const removeResult = isLocal ? localRemoveResult : cloudRemoveResult;
 
   return (
     <ScrollView
@@ -42,6 +45,7 @@ export default function HomeScreen() {
         results={results}
         addResult={addResult}
         updateResult={updateResult}
+        removeResult={removeResult}
       />
     </ScrollView>
   );

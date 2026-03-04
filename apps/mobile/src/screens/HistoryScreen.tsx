@@ -96,8 +96,6 @@ export default function HistoryScreen() {
       showsVerticalScrollIndicator={false}
     >
       <Text style={styles.title}>Game History</Text>
-      <Text style={styles.subtitle}>By rating type</Text>
-
       <View style={styles.tabs}>
         {RATING_TYPES.map(({ key, label }) => (
           <TouchableOpacity

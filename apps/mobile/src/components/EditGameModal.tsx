@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { GameResult, Result } from '@fide-calculator/shared';
 import { calculateRatingChange } from '@fide-calculator/shared';
@@ -32,6 +33,7 @@ export default function EditGameModal({ open, game, onClose, onSave }: Props) {
   const [kFactor, setKFactor] = useState(20);
   const [result, setResult] = useState<GameResult>('win');
   const [date, setDate] = useState(''); // YYYY-MM-DD preferred
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!game) return;
@@ -81,7 +83,10 @@ export default function EditGameModal({ open, game, onClose, onSave }: Props) {
       onRequestClose={onClose}
     >
       <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+        <Pressable
+          style={[styles.sheet, { paddingBottom: 16 + insets.bottom }]}
+          onPress={(e) => e.stopPropagation()}
+        >
           <View style={styles.header}>
             <Text style={styles.title}>Edit game</Text>
             <TouchableOpacity onPress={onClose} hitSlop={12}>

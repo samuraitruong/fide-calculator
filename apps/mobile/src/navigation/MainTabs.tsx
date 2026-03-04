@@ -17,7 +17,7 @@ const Tab = createBottomTabNavigator<MainTabsParamList>();
 function HeaderMenuButton() {
   const { openMenu } = useMenu();
   return (
-    <TouchableOpacity onPress={openMenu} style={{ marginLeft: 12 }} hitSlop={12}>
+    <TouchableOpacity onPress={openMenu} style={{ marginRight: 12 }} hitSlop={12}>
       <Ionicons name="menu" size={28} color="#1f2937" />
     </TouchableOpacity>
   );
@@ -30,14 +30,14 @@ export default function MainTabs() {
       <Tab.Navigator
         screenOptions={{
           headerShown: true,
-          headerLeft: () => <HeaderMenuButton />,
+          headerRight: () => <HeaderMenuButton />,
         }}
       >
         <Tab.Screen
           name="Home"
           component={HomeScreen}
           options={{
-            title: 'Calculator',
+            title: 'FIDE Calculator',
             tabBarIcon: ({ focused, color, size }) => (
               <Ionicons name={focused ? 'calculator' : 'calculator-outline'} size={size} color={color} />
             ),

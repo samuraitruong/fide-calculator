@@ -5,6 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { GameResult, RatingType, Result, FidePlayer } from '@fide-calculator/shared';
@@ -30,6 +31,7 @@ interface FideCalculatorProps {
   results: Result[];
   addResult: (result: Result) => void | Promise<void>;
   updateResult?: (index: number, updates: Partial<Result>) => void | Promise<void>;
+  removeResult?: (index: number) => void | Promise<void>;
 }
 
 function getProfileRatingForType(profile: ProfileLike, type: RatingType): number {
@@ -89,6 +91,7 @@ export default function FideCalculatorMobile({
   results,
   addResult,
   updateResult,
+  removeResult,
 }: FideCalculatorProps) {
   const [playerRating, setPlayerRating] = useState<number>(
     profile ? getProfileRatingForType(profile, ratingType) : 1500,
@@ -99,6 +102,7 @@ export default function FideCalculatorMobile({
   const [kFactor, setKFactor] = useState(getDefaultK(ratingType));
   const [gameResult, setGameResult] = useState<GameResult>('win');
   const [currentChange, setCurrentChange] = useState<number | null>(null);
+  const [hasCalculated, setHasCalculated] = useState(false);
   const [editingGame, setEditingGame] = useState<Result | null>(null);
 
   // When rating type or profile changes, reset defaults
@@ -109,6 +113,7 @@ export default function FideCalculatorMobile({
     }
     setKFactor(getDefaultK(ratingType));
     setCurrentChange(null);
+    setHasCalculated(false);
   }, [profile, ratingType]);
 
   const typeResults = useMemo(
@@ -150,24 +155,29 @@ export default function FideCalculatorMobile({
 
   const isFormValid = isValidRating(playerRating) && isValidRating(opponentRating);
 
-  // If user already calculated once, keep it live-updated when inputs change
+  // After user calculates once, keep the entry's rating change live-updated
   useEffect(() => {
-    if (currentChange === null) return;
-    if (!isFormValid) return;
+    if (!hasCalculated) return;
+    if (!isFormValid) {
+      setCurrentChange(null);
+      return;
+    }
     const delta = calculateRatingChange(playerRating, opponentRating, gameResult, kFactor);
     setCurrentChange(delta);
-  }, [currentChange, playerRating, opponentRating, gameResult, kFactor, isFormValid]);
+  }, [hasCalculated, playerRating, opponentRating, gameResult, kFactor, isFormValid]);
 
   const handleCalculate = () => {
     if (!isFormValid) return;
     const delta = calculateRatingChange(playerRating, opponentRating, gameResult, kFactor);
     setCurrentChange(delta);
+    setHasCalculated(true);
   };
 
   const handleTrackGame = async () => {
     if (!isFormValid) return;
     const delta = calculateRatingChange(playerRating, opponentRating, gameResult, kFactor);
     setCurrentChange(delta);
+    setHasCalculated(true);
 
     const now = new Date();
     const date = now.toISOString().slice(0, 10); // YYYY-MM-DD
@@ -216,6 +226,11 @@ export default function FideCalculatorMobile({
   const liveColor =
     currentMonthChange > 0 ? '#059669' : currentMonthChange < 0 ? '#b91c1c' : '#374151';
 
+  const displayChange = hasCalculated && currentChange !== null ? currentChange : currentMonthChange;
+  const displayIsPositive = displayChange > 0;
+  const displayIsNegative = displayChange < 0;
+  const showingEntryChange = hasCalculated && currentChange !== null;
+
   return (
     <View style={styles.container}>
       <View style={[styles.section, styles.sectionTop]}>
@@ -246,28 +261,29 @@ export default function FideCalculatorMobile({
         <View style={styles.topCard}>
           <Text style={styles.topCardLabel}>Rating change</Text>
           <View style={styles.topCardValueRow}>
-            {currentChange !== null ? (
-              <Ionicons
-                name={currentChange > 0 ? 'arrow-up' : currentChange < 0 ? 'arrow-down' : 'remove'}
-                size={18}
-                color={currentChange > 0 ? '#059669' : currentChange < 0 ? '#b91c1c' : '#9ca3af'}
-              />
-            ) : null}
+            <Ionicons
+              name={displayChange > 0 ? 'arrow-up' : displayChange < 0 ? 'arrow-down' : 'remove'}
+              size={18}
+              color={displayIsPositive ? '#059669' : displayIsNegative ? '#b91c1c' : '#9ca3af'}
+            />
             <Text
               style={[
                 styles.topCardValue,
-                currentChange !== null && currentChange > 0
+                displayIsPositive
                   ? styles.positive
-                  : currentChange !== null && currentChange < 0
+                  : displayIsNegative
                     ? styles.negative
                     : null,
               ]}
             >
-              {currentChange === null ? '—' : `${currentChange > 0 ? '+' : ''}${currentChange}`}
+              {displayChange > 0 ? '+' : ''}
+              {displayChange}
             </Text>
           </View>
           <Text style={styles.topCardSubtext}>
-            {currentChange === null ? 'Tap Calculate' : `New rating: ${playerRating + currentChange}`}
+            {showingEntryChange
+              ? `New rating: ${playerRating + (currentChange ?? 0)}`
+              : 'Total change this month'}
           </Text>
         </View>
 
@@ -293,18 +309,32 @@ export default function FideCalculatorMobile({
         <WinDrawLossBar wins={wdl.wins} draws={wdl.draws} losses={wdl.losses} />
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.label}>Your rating</Text>
-        <TextInput
-          style={styles.input}
-          value={String(playerRating)}
-          keyboardType="numeric"
-          onChangeText={(text) => {
-            const n = Number(text.replace(/[^0-9]/g, ''));
-            setPlayerRating(Number.isNaN(n) ? 0 : n);
-            setPlayerRatingManuallyChanged(true);
-          }}
-        />
+      <View style={[styles.section, styles.inlineRow]}>
+        <View style={styles.inlineCol}>
+          <Text style={styles.label}>Your rating</Text>
+          <TextInput
+            style={styles.input}
+            value={String(playerRating)}
+            keyboardType="numeric"
+            onChangeText={(text) => {
+              const n = Number(text.replace(/[^0-9]/g, ''));
+              setPlayerRating(Number.isNaN(n) ? 0 : n);
+              setPlayerRatingManuallyChanged(true);
+            }}
+          />
+        </View>
+        <View style={styles.inlineCol}>
+          <Text style={styles.label}>K-factor</Text>
+          <TextInput
+            style={styles.input}
+            value={String(kFactor)}
+            keyboardType="numeric"
+            onChangeText={(text) => {
+              const n = Number(text.replace(/[^0-9]/g, ''));
+              setKFactor(Number.isNaN(n) ? getDefaultK(ratingType) : n);
+            }}
+          />
+        </View>
       </View>
 
       <View style={styles.section}>
@@ -328,7 +358,6 @@ export default function FideCalculatorMobile({
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.label}>Game result</Text>
         <View style={styles.resultRow}>
           {(['win', 'draw', 'loss'] as GameResult[]).map((res) => (
             <TouchableOpacity
@@ -350,19 +379,6 @@ export default function FideCalculatorMobile({
             </TouchableOpacity>
           ))}
         </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.label}>K-factor</Text>
-        <TextInput
-          style={styles.input}
-          value={String(kFactor)}
-          keyboardType="numeric"
-          onChangeText={(text) => {
-            const n = Number(text.replace(/[^0-9]/g, ''));
-            setKFactor(Number.isNaN(n) ? getDefaultK(ratingType) : n);
-          }}
-        />
       </View>
 
       {!isFormValid && (
@@ -398,38 +414,69 @@ export default function FideCalculatorMobile({
               .slice()
               .reverse()
               .slice(0, 5)
-              .map((r) => (
-                <TouchableOpacity
-                  key={r.id}
-                  style={styles.gameRow}
-                  activeOpacity={0.7}
-                  onPress={() => updateResult && setEditingGame(r)}
-                  disabled={!updateResult}
-                >
-                  <View style={styles.gameMain}>
-                    <Text style={styles.gameOpponent}>{r.opponentName || 'Opponent'}</Text>
-                    <Text style={styles.gameMeta}>
-                      {r.date} • {r.result.toUpperCase()}
-                    </Text>
+              .map((r) => {
+                const fullIndex = results.findIndex((x) => x.id === r.id);
+                const canDelete = removeResult != null && fullIndex !== -1;
+                return (
+                  <View key={r.id} style={styles.gameRow}>
+                    <TouchableOpacity
+                      style={styles.gameRowTouchable}
+                      activeOpacity={0.7}
+                      onPress={() => updateResult && setEditingGame(r)}
+                      disabled={!updateResult}
+                    >
+                      <View style={styles.gameMain}>
+                        <Text style={styles.gameOpponent}>
+                          {r.opponentName || 'Opponent'} ({r.opponentRating})
+                        </Text>
+                        <Text style={styles.gameMeta}>
+                          {r.date} • {r.result.toUpperCase()}
+                        </Text>
+                      </View>
+                      <Text
+                        style={[
+                          styles.gameChange,
+                          r.ratingChange > 0
+                            ? styles.gameChangePositive
+                            : r.ratingChange < 0
+                            ? styles.gameChangeNegative
+                            : null,
+                        ]}
+                      >
+                        {r.ratingChange > 0 ? '+' : ''}
+                        {r.ratingChange}
+                      </Text>
+                      {updateResult ? (
+                        <Ionicons name="chevron-forward" size={16} color="#9ca3af" style={{ marginLeft: 8 }} />
+                      ) : null}
+                    </TouchableOpacity>
+                    {canDelete ? (
+                      <TouchableOpacity
+                        hitSlop={12}
+                        onPress={() => {
+                          Alert.alert(
+                            'Delete game',
+                            `Remove this game vs ${r.opponentName || 'Opponent'}?`,
+                            [
+                              { text: 'Cancel', style: 'cancel' },
+                              {
+                                text: 'Delete',
+                                style: 'destructive',
+                                onPress: () => {
+                                  if (fullIndex !== -1) Promise.resolve(removeResult(fullIndex)).catch(() => {});
+                                },
+                              },
+                            ]
+                          );
+                        }}
+                        style={styles.deleteButton}
+                      >
+                        <Ionicons name="trash-outline" size={20} color="#dc2626" />
+                      </TouchableOpacity>
+                    ) : null}
                   </View>
-                  <Text
-                    style={[
-                      styles.gameChange,
-                      r.ratingChange > 0
-                        ? styles.gameChangePositive
-                        : r.ratingChange < 0
-                        ? styles.gameChangeNegative
-                        : null,
-                    ]}
-                  >
-                    {r.ratingChange > 0 ? '+' : ''}
-                    {r.ratingChange}
-                  </Text>
-                  {updateResult ? (
-                    <Ionicons name="chevron-forward" size={16} color="#9ca3af" style={{ marginLeft: 8 }} />
-                  ) : null}
-                </TouchableOpacity>
-              ))}
+                );
+              })}
             <Text style={styles.summaryText}>
               This month total: {currentMonthChange > 0 ? '+' : ''}
               {currentMonthChange}
@@ -519,6 +566,13 @@ const styles = StyleSheet.create({
   },
   subLabel: {
     marginTop: 8,
+  },
+  inlineRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  inlineCol: {
+    flex: 1,
   },
   ratingTypeRow: {
     flexDirection: 'row',
@@ -625,11 +679,20 @@ const styles = StyleSheet.create({
   gameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingVertical: 10,
     minHeight: 48,
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
+  },
+  gameRowTouchable: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  deleteButton: {
+    padding: 8,
+    marginLeft: 4,
   },
   gameMain: {
     flex: 1,
