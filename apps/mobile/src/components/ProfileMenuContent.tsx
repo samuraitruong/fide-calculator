@@ -1,12 +1,6 @@
 import React, { useState } from 'react';
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
+import { ScrollView, StyleSheet, Text, View, TouchableOpacity, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useStorageMode } from '@/contexts/StorageModeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,6 +36,15 @@ export default function ProfileMenuContent() {
   const isLocal = storageMode === 'local';
   const profiles = isLocal ? localProfiles : cloudProfiles;
   const activeProfile = isLocal ? localActiveProfile : cloudActiveProfile;
+
+  const displayName = activeProfile?.name ?? user?.email ?? 'Profile';
+  const email = user?.email;
+  const initials = displayName
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 
   const handleSwitchProfile = (profile: { id: string } & { name: string }) => {
     if (isLocal) {
@@ -83,30 +86,39 @@ export default function ProfileMenuContent() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>Account</Text>
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>
-            {isLocal ? 'Storage' : 'Email'}
-          </Text>
-          <Text style={styles.cardValue} numberOfLines={1}>
-            {isLocal ? 'Local (this device only)' : user?.email ?? '—'}
-          </Text>
+        <View style={styles.profileHeader}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{initials}</Text>
+          </View>
+          <View style={styles.profileHeaderText}>
+            <Text style={styles.profileTitle} numberOfLines={1}>
+              {displayName}
+            </Text>
+            {email ? (
+              <Text style={styles.profileEmail} numberOfLines={1}>
+                {email}
+              </Text>
+            ) : null}
+          </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Profiles</Text>
+        <Text style={styles.sectionLabel}>Profiles</Text>
         {activeProfile && (
           <View style={styles.card}>
-            <Text style={styles.cardLabel}>Active</Text>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardLabel}>Active</Text>
+              <TouchableOpacity
+                style={styles.editIconButton}
+                onPress={() => setShowEditProfile(true)}
+                hitSlop={8}
+              >
+                <Ionicons name="pencil" size={18} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
             <Text style={styles.activeName}>{activeProfile.name}</Text>
             <Text style={styles.ratings}>
               Std {activeProfile.standardRating} · Rapid {activeProfile.rapidRating} · Blitz {activeProfile.blitzRating}
             </Text>
-            <TouchableOpacity
-              style={styles.editProfileButton}
-              onPress={() => setShowEditProfile(true)}
-            >
-              <Text style={styles.editProfileButtonText}>Edit profile</Text>
-            </TouchableOpacity>
           </View>
         )}
 
@@ -200,18 +212,45 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 48,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1f2937',
-    marginBottom: 20,
+  profileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
   },
-  sectionTitle: {
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#2563eb',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  avatarText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  profileHeaderText: {
+    flex: 1,
+  },
+  profileTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  profileEmail: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    color: '#9ca3af',
+    textTransform: 'uppercase',
     marginBottom: 12,
-    marginTop: 8,
   },
   card: {
     backgroundColor: '#fff',
@@ -224,6 +263,12 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
   cardLabel: {
     fontSize: 12,
     fontWeight: '600',
@@ -231,9 +276,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 4,
   },
-  cardValue: {
-    fontSize: 16,
-    color: '#1f2937',
+  editIconButton: {
+    padding: 4,
+    borderRadius: 999,
   },
   activeName: {
     fontSize: 18,
@@ -244,21 +289,6 @@ const styles = StyleSheet.create({
   ratings: {
     fontSize: 14,
     color: '#6b7280',
-  },
-  editProfileButton: {
-    marginTop: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    alignSelf: 'flex-start',
-    backgroundColor: '#eff6ff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#2563eb',
-  },
-  editProfileButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#2563eb',
   },
   profileList: {
     marginBottom: 16,

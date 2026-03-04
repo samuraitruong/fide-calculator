@@ -8,6 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import type { GameResult, RatingType, Result, FidePlayer } from '@fide-calculator/shared';
 import { calculateRatingChange } from '@fide-calculator/shared';
 import FideSearchInput from './FideSearchInput';
@@ -93,6 +94,7 @@ export default function FideCalculatorMobile({
   updateResult,
   removeResult,
 }: FideCalculatorProps) {
+  const navigation = useNavigation() as any;
   const [playerRating, setPlayerRating] = useState<number>(
     profile ? getProfileRatingForType(profile, ratingType) : 1500,
   );
@@ -234,26 +236,29 @@ export default function FideCalculatorMobile({
   return (
     <View style={styles.container}>
       <View style={[styles.section, styles.sectionTop]}>
-        <View style={styles.ratingTypeRow}>
-          {ratingTypes.map((type) => (
-            <TouchableOpacity
-              key={type}
-              style={[
-                styles.ratingTypeButton,
-                ratingType === type && styles.ratingTypeButtonActive,
-              ]}
-              onPress={() => onChangeRatingType(type)}
-            >
-              <Text
+        <View style={styles.ratingTypeContainer}>
+          <View style={styles.ratingTypeRow}>
+            {ratingTypes.map((type) => (
+              <TouchableOpacity
+                key={type}
                 style={[
-                  styles.ratingTypeText,
-                  ratingType === type && styles.ratingTypeTextActive,
+                  styles.ratingTypeButton,
+                  ratingType === type && styles.ratingTypeButtonActive,
                 ]}
+                onPress={() => onChangeRatingType(type)}
+                activeOpacity={0.9}
               >
-                {type.charAt(0).toUpperCase() + type.slice(1)}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text
+                  style={[
+                    styles.ratingTypeText,
+                    ratingType === type && styles.ratingTypeTextActive,
+                  ]}
+                >
+                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       </View>
 
@@ -305,8 +310,13 @@ export default function FideCalculatorMobile({
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.label}>This month</Text>
-        <WinDrawLossBar wins={wdl.wins} draws={wdl.draws} losses={wdl.losses} />
+        <View style={styles.thisMonthHeaderRow}>
+          <Text style={styles.label}>This month</Text>
+          <Text style={styles.thisMonthCounts}>
+            Wins: {wdl.wins}  Losses: {wdl.losses}
+          </Text>
+        </View>
+        <WinDrawLossBar wins={wdl.wins} draws={wdl.draws} losses={wdl.losses} showLegend={false} />
       </View>
 
       <View style={[styles.section, styles.inlineRow]}>
@@ -358,26 +368,31 @@ export default function FideCalculatorMobile({
       </View>
 
       <View style={styles.section}>
-        <View style={styles.resultRow}>
-          {(['win', 'draw', 'loss'] as GameResult[]).map((res) => (
-            <TouchableOpacity
-              key={res}
-              style={[
-                styles.resultButton,
-                gameResult === res && styles.resultButtonActive,
-              ]}
-              onPress={() => setGameResult(res)}
-            >
-              <Text
+        <View style={styles.resultContainer}>
+          <View style={styles.resultRow}>
+            {(['win', 'draw', 'loss'] as GameResult[]).map((res) => (
+              <TouchableOpacity
+                key={res}
                 style={[
-                  styles.resultText,
-                  gameResult === res && styles.resultTextActive,
+                  styles.resultButton,
+                  gameResult === res && res === 'win' && styles.resultButtonWinActive,
+                  gameResult === res && res === 'draw' && styles.resultButtonDrawActive,
+                  gameResult === res && res === 'loss' && styles.resultButtonLossActive,
                 ]}
+                onPress={() => setGameResult(res)}
+                activeOpacity={0.9}
               >
-                {res === 'win' ? 'Win' : res === 'draw' ? 'Draw' : 'Loss'}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text
+                  style={[
+                    styles.resultText,
+                    gameResult === res && styles.resultTextActive,
+                  ]}
+                >
+                  {res === 'win' ? 'Win' : res === 'draw' ? 'Draw' : 'Loss'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       </View>
 
@@ -400,12 +415,17 @@ export default function FideCalculatorMobile({
           onPress={handleTrackGame}
           disabled={!isFormValid}
         >
-          <Text style={styles.secondaryButtonText}>Track game</Text>
+          <Text style={styles.secondaryButtonText}>Track Game</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.label}>This month games ({currentMonthResults.length})</Text>
+        <View style={styles.gamesHeaderRow}>
+          <Text style={styles.label}>This month games ({currentMonthResults.length})</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('History')}>
+            <Text style={styles.viewAllText}>View all</Text>
+          </TouchableOpacity>
+        </View>
         {currentMonthResults.length === 0 ? (
           <Text style={styles.emptyText}>No games tracked yet.</Text>
         ) : (
@@ -418,13 +438,21 @@ export default function FideCalculatorMobile({
                 const fullIndex = results.findIndex((x) => x.id === r.id);
                 const canDelete = removeResult != null && fullIndex !== -1;
                 return (
-                  <View key={r.id} style={styles.gameRow}>
+                  <View key={r.id} style={[
+                    styles.gameRow,
+                    r.result === 'win' && styles.gameRowWin,
+                    r.result === 'draw' && styles.gameRowDraw,
+                    r.result === 'loss' && styles.gameRowLoss,
+                  ]}>
                     <TouchableOpacity
                       style={styles.gameRowTouchable}
                       activeOpacity={0.7}
                       onPress={() => updateResult && setEditingGame(r)}
                       disabled={!updateResult}
                     >
+                      <View style={styles.gameAvatar}>
+                        <Ionicons name="person-circle-outline" size={24} color="#6b7280" />
+                      </View>
                       <View style={styles.gameMain}>
                         <Text style={styles.gameOpponent}>
                           {r.opponentName || 'Opponent'} ({r.opponentRating})
@@ -567,6 +595,17 @@ const styles = StyleSheet.create({
   subLabel: {
     marginTop: 8,
   },
+  thisMonthHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  thisMonthCounts: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
   inlineRow: {
     flexDirection: 'row',
     gap: 12,
@@ -574,21 +613,24 @@ const styles = StyleSheet.create({
   inlineCol: {
     flex: 1,
   },
+  ratingTypeContainer: {
+    backgroundColor: '#eff6ff',
+    borderRadius: 999,
+    padding: 4,
+  },
   ratingTypeRow: {
     flexDirection: 'row',
     gap: 8,
   },
   ratingTypeButton: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
     alignItems: 'center',
+    backgroundColor: 'transparent',
   },
   ratingTypeButtonActive: {
     backgroundColor: '#2563eb',
-    borderColor: '#2563eb',
   },
   ratingTypeText: {
     fontSize: 13,
@@ -608,21 +650,30 @@ const styles = StyleSheet.create({
     color: '#111827',
     backgroundColor: '#ffffff',
   },
+  resultContainer: {
+    backgroundColor: '#f3f4f6',
+    borderRadius: 999,
+    padding: 4,
+  },
   resultRow: {
     flexDirection: 'row',
     gap: 8,
   },
   resultButton: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
     alignItems: 'center',
+    backgroundColor: 'transparent',
   },
-  resultButtonActive: {
-    backgroundColor: '#0f766e',
-    borderColor: '#0f766e',
+  resultButtonWinActive: {
+    backgroundColor: '#059669',
+  },
+  resultButtonDrawActive: {
+    backgroundColor: '#2563eb',
+  },
+  resultButtonLossActive: {
+    backgroundColor: '#ef4444',
   },
   resultText: {
     fontSize: 13,
@@ -630,19 +681,18 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   resultTextActive: {
-    color: '#ecfdf5',
+    color: '#ffffff',
   },
   actionsRow: {
-    flexDirection: 'row',
-    gap: 12,
     marginTop: 16,
+    gap: 10,
   },
   primaryButton: {
-    flex: 1,
     backgroundColor: '#2563eb',
     borderRadius: 999,
-    paddingVertical: 12,
+    paddingVertical: 14,
     alignItems: 'center',
+    width: '100%',
   },
   primaryButtonText: {
     color: '#ffffff',
@@ -650,13 +700,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   secondaryButton: {
-    flex: 1,
     borderRadius: 999,
     paddingVertical: 12,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#d1d5db',
     backgroundColor: '#ffffff',
+    width: '100%',
   },
   secondaryButtonText: {
     color: '#111827',
@@ -680,15 +730,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
-    minHeight: 48,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    paddingHorizontal: 12,
+    minHeight: 60,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#ffffff',
+    marginTop: 8,
+  },
+  gameRowWin: {
+    backgroundColor: '#ecfdf3',
+    borderColor: '#bbf7d0',
+  },
+  gameRowDraw: {
+    backgroundColor: '#eff6ff',
+    borderColor: '#bfdbfe',
+  },
+  gameRowLoss: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#fecaca',
   },
   gameRowTouchable: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  gameAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#e5e7eb',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
   deleteButton: {
     padding: 8,
@@ -724,6 +799,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#374151',
     fontWeight: '500',
+  },
+  gamesHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  viewAllText: {
+    fontSize: 13,
+    color: '#2563eb',
+    fontWeight: '600',
   },
 });
 

@@ -5,6 +5,7 @@ type Props = {
   wins: number;
   draws: number;
   losses: number;
+  showLegend?: boolean;
 };
 
 function LegendItem({ color, label, value }: { color: string; label: string; value: number }) {
@@ -19,7 +20,7 @@ function LegendItem({ color, label, value }: { color: string; label: string; val
   );
 }
 
-export default function WinDrawLossBar({ wins, draws, losses }: Props) {
+export default function WinDrawLossBar({ wins, draws, losses, showLegend = true }: Props) {
   const total = wins + draws + losses;
 
   const parts = useMemo(
@@ -62,11 +63,13 @@ export default function WinDrawLossBar({ wins, draws, losses }: Props) {
           ))}
       </View>
 
-      <View style={styles.legend}>
-        <LegendItem color="#10b981" label="Wins" value={wins} />
-        <LegendItem color="#6b7280" label="Draws" value={draws} />
-        <LegendItem color="#ef4444" label="Losses" value={losses} />
-      </View>
+      {showLegend ? (
+        <View style={styles.legend}>
+          <LegendItem color="#10b981" label="Wins" value={wins} />
+          <LegendItem color="#6b7280" label="Draws" value={draws} />
+          <LegendItem color="#ef4444" label="Losses" value={losses} />
+        </View>
+      ) : null}
     </View>
   );
 }
