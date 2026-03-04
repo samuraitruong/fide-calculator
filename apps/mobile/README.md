@@ -85,19 +85,45 @@ pnpm web
 
 ## Building for Production
 
+### Build release APK locally (Android)
+
+No EAS account needed. Requires **Android SDK** and **JDK 17** (set `ANDROID_HOME` and `JAVA_HOME`).
+
+From monorepo root:
+
+```bash
+pnpm build:mobile:apk
+```
+
+Or from `apps/mobile`:
+
+```bash
+pnpm build:apk
+```
+
+The unsigned release APK is written to:
+
+```
+apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+```
+
+- **First build:** runs `expo prebuild --platform android --clean` (generates the `android/` folder), then Gradle `assembleRelease`.
+- **Faster rebuild** (if you only changed JS and already have `android/`):  
+  `pnpm build:apk:fast` (from `apps/mobile`) or `cd apps/mobile/android && ./gradlew assembleRelease`.
+
 ### iOS
 
 ```bash
 eas build --platform ios
 ```
 
-### Android
+### Android (EAS cloud)
 
 ```bash
 eas build --platform android
 ```
 
-Note: You'll need to set up EAS (Expo Application Services) first. See [Expo documentation](https://docs.expo.dev/build/introduction/).
+Note: EAS builds require an Expo account. See [Expo documentation](https://docs.expo.dev/build/introduction/).
 
 ## Project Structure
 

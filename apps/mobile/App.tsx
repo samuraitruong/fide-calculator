@@ -4,24 +4,31 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { SafeAreaView, StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { NavigationContainer } from '@react-navigation/native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { useLocalStorage } from './src/hooks/useLocalStorage';
+import { StorageModeProvider } from './src/contexts/StorageModeContext';
 import AuthModal from './src/components/AuthModal';
 import LocalStorageModal from './src/components/LocalStorageModal';
 import ForgotPasswordModal from './src/components/ForgotPasswordModal';
+import MainTabs from './src/navigation/MainTabs';
 
 function AppContent() {
   const { user, loading, profiles, activeProfile, signOut } = useAuth();
-  const { activeProfile: localActiveProfile, createProfile } = useLocalStorage();
+  const {
+    activeProfile: localActiveProfile,
+    createProfile,
+  } = useLocalStorage();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showLocalStorageModal, setShowLocalStorageModal] = useState(false);
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const [storageMode, setStorageMode] = useState<'cloud' | 'local' | null>(null);
 
-  // Detect storage mode on mount
+  // Detect storage mode on mount and when user changes
   useEffect(() => {
     const checkStorageMode = async () => {
       try {
@@ -30,6 +37,8 @@ function AppContent() {
           setStorageMode('local');
         } else if (user) {
           setStorageMode('cloud');
+        } else {
+          setStorageMode(null);
         }
       } catch (error) {
         console.error('Error checking storage mode:', error);
@@ -38,7 +47,7 @@ function AppContent() {
     checkStorageMode();
   }, [user]);
 
-  if (loading && !storageMode) {
+  if (loading && storageMode === null) {
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
@@ -50,30 +59,26 @@ function AppContent() {
     );
   }
 
-  // Handle local storage mode
-  if (storageMode === 'local' && localActiveProfile) {
+  // Main app with bottom tabs (local with profile, or cloud when signed in)
+  if ((storageMode === 'local' && localActiveProfile) || (storageMode === 'cloud' && user)) {
+    const mode = storageMode as 'local' | 'cloud';
     return (
-      <SafeAreaView style={styles.container}>
-        <ScrollView contentContainerStyle={styles.content}>
-          <Text style={styles.title}>FIDE Calculator</Text>
-          <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{localActiveProfile.name}</Text>
-            <Text>Standard: {localActiveProfile.standardRating}</Text>
-            <Text>Rapid: {localActiveProfile.rapidRating}</Text>
-            <Text>Blitz: {localActiveProfile.blitzRating}</Text>
-          </View>
-          <Text style={styles.modeIndicator}>Local Storage Mode</Text>
-        </ScrollView>
+      <StorageModeProvider mode={mode}>
+        <MainTabs />
         <StatusBar style="auto" />
-      </SafeAreaView>
+      </StorageModeProvider>
     );
   }
 
   if (!user) {
     return (
       <SafeAreaView style={styles.container}>
-        <ScrollView contentContainerStyle={styles.authContainer}>
-          <View style={styles.authCard}>
+        <ScrollView
+          contentContainerStyle={styles.authScrollContent}
+          style={styles.authScroll}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.authContent}>
             <View style={styles.authHeader}>
               <Text style={styles.authTitle}>FIDE Rating Calculator</Text>
               <Text style={styles.authSubtitle}>
@@ -151,62 +156,18 @@ function AppContent() {
     );
   }
 
-  if (!profiles || profiles.length === 0) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.authCard}>
-            <Text style={styles.welcomeTitle}>Welcome!</Text>
-            <Text style={styles.welcomeSubtitle}>
-              Please create your chess player profile to get started
-            </Text>
-            <TouchableOpacity
-              style={styles.createProfileButton}
-              onPress={() => {
-                // TODO: Show profile creation modal
-              }}
-            >
-              <Text style={styles.createProfileButtonText}>👤 Create Profile</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.signOutButton}
-              onPress={signOut}
-            >
-              <Text style={styles.signOutButtonText}>Sign Out</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-        <StatusBar style="auto" />
-      </SafeAreaView>
-    );
-  }
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>FIDE Calculator</Text>
-        <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeText}>Welcome, {user.email}</Text>
-          {activeProfile && (
-            <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{activeProfile.name}</Text>
-              <Text>Standard: {activeProfile.standardRating}</Text>
-              <Text>Rapid: {activeProfile.rapidRating}</Text>
-              <Text>Blitz: {activeProfile.blitzRating}</Text>
-            </View>
-          )}
-        </View>
-      </ScrollView>
-      <StatusBar style="auto" />
-    </SafeAreaView>
-  );
+  return null;
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <SafeAreaProvider>
+      <NavigationContainer>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }
 
@@ -226,28 +187,34 @@ const styles = StyleSheet.create({
     color: '#6b7280',
   },
   content: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexGrow: 1,
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+    alignItems: 'stretch',
   },
-  authContainer: {
-    flex: 1,
+  contentFullScreen: {
+    flexGrow: 1,
+    padding: 24,
+    paddingTop: 32,
+    paddingBottom: 40,
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
   },
-  authCard: {
+  welcomeContent: {
     width: '100%',
-    maxWidth: 400,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+  },
+  authScroll: {
+    flex: 1,
+  },
+  authScrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    paddingBottom: 40,
+    justifyContent: 'center',
+  },
+  authContent: {
+    width: '100%',
   },
   authHeader: {
     marginBottom: 32,
@@ -391,7 +358,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
     width: '100%',
-    maxWidth: 400,
   },
   profileName: {
     fontSize: 20,

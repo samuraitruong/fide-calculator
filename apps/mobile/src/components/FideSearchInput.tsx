@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   Text,
   StyleSheet,
-  FlatList,
   ActivityIndicator,
 } from 'react-native';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
@@ -60,27 +59,6 @@ export default function FideSearchInput({
     setShowDropdown(false);
   };
 
-  const renderPlayerItem = ({ item }: { item: FidePlayer }) => (
-    <TouchableOpacity
-      style={styles.playerItem}
-      onPress={() => handleSelectPlayer(item)}
-    >
-      <View style={styles.playerInfo}>
-        <Text style={styles.playerName}>{item.name}</Text>
-        <Text style={styles.playerDetails}>
-          {item.title && `${item.title} • `}
-          {item.federation}
-          {item.birthYear && ` • ${item.birthYear}`}
-        </Text>
-      </View>
-      <View style={styles.playerRatings}>
-        <Text style={styles.ratingText}>Std: {item.standard || '—'}</Text>
-        <Text style={styles.ratingText}>Rapid: {item.rapid || '—'}</Text>
-        <Text style={styles.ratingText}>Blitz: {item.blitz || '—'}</Text>
-      </View>
-    </TouchableOpacity>
-  );
-
   return (
     <View style={styles.container}>
       <View style={styles.inputContainer}>
@@ -111,12 +89,29 @@ export default function FideSearchInput({
               <Text style={styles.loadingText}>Searching...</Text>
             </View>
           ) : fideData.length > 0 ? (
-            <FlatList
-              data={fideData}
-              renderItem={renderPlayerItem}
-              keyExtractor={(item) => item.fideId + item.name}
-              style={styles.list}
-            />
+            <View style={styles.list}>
+              {fideData.slice(0, 15).map((item) => (
+                <TouchableOpacity
+                  key={item.fideId + item.name}
+                  style={styles.playerItem}
+                  onPress={() => handleSelectPlayer(item)}
+                >
+                  <View style={styles.playerInfo}>
+                    <Text style={styles.playerName}>{item.name}</Text>
+                    <Text style={styles.playerDetails}>
+                      {item.title && `${item.title} • `}
+                      {item.federation}
+                      {item.birthYear && ` • ${item.birthYear}`}
+                    </Text>
+                  </View>
+                  <View style={styles.playerRatings}>
+                    <Text style={styles.ratingText}>Std: {item.standard || '—'}</Text>
+                    <Text style={styles.ratingText}>Rapid: {item.rapid || '—'}</Text>
+                    <Text style={styles.ratingText}>Blitz: {item.blitz || '—'}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
           ) : searchTerm ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>No players found</Text>

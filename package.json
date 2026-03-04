@@ -11,6 +11,7 @@
     "dev:mobile": "pnpm --filter mobile start",
     "build:web": "pnpm --filter web build",
     "build:shared": "pnpm --filter shared build",
+    "build:mobile:apk": "pnpm --filter mobile run build:apk",
     "test": "pnpm --filter \"*\" test",
     "lint": "pnpm -r --if-present lint",
     "clean": "pnpm --filter \"*\" clean && rm -rf node_modules"

@@ -10,13 +10,73 @@ export interface FidePlayer {
   birthYear: string;
 }
 
+function decodeHtmlEntities(input: string): string {
+  return input
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
+}
+
+function stripTags(input: string): string {
+  return decodeHtmlEntities(input.replace(/<[^>]*>/g, ' '))
+    .replace(/[\n\r\t]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function parseFideTableWithoutDom(html: string): FidePlayer[] {
+  // Extract table with id="table_results"
+  const tableMatch = html.match(
+    /<table[^>]*id=["']table_results["'][\s\S]*?<\/table>/i,
+  );
+  const tableHtml = tableMatch?.[0];
+  if (!tableHtml) return [];
+
+  // Extract rows from tbody if present, otherwise all rows
+  const tbodyMatch = tableHtml.match(/<tbody[^>]*>([\s\S]*?)<\/tbody>/i);
+  const rowsHtml = tbodyMatch ? tbodyMatch[1] : tableHtml;
+
+  const rowMatches = rowsHtml.match(/<tr[\s\S]*?<\/tr>/gi) ?? [];
+  const players: FidePlayer[] = [];
+
+  for (const rowHtml of rowMatches) {
+    const cellMatches = rowHtml.match(/<td[\s\S]*?<\/td>/gi) ?? [];
+    if (cellMatches.length < 9) continue;
+
+    const cells = cellMatches.map((c) => stripTags(c));
+
+    const federationRaw = cells[4] ?? '';
+    const federation = federationRaw.replace(/.*([A-Z]{3})$/, '$1').trim();
+
+    players.push({
+      fideId: cells[0] ?? '',
+      name: cells[1] ?? '',
+      title: cells[2] ?? '',
+      trainerTitle: cells[3] ?? '',
+      federation: federation || federationRaw,
+      standard: cells[5] ?? '',
+      rapid: cells[6] ?? '',
+      blitz: cells[7] ?? '',
+      birthYear: cells[8] ?? '',
+    });
+  }
+
+  // Sort: AUS federation to top, then by name
+  return players.sort((a, b) => {
+    if (a.federation === 'AUS' && b.federation !== 'AUS') return -1;
+    if (a.federation !== 'AUS' && b.federation === 'AUS') return 1;
+    return a.name.localeCompare(b.name);
+  });
+}
+
 export function parseFideTable(html: string): FidePlayer[] {
-  // For React Native, we'll need to use a different parser
-  // For now, this is a placeholder that can be implemented with react-native-html-parser or similar
+  // Non-browser environments (React Native, SSR) — parse via regex.
   if (typeof window === 'undefined' || !window.DOMParser) {
-    // React Native environment - use alternative parser
-    // This would need react-native-html-parser or similar library
-    return [];
+    return parseFideTableWithoutDom(html);
   }
 
   // Web environment
