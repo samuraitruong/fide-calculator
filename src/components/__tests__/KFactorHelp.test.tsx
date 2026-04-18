@@ -14,9 +14,10 @@ describe('KFactorHelp', () => {
     
     // Check for all K-factor rules
     expect(screen.getByText(/K = 40 for a player new to the rating list until he has completed events with at least 30 games/)).toBeInTheDocument();
-    expect(screen.getByText(/K = 20 as long as a player's rating remains under 2400./)).toBeInTheDocument();
-    expect(screen.getByText(/K = 10 once a player's published rating has reached 2400 and remains at that level subsequently, even if the rating drops below 2400./)).toBeInTheDocument();
-    expect(screen.getByText(/K = 40 for all players until their 18th birthday, as long as their rating remains under 2300./)).toBeInTheDocument();
+    expect(screen.getByText(/K = 33 for Rapid ratings\./)).toBeInTheDocument();
+    expect(screen.getByText(/K = 20 as long as a player's rating remains under 2400 \(Standard\/Blitz\)\./)).toBeInTheDocument();
+    expect(screen.getByText(/K = 10 once a player's published rating has reached 2400 and remains at that level subsequently\./)).toBeInTheDocument();
+    expect(screen.getByText(/K = 40 for players under 18 with rating under 2300\./)).toBeInTheDocument();
   });
 
   it('renders hidden legacy notes', () => {
