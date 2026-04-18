@@ -71,6 +71,7 @@ export default function Navbar() {
   }, [userMenuOpen]);
 
   const isActiveRoute = (href: string) => {
+    if (href === '/standard' && pathname === '/') return true;
     return pathname === href;
   };
 
@@ -97,7 +98,7 @@ export default function Navbar() {
                   href={item.href}
                   className={`flex items-center px-4 text-sm font-medium transition-colors border-b-2 ${
                     isActiveRoute(item.href)
-                      ? 'text-blue-700 border-blue-700 bg-blue-50'
+                      ? 'text-emerald-700 border-emerald-700 bg-emerald-50'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 border-transparent hover:border-gray-300'
                   }`}
                 >
@@ -111,7 +112,7 @@ export default function Navbar() {
               {isLocalMode ? (
                 <FaHdd className="w-4 h-4 text-green-600" />
               ) : (
-                <FaCloud className="w-4 h-4 text-blue-600" />
+                <FaCloud className="w-4 h-4 text-emerald-600" />
               )}
               <span className="font-medium text-gray-900">
                 {isLocalMode ? localActiveProfile?.name : activeProfile?.name || user?.email}
@@ -124,7 +125,7 @@ export default function Navbar() {
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
               >
-                <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">
+                <div className="w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center text-sm font-medium">
                   {isLocalMode 
                     ? (localActiveProfile?.name?.charAt(0) || 'U').toUpperCase()
                     : (user?.email?.charAt(0) || 'U').toUpperCase()
@@ -179,7 +180,7 @@ export default function Navbar() {
                             key={profile.id}
                             className={`flex items-center justify-between px-4 py-2 text-sm transition-colors ${
                               currentProfile?.id === profile.id
-                                ? 'bg-blue-50 text-blue-700'
+                                ? 'bg-emerald-50 text-emerald-700'
                                 : 'text-gray-700 hover:bg-gray-50'
                             }`}
                           >
@@ -193,7 +194,7 @@ export default function Navbar() {
                               <FaUser className="w-4 h-4" />
                               <span className="text-left">{profile.name}</span>
                               {currentProfile?.id === profile.id && (
-                                <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                                <div className="w-2 h-2 bg-emerald-600 rounded-full"></div>
                               )}
                             </button>
                             <button
@@ -201,7 +202,7 @@ export default function Navbar() {
                                 e.stopPropagation();
                                 handleEditProfile();
                               }}
-                              className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                              className="p-1 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
                               title={`Edit ${profile.name}`}
                             >
                               <FaEdit className="w-3 h-3" />
@@ -214,7 +215,7 @@ export default function Navbar() {
                             setShowProfileModal(true);
                             setUserMenuOpen(false);
                           }}
-                          className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 transition-colors"
+                          className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-emerald-600 hover:bg-emerald-50 transition-colors"
                         >
                           <FaPlus className="w-4 h-4" />
                           <span>Create New Profile</span>

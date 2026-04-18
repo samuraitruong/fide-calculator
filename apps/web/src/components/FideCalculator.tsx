@@ -49,7 +49,7 @@ function getPlayerRatingForType(player: FidePlayer, type: RatingType): string {
 export default function FideCalculator({ type }: FideCalculatorProps) {
   // Determine storage mode
   const storageMode = localStorage.getItem('fide-calculator-mode') === 'local' ? 'local' : 'cloud';
-  
+
   // Use appropriate storage system based on mode
   const {
     results: cloudResults,
@@ -71,7 +71,7 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
 
   // Use the appropriate data and functions based on storage mode
   const results = storageMode === 'local' ? localResults : cloudResults;
-  
+
   // Make monthly data reactive using useMemo
   const monthlyData = useMemo(() => {
     if (storageMode === 'local') {
@@ -80,7 +80,7 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
       return cloudMonthlyData;
     }
   }, [storageMode, generateMonthlyData, type, cloudMonthlyData]);
-  
+
   const addResult = storageMode === 'local' ? localAddResult : cloudAddResult;
   const updateResult = storageMode === 'local' ? localUpdateResult : cloudUpdateResult;
   const setAllResults = storageMode === 'local' ? localSetAllResults : cloudSetAllResults;
@@ -112,7 +112,11 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
   const { isOpen: confirmOpen, title: confirmTitle, message: confirmMessage, openConfirm, handleConfirm, handleCancel } = useConfirm();
 
   // Set default K based on type
-  const getDefaultK = (type: RatingType) => (type === 'standard' ? 40 : 20);
+  const getDefaultK = (type: RatingType) => {
+    if (type === 'standard') return 40;
+    if (type === 'rapid') return 33;
+    return 20;
+  };
 
   const [selectedResult, setSelectedResult] = useState<Result | null>(null);
   // On first load, use profile rating, else last saved result, else default
@@ -192,7 +196,7 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
     if (!isFormValid) return;
     const ratingChange = calculateRatingChange(playerRating, opponentRating, result, kFactor);
     setCurrentRatingChange(ratingChange);
-    
+
     const newResult: Result = {
       id: selectedResult?.id || (Date.now().toString() + Math.random().toString().slice(2)),
       ...(selectedResult || {}),
@@ -245,7 +249,7 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
       // Find which month contains the result at this index
       let foundResult: Result | null = null;
       let globalIndex = -1;
-      
+
       // Calculate the global index across all months
       for (const month of monthlyData) {
         if (index < month.results.length) {
@@ -256,7 +260,7 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
         }
         index -= month.results.length;
       }
-      
+
       if (foundResult && foundResult.id) {
         if (storageMode === 'local') {
           // Local mode: pass the ID
@@ -422,13 +426,13 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
 
       <div className='flex flex-col md:flex-row w-full max-w-7xl gap-3'>
         <div className="w-full md:w-2/3 p-1">
-          <div id="fide-form-section" className="bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50 rounded-2xl shadow-xl border border-blue-100/50 p-6 w-full h-full print:hidden backdrop-blur-sm">
+          <div id="fide-form-section" className="bg-gradient-to-br from-white via-emerald-50/30 to-green-50/50 rounded-2xl shadow-xl border border-emerald-100/50 p-6 w-full h-full print:hidden backdrop-blur-sm">
             {/* Header with gradient accent */}
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl mb-3 shadow-lg">
+            <div className="text-center mb-6 hidden md:block ">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-emerald-600 to-green-600 rounded-xl mb-3 shadow-lg">
                 <span className="text-white text-xl font-bold">♔</span>
               </div>
-              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-gray-800 via-blue-800 to-indigo-800 bg-clip-text text-transparent">
+              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-gray-800 via-emerald-800 to-green-800 bg-clip-text text-transparent">
                 {getTypeDisplayName(type)} Rating Calculator
               </h1>
               <p className="text-gray-600 mt-1 text-xs">Calculate your FIDE rating changes</p>
@@ -447,7 +451,7 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
                   <div className="relative">
                     <input
                       type="number"
-                      className="w-full px-3 py-2.5 bg-white/80 backdrop-blur-sm border-2 border-gray-200 rounded-lg focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 text-gray-900 font-medium text-base transition-all duration-200 hover:border-blue-300 group-hover:shadow-md"
+                      className="w-full px-3 py-2.5 bg-white/80 backdrop-blur-sm border-2 border-gray-200 rounded-lg focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 text-gray-900 font-medium text-base transition-all duration-200 hover:border-emerald-300 group-hover:shadow-md"
                       value={playerRating}
                       onChange={handlePlayerRatingChange}
                       placeholder="Enter rating"
@@ -475,7 +479,8 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
                       onChange={(e) => setKFactor(Number(e.target.value))}
                     >
                       <option value={40}>40 - Standard</option>
-                      <option value={20}>20 - Rapid/Blitz</option>
+                      <option value={33}>33 - Rapid</option>
+                      <option value={20}>20 - Blitz</option>
                       <option value={10}>10 - High Rated</option>
                     </select>
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -509,7 +514,7 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                       <div className="w-2 h-2 bg-green-500 rounded-full opacity-60"></div>
                     </div>
-                    
+
                     {/* Enhanced Dropdown */}
                     {showOpponentDropdown && opponentSearch && (
                       <div className="absolute z-20 left-0 right-0 bg-white/95 backdrop-blur-sm border-2 border-green-200 rounded-lg shadow-2xl max-h-48 overflow-y-auto mt-1">
@@ -583,15 +588,14 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
                     <button
                       key={option}
                       type="button"
-                      className={`relative px-4 py-3 rounded-lg font-bold text-base transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-offset-2 transform hover:scale-105 active:scale-95 ${
-                        option === result
+                      className={`relative px-4 py-3 rounded-lg font-bold text-base transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-offset-2 transform hover:scale-105 active:scale-95 ${option === result
                           ? option === 'win'
                             ? 'bg-gradient-to-br from-green-500 to-green-600 text-white shadow-lg shadow-green-500/30'
                             : option === 'draw'
-                            ? 'bg-gradient-to-br from-gray-500 to-gray-600 text-white shadow-lg shadow-gray-500/30'
-                            : 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-lg shadow-red-500/30'
+                              ? 'bg-gradient-to-br from-gray-500 to-gray-600 text-white shadow-lg shadow-gray-500/30'
+                              : 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-lg shadow-red-500/30'
                           : 'bg-white/80 backdrop-blur-sm border-2 border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-md'
-                      }`}
+                        }`}
                       onClick={() => handleResultChange(option)}
                       aria-pressed={result === option}
                     >
@@ -609,7 +613,7 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
               {/* Action Buttons */}
               <div className="grid grid-cols-2 gap-3 pt-2">
                 <button
-                  className="group relative w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold text-base hover:from-blue-600 hover:to-blue-700 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-500/30 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30"
+                  className="group relative w-full px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg font-semibold text-base hover:from-emerald-600 hover:to-emerald-700 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-emerald-500/30 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:shadow-emerald-500/30"
                   onClick={handleCalculate}
                   disabled={!isFormValid}
                 >
@@ -618,7 +622,7 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
                     <span>Calculate</span>
                   </div>
                 </button>
-                
+
                 <button
                   className="group relative w-full px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold text-base hover:from-green-600 hover:to-green-700 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-green-500/30 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30"
                   onClick={handleTrack}
@@ -664,7 +668,7 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
                   </div>
                 )}
               </div>
-              
+
               {/* Live Rating Box - Always visible at bottom (uses current month progress only) */}
               <div className="flex-1">
                 <LiveRatingBox currentRatingChange={currentMonthChange} currentRating={playerRating} />

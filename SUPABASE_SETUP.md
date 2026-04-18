@@ -124,6 +124,14 @@ The app organizes games by month for better data management:
 - **Data Persistence**: All data is stored in Supabase database
 - **Multi-rating Support**: Manage different rating types separately
 - **Real-time Sync**: Data syncs across devices
+- **Custom Emails**: Professional email templates for signups and resets
+
+## Email Templates
+
+Custom email templates are stored in `supabase/email-templates/`. You can copy the contents of these files into the Supabase Dashboard under **Authentication** → **Email Templates**:
+
+- **Signup Confirmation**: `signup-confirmation.html`
+- **Password Reset**: `reset-password.html`
 
 ## Troubleshooting
 

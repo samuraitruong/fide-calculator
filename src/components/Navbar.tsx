@@ -71,6 +71,7 @@ export default function Navbar() {
   }, [userMenuOpen]);
 
   const isActiveRoute = (href: string) => {
+    if (href === '/standard' && pathname === '/') return true;
     return pathname === href;
   };
 

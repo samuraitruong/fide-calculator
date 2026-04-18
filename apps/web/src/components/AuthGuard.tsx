@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import AuthModal from './AuthModal';
@@ -20,6 +21,9 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showLocalStorageModal, setShowLocalStorageModal] = useState(false);
   const [storageMode, setStorageMode] = useState<'cloud' | 'local' | null>(null);
+  const pathname = usePathname();
+
+  const isPublicPath = pathname === '/forgot-password' || pathname === '/reset-password';
 
   // Detect storage mode on mount
   useEffect(() => {
@@ -48,6 +52,11 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     );
   }
 
+  // Allow public paths to bypass authentication
+  if (isPublicPath) {
+    return <>{children}</>;
+  }
+
   // Handle local storage mode
   if (storageMode === 'local' && localActiveProfile) {
     return (
@@ -67,7 +76,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     );
   }
 
-  if (!user) {
+  if (!user && !isPublicPath) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
@@ -81,10 +90,10 @@ export default function AuthGuard({ children }: AuthGuardProps) {
           </div>
 
           <div className="space-y-4">
-            <button
-              onClick={() => setShowAuthModal(true)}
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center justify-center gap-2"
-            >
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="w-full bg-emerald-600 text-white py-3 px-4 rounded-lg hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-colors flex items-center justify-center gap-2"
+              >
               <FaSignInAlt className="w-4 h-4" />
               Sign In / Create Account
             </button>

@@ -174,7 +174,7 @@ export default function AuthModal({ open, onClose, onSuccess }: AuthModalProps) 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="w-full bg-emerald-600 text-white py-3 px-4 rounded-lg hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? 'Loading...' : (isSignUp ? 'Create Account' : 'Sign In')}
               </button>
@@ -187,7 +187,7 @@ export default function AuthModal({ open, onClose, onSuccess }: AuthModalProps) 
                   setError('');
                   setConfirmPassword('');
                 }}
-                className="text-blue-600 hover:text-blue-700 text-sm"
+                className="text-emerald-600 hover:text-emerald-700 text-sm"
               >
                 {isSignUp 
                   ? 'Already have an account? Sign in' 
