@@ -93,6 +93,9 @@ importers:
       html2canvas:
         specifier: ^1.4.1
         version: 1.4.1
+      jspdf:
+        specifier: 3.0.1
+        version: 3.0.1
       next:
         specifier: 15.3.3
         version: 15.3.3(@babel/core@7.28.5)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
