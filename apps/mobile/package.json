@@ -22,6 +22,8 @@
     "@react-navigation/native": "^7.1.31",
     "@supabase/supabase-js": "^2.45.4",
     "expo": "~54.0.30",
+    "expo-file-system": "^55.0.10",
+    "expo-sharing": "^55.0.11",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
     "react-native": "0.81.5",
@@ -30,11 +32,11 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
-    "babel-preset-expo": "^11.0.0",
     "@types/react": "~19.1.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "babel-plugin-module-resolver": "^5.0.0",
+    "babel-preset-expo": "^11.0.0",
     "eslint": "^8.19.0",
     "typescript": "~5.9.2"
   },

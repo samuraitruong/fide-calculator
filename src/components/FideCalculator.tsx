@@ -47,9 +47,8 @@ function getPlayerRatingForType(player: FidePlayer, type: RatingType): string {
 }
 
 export default function FideCalculator({ type }: FideCalculatorProps) {
-  // Determine storage mode
-  const storageMode = localStorage.getItem('fide-calculator-mode') === 'local' ? 'local' : 'cloud';
-  
+  const [storageMode, setStorageMode] = useState<'local' | 'cloud'>('cloud');
+
   // Use appropriate storage system based on mode
   const {
     results: cloudResults,
@@ -61,6 +60,7 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
   } = useSupabaseRatingList(type);
 
   const {
+    activeProfile: localActiveProfile,
     results: localResults,
     addResult: localAddResult,
     removeResult: localRemoveResult,
@@ -68,6 +68,28 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
     setAllResults: localSetAllResults,
     generateMonthlyData,
   } = useLocalStorage();
+
+  const { user } = useAuth();
+
+  // Keep storage mode in sync with AuthGuard logic / user choice
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const mode = window.localStorage.getItem('fide-calculator-mode');
+      if (mode === 'local') {
+        setStorageMode('local');
+      } else if (user) {
+        setStorageMode('cloud');
+      } else if (localActiveProfile) {
+        setStorageMode('local');
+      } else {
+        setStorageMode('cloud');
+      }
+    } catch {
+      // fall back to cloud if anything goes wrong
+      setStorageMode('cloud');
+    }
+  }, [user, localActiveProfile]);
 
   // Use the appropriate data and functions based on storage mode
   const results = storageMode === 'local' ? localResults : cloudResults;

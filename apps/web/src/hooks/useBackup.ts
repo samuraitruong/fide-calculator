@@ -1,15 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Result, RatingType } from '@/util/types';
+import type { BackupData } from '@fide-calculator/shared';
 
-export interface BackupData {
-  id: string;
-  month: string; // Format: "May-2025"
-  data: Result[];
-  createdAt: string;
-  totalChange: number;
-  gameCount: number;
-  type: RatingType; // Add type to backup data
-}
+export type { BackupData };
 
 const getBackupStorageKey = (type: RatingType) => `fideBackups_${type}`;
 const OLD_BACKUP_STORAGE_KEY = 'fideBackups'; // Old format key

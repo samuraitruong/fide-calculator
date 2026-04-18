@@ -29,6 +29,17 @@ export interface Game extends Omit<Result, 'playerRating' | 'opponentName' | 'op
   updated_at?: string;
 }
 
+/** Data shape for PDF export (month performance report). */
+export interface BackupData {
+  id: string;
+  month: string;
+  data: Result[];
+  gameCount: number;
+  totalChange: number;
+  createdAt: string;
+  type: RatingType;
+}
+
 // Monthly data interface
 export interface MonthlyData {
   monthKey: string;

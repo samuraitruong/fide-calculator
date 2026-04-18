@@ -226,7 +226,7 @@ export default function FideCalculatorMobile({
   }, [playerRating, currentMonthChange]);
 
   const liveColor =
-    currentMonthChange > 0 ? '#059669' : currentMonthChange < 0 ? '#b91c1c' : '#374151';
+    currentMonthChange > 0 ? '#059669' : currentMonthChange < 0 ? '#b91c1c' : '#111827';
 
   const displayChange = hasCalculated && currentChange !== null ? currentChange : currentMonthChange;
   const displayIsPositive = displayChange > 0;
@@ -292,20 +292,16 @@ export default function FideCalculatorMobile({
           </Text>
         </View>
 
-        <View style={styles.topCard}>
-          <Text style={styles.topCardLabel}>Live rating</Text>
-          <View style={styles.topCardValueRow}>
-            <Ionicons
-              name={currentMonthChange > 0 ? 'arrow-up' : currentMonthChange < 0 ? 'arrow-down' : 'remove'}
-              size={18}
-              color={liveColor}
-            />
-            <Text style={[styles.topCardValue, { color: liveColor }]}>{liveRating}</Text>
+        <View style={styles.liveCard}>
+          <View style={styles.liveCardAccent} />
+          <View style={styles.liveCardContent}>
+            <Text style={styles.liveCardLabel}>Live rating</Text>
+            <Text style={[styles.liveCardValue, { color: liveColor }]}>{liveRating}</Text>
+            <Text style={[styles.liveCardChange, { color: liveColor }]}>
+              {currentMonthChange > 0 ? '+' : currentMonthChange === 0 ? '+' : ''}
+              {currentMonthChange}
+            </Text>
           </View>
-          <Text style={[styles.topCardSubtext, { color: liveColor }]}>
-            {currentMonthChange >= 0 ? '+' : ''}
-            {currentMonthChange} this month
-          </Text>
         </View>
       </View>
 
@@ -571,6 +567,46 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 12,
     color: '#6b7280',
+    fontWeight: '600',
+  },
+  liveCard: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: '#ffffff',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    overflow: 'hidden',
+  },
+  liveCardAccent: {
+    width: 5,
+    backgroundColor: '#2563eb',
+    borderTopRightRadius: 999,
+    borderBottomRightRadius: 999,
+    marginVertical: 8,
+  },
+  liveCardContent: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+  },
+  liveCardLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6b7280',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  liveCardValue: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  liveCardChange: {
+    fontSize: 14,
     fontWeight: '600',
   },
   positive: {
