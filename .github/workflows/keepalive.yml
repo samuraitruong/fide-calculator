@@ -18,11 +18,14 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install Playwright
+      - name: Install Playwright and Run script
         run: |
+          # Create an isolated directory so npm doesn't conflict with pnpm workspaces
+          mkdir -p playwright-runner
+          cd playwright-runner
           npm init -y
           npm install playwright
           npx playwright install chromium --with-deps
-
-      - name: Run keepalive script
-        run: node .github/scripts/keepalive.js
+          
+          # Run the script from the root
+          node ../.github/scripts/keepalive.js
