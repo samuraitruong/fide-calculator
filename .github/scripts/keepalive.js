@@ -6,7 +6,7 @@ const { chromium } = require('playwright');
   const page = await browser.newPage();
   
   try {
-    console.log('Navigating to https://fide-calc.truongthings.dev/');
+    console.log('Navigating to https://fide-calc.truongthings.site/');
     await page.goto('https://fide-calc.truongthings.dev/');
     
     // AuthGuard shows the initial screen if not logged in.
