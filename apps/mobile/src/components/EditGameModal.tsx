@@ -188,6 +188,18 @@ export default function EditGameModal({ open, game, onClose, onSave }: Props) {
                 <Text style={styles.validation}>Please enter a valid date and ratings.</Text>
               ) : null}
 
+
+              <TouchableOpacity
+                style={[styles.saveButton, { backgroundColor: '#e0f2fe', marginTop: 10 }]}
+                onPress={() => {
+                  const today = new Date().toISOString().split('T')[0];
+                  setDate(today);
+                  // Optional: auto-save immediately? We'll just change the date and they can press Save.
+                }}
+              >
+                <Text style={[styles.saveButtonText, { color: '#0369a1' }]}>Move to Current Month</Text>
+              </TouchableOpacity>
+
               <TouchableOpacity
                 style={[styles.saveButton, (!isFormValid || newDelta === null) && styles.disabled]}
                 onPress={handleSave}

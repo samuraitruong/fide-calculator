@@ -1,0 +1,54 @@
+/* Component styles for professional UI */
+
+/* Buttons */
+button {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  transition: background-color var(--duration-short) var(--ease-out),
+              transform var(--duration-short) var(--ease-out);
+}
+
+button:hover {
+  background-color: var(--color-primary);
+  filter: brightness(1.1);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Links */
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--duration-short) var(--ease-out);
+}
+
+a:hover {
+  color: var(--color-on-primary);
+}
+
+/* Inputs */
+input,
+textarea {
+  background-color: var(--color-surface);
+  color: var(--color-foreground);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
+  font-family: var(--font-family-body);
+  transition: border-color var(--duration-short) var(--ease-out),
+              box-shadow var(--duration-short) var(--ease-out);
+}
+
+input:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.4);
+}

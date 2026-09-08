@@ -275,9 +275,36 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
     }
   };
 
+
   const handleUpdateDate = (index: number, date: string) => {
-    updateResult(index, { date });
+    // Note: index here is the local index in monthData.results, which is broken if we just pass it to updateResult.
+    // Assuming the user meant to update the first month (current month)
+    const currentMonth = monthlyData.find(m => m.isCurrentMonth);
+    if (currentMonth && index < currentMonth.results.length) {
+      const foundResult = currentMonth.results[index];
+      const globalIndex = results.findIndex(r => r.id === foundResult?.id);
+      if (globalIndex !== -1) {
+        updateResult(globalIndex, { date });
+      }
+    }
   };
+
+  const handleMoveToCurrentMonth = (result: Result) => {
+    const globalIndex = results.findIndex(r => r.id === result.id);
+    if (globalIndex !== -1) {
+      // Find the current month's key or generate it for today
+      const currentMonthDate = new Date();
+      // useLocalStorage expects game_date to be updated to fall into the current month bucket
+      // useSupabaseRatingList expects month_key to be updated or game_date to be updated
+      updateResult(globalIndex, { date: currentMonthDate.toISOString().split('T')[0] });
+      setSnackbar({
+        open: true,
+        message: 'Game moved to current month!',
+        type: 'success'
+      });
+    }
+  };
+
 
   const handleResultChange = (option: GameResult) => {
     setResult(option);
@@ -682,6 +709,7 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
         onRemove={handleRemove}
         onSelect={handleSelectResult}
         onUpdateDate={handleUpdateDate}
+        onMoveToCurrentMonth={handleMoveToCurrentMonth}
         onReorder={handleReorder}
         onReset={handleResetClick}
         onViewDetails={handleViewDetails}

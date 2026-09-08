@@ -14,6 +14,7 @@ interface MonthlyRatingListProps {
   onReset: () => void;
   onViewDetails?: () => void;
   type: RatingType;
+  onMoveToCurrentMonth?: (result: Result) => void;
 }
 
 export default function MonthlyRatingList({
@@ -25,6 +26,7 @@ export default function MonthlyRatingList({
   onReset,
   onViewDetails,
   type,
+  onMoveToCurrentMonth,
 }: MonthlyRatingListProps) {
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(() => {
     // Initialize with current month expanded by default
@@ -119,6 +121,8 @@ export default function MonthlyRatingList({
                 onReset={monthData.isReadOnly ? undefined : onReset}
                 readOnly={monthData.isReadOnly}
                 ratingType={type}
+                onMoveToCurrentMonth={onMoveToCurrentMonth}
+                allowMoveToCurrent={monthData.isReadOnly && monthData.monthKey === monthlyData[1]?.monthKey}
               />
             </div>
           )}

@@ -1,0 +1,74 @@
+/* Global element styles for Playful UI Redesign */
+
+/* Inputs & selects */
+input,
+select,
+textarea {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+  font-family: var(--font-family-base);
+  transition: border-color var(--duration-short) var(--ease-out),
+              box-shadow var(--duration-short) var(--ease-out);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(168, 230, 207, 0.4); /* mint focus glow */
+}
+
+/* Links */
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  position: relative;
+}
+
+a::after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: -2px;
+  left: 0;
+  background: var(--color-primary);
+  transition: width var(--duration-medium) var(--ease-out);
+}
+
+a:hover::after {
+  width: 100%;
+}
+
+a:hover {
+  color: var(--color-accent);
+}
+
+/* Card‑like containers (common utility class) */
+.card,
+.panel,
+.modal {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-elevated);
+  padding: var(--space-md);
+  margin: var(--space-md) 0;
+}
+
+/* Navbars and headers */
+header,
+nav {
+  background: var(--color-primary);
+  color: var(--color-text-primary);
+  padding: var(--space-md);
+}
+
+/* Apply fade‑in transition to page containers */
+.body-fade {
+  opacity: 0;
+  animation: fadeIn var(--duration-medium) var(--ease-out) forwards;
+}

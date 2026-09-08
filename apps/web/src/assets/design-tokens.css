@@ -1,0 +1,62 @@
+/* Design Tokens for FIDE Calculator */
+:root {
+  /* Color Tokens */
+  --color-primary: #F59E0B; /* amber */
+  --color-on-primary: #0F172A;
+  --color-secondary: #FBBF24; /* yellow */
+  --color-on-secondary: #0F172A;
+  --color-accent: #8B5CF6; /* purple */
+  --color-on-accent: #000000;
+  --color-background: #0F172A; /* dark navy */
+  --color-foreground: #F8FAFC; /* light text */
+  --color-card: #222735;
+  --color-card-foreground: #F8FAFC;
+  --color-muted: #272F42;
+  --color-muted-foreground: #94A3B8;
+  --color-border: #334155;
+  --color-destructive: #EF4444;
+  --color-on-destructive: #000000;
+  --color-ring: #F59E0B;
+
+  /* Typography Tokens */
+  --font-family-heading: "IBM Plex Sans", system-ui, sans-serif;
+  --font-family-body: "IBM Plex Sans", system-ui, sans-serif;
+
+  /* Spacing Tokens */
+  --space-0: 0px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-8: 48px;
+
+  /* Radius Tokens */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* Shadow Tokens */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.15);
+  --shadow-elevated: var(--shadow-lg);
+
+  /* Motion Tokens */
+  --duration-short: 150ms;
+  --duration-medium: 300ms;
+  --duration-long: 500ms;
+  --ease-out: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --ease-in-out: cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+/* Dark mode overrides (optional) */
+[data-theme="dark"] {
+  --color-background: #0F172A;
+  --color-foreground: #F8FAFC;
+  --color-card: #222735;
+  --color-muted: #272F42;
+  --color-border: #334155;
+}

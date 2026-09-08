@@ -28,6 +28,8 @@ interface ListRatingChangeProps {
 
   onViewDetails?: () => void;
   onReset?: () => void;
+  onMoveToCurrentMonth?: (result: Result) => void;
+  allowMoveToCurrent?: boolean;
   readOnly?: boolean;
 
   ratingType?: 'standard' | 'blitz' | 'rapid';
@@ -44,7 +46,9 @@ const DraggableRow = ({
   hoveredIndex,
   setHoveredIndex,
   onOpponentNameClick,
-  readOnly = false
+  readOnly = false,
+  onMoveToCurrentMonth,
+  allowMoveToCurrent = false
 }: {
   result: Result;
   index: number;
@@ -55,6 +59,8 @@ const DraggableRow = ({
   hoveredIndex: number | null;
   setHoveredIndex: (index: number | null) => void;
   onOpponentNameClick: (name: string) => void;
+  onMoveToCurrentMonth?: (result: Result) => void;
+  allowMoveToCurrent?: boolean;
   readOnly?: boolean;
 }) => {
   const ref = useRef<HTMLTableRowElement>(null);
@@ -119,20 +125,33 @@ const DraggableRow = ({
               {Math.abs(result.ratingChange)}
             </span>
           </span>
-          <button
-            onClick={e => { e.stopPropagation(); handleRemoveClick(index); }}
-            className="text-red-600 hover:text-red-800 ml-4 print:hidden"
-            title="Delete entry"
-          >
-            <FaTrashAlt />
-          </button>
+          <div className="flex gap-2 print:hidden ml-4">
+            {allowMoveToCurrent && onMoveToCurrentMonth && (
+              <button
+                onClick={e => { e.stopPropagation(); onMoveToCurrentMonth(result); }}
+                className="text-blue-600 hover:text-blue-800"
+                title="Move to current month"
+              >
+                <span className="text-xs font-semibold px-2 py-1 bg-blue-50 rounded">Move to Current</span>
+              </button>
+            )}
+            {!readOnly && (
+              <button
+                onClick={e => { e.stopPropagation(); handleRemoveClick(index); }}
+                className="text-red-600 hover:text-red-800"
+                title="Delete entry"
+              >
+                <FaTrashAlt />
+              </button>
+            )}
+          </div>
         </div>
       </td>
     </tr>
   );
 };
 
-export default function ListRatingChange({ results, onRemove, onSelect, onUpdateDate, onReorder, onViewDetails, onReset, readOnly = false, ratingType }: ListRatingChangeProps) {
+export default function ListRatingChange({ results, onRemove, onSelect, onUpdateDate, onReorder, onViewDetails, onReset, readOnly = false, ratingType, onMoveToCurrentMonth, allowMoveToCurrent = false }: ListRatingChangeProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingRemove, setPendingRemove] = useState<number | null>(null);
   const [tableData, setTableData] = useState<Result[]>(results);
@@ -250,6 +269,8 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
                     setHoveredIndex={setHoveredIndex}
                     onOpponentNameClick={handleOpponentNameClick}
                     readOnly={readOnly}
+                    onMoveToCurrentMonth={onMoveToCurrentMonth}
+                    allowMoveToCurrent={allowMoveToCurrent}
                   />
                 ))}
               </tbody>
@@ -294,9 +315,19 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
                   <span className="text-sm text-gray-600">
                     {result.playerRating} vs {result.opponentRating}
                   </span>
-                  <span className={`text-lg font-medium ${result.ratingChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {result.ratingChange > 0 ? '+' : ''}{result.ratingChange}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    {allowMoveToCurrent && onMoveToCurrentMonth && (
+                      <button
+                        onClick={e => { e.stopPropagation(); onMoveToCurrentMonth(result); }}
+                        className="text-blue-600 hover:text-blue-800 text-xs font-semibold px-2 py-1 bg-blue-50 rounded"
+                      >
+                        Move to Current
+                      </button>
+                    )}
+                    <span className={`text-lg font-medium ${result.ratingChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {result.ratingChange > 0 ? '+' : ''}{result.ratingChange}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
