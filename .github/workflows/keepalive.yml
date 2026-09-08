@@ -6,19 +6,30 @@ on:
     - cron: '0 0 * * *'
   workflow_dispatch: # Allow manual trigger from the GitHub Actions tab
 
+permissions:
+  contents: write
+
+concurrency:
+  group: supabase-keepalive
+  cancel-in-progress: false
+
 jobs:
   keepalive:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 24
 
-      - name: Install Playwright and Run script
+      - name: Install Playwright and run script
+        env:
+          KEEPALIVE_SCREENSHOT_PATH: ${{ github.workspace }}/.github/keepalive/latest.png
         run: |
           # Create an isolated directory so npm doesn't conflict with pnpm workspaces
           mkdir -p playwright-runner
@@ -30,3 +41,25 @@ jobs:
           
           # Run the script from the runner directory
           node keepalive.js
+
+      - name: Commit keepalive screenshot
+        if: ${{ always() }}
+        run: |
+          screenshot_path='.github/keepalive/latest.png'
+
+          if [[ ! -f "$screenshot_path" ]]; then
+            echo 'No keepalive screenshot was created; skipping the commit.'
+            exit 0
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$screenshot_path"
+
+          if git diff --cached --quiet; then
+            echo 'Keepalive screenshot is unchanged; skipping the commit.'
+            exit 0
+          fi
+
+          git commit -m 'chore: update keepalive screenshot [skip ci]'
+          git push
