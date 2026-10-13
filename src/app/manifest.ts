@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next'
 
-const BASE_PATH = process.env.BASE_PATH || '';
+const BASE_PATH = (process.env.BASE_PATH || '').replace(/\/+$/, '');
 
 export const dynamic = "force-static";
 export const revalidate = false;

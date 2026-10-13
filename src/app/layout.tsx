@@ -24,7 +24,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const basePath = `${process.env.BASE_PATH || ""}/manifest.webmanifest`;
+  const basePath = `${(process.env.BASE_PATH || "").replace(/\/+$/, "")}/manifest.webmanifest`;
   return (
     <html lang="en">
       <head>
