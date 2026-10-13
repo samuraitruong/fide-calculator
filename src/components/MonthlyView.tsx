@@ -1,3 +1,4 @@
+import { getResultRatingMonth, getRatingMonthDisplayName } from '@fide-calculator/shared';
 import React, { useState, useRef } from 'react';
 import { MonthlyData } from '@/util/types';
 import { FaTimes, FaFilePdf, FaRegFilePdf } from 'react-icons/fa';
@@ -68,7 +69,7 @@ export default function MonthlyView({
         </button>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-6 border-b border-gray-200 gap-2 sm:gap-0">
           <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2 sm:mb-0">
-            Your performance of {monthlyData.month}
+            Your performance of {getRatingMonthDisplayName(monthlyData.monthKey)}
           </h2>
           <div className="flex flex-row flex-wrap gap-2">
             <button
@@ -93,7 +94,7 @@ export default function MonthlyView({
         >
           {isExportingPDF && (
             <h2 className="text-xl font-semibold text-gray-800 mb-6 text-center">
-              Your performance of {monthlyData.month}
+              Your performance of {getRatingMonthDisplayName(monthlyData.monthKey)}
             </h2>
           )}
           <div className="flex flex-col gap-4 sm:flex-row sm:gap-4 mb-6">
@@ -107,7 +108,7 @@ export default function MonthlyView({
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-700">Month:</span>
-                      <span className="font-medium text-gray-900">{monthlyData.month}</span>
+                      <span className="font-medium text-gray-900">{getRatingMonthDisplayName(monthlyData.monthKey)}</span>
                     </div>
                   </div>
                 </div>
@@ -145,7 +146,7 @@ export default function MonthlyView({
               {monthlyData.results.map((game, index) => (
                 <div key={game.id || index} className="border rounded-lg p-3 bg-gray-50">
                   <div className="flex justify-between mb-1">
-                    <span className="font-medium text-gray-700">{game.date}</span>
+                    <span className="font-medium text-gray-700">{game.date} · Rating month: {getResultRatingMonth(game)}</span>
                     <span className={`font-bold ${game.ratingChange >= 0 ? 'text-green-700' : 'text-red-700'}`}>{game.ratingChange >= 0 ? '+' : ''}{game.ratingChange}</span>
                   </div>
                   <div className="text-gray-900 font-semibold truncate">{game.opponentName}</div>
@@ -161,6 +162,7 @@ export default function MonthlyView({
                 <thead>
                   <tr className="bg-gray-100">
                     <th className="text-left p-2 text-gray-800 font-medium">Date</th>
+                    <th className="text-left p-2 text-gray-800 font-medium">Rating month</th>
                     <th className="text-left p-2 text-gray-800 font-medium">Opponent</th>
                     <th className="text-left p-2 text-gray-800 font-medium">Opponent Rating</th>
                     <th className="text-left p-2 text-gray-800 font-medium">Your Rating</th>
@@ -173,6 +175,7 @@ export default function MonthlyView({
                   {monthlyData.results.map((game, index) => (
                     <tr key={game.id || index} className="border-b border-gray-200">
                       <td className="p-2 text-gray-900">{game.date}</td>
+                      <td className="p-2 text-gray-900">{getResultRatingMonth(game)}</td>
                       <td className="p-2 text-gray-900">{game.opponentName}</td>
                       <td className="p-2 text-gray-900">{game.opponentRating}</td>
                       <td className="p-2 text-gray-900">{game.playerRating}</td>

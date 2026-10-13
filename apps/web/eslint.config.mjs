@@ -10,6 +10,7 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
+  { ignores: ["**/.next/**", "**/out/**", "**/coverage/**", "**/node_modules/**", "**/android/**", "**/ios/**", "**/dist/**"] },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
     files: ["jest.config.js", "jest.setup.js"],

@@ -1,6 +1,37 @@
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Result, MonthlyData } from '@fide-calculator/shared';
+import { migrateResultRatingMonth, groupResultsByRatingMonth } from '@fide-calculator/shared';
+
+function normalizeLocalResult(result: Result): Result {
+  return migrateResultRatingMonth({
+    ...result,
+    id: result.id || `local-game-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    ratingType: result.ratingType || 'standard',
+  });
+}
+
+let cachedResults: Result[] | null = null;
+let resultLoadError: Error | null = null;
+const resultSubscribers = new Set<(results: Result[]) => void>();
+let resultWrites: Promise<void> = Promise.resolve();
+
+function publishResults(next: Result[]) {
+  cachedResults = next;
+  resultSubscribers.forEach(listener => listener(next));
+}
+
+function changeResults(update: (previous: Result[]) => Result[]): Promise<void> {
+  if (resultLoadError) return Promise.reject(resultLoadError);
+  const write = resultWrites.catch(() => {}).then(async () => {
+    const next = update(cachedResults ?? []).map(normalizeLocalResult);
+    await AsyncStorage.setItem('fide-calculator-results', JSON.stringify(next));
+    publishResults(next);
+  });
+  resultWrites = write;
+  return write;
+}
+
 
 export interface LocalProfile {
   id: string;
@@ -15,11 +46,44 @@ export interface LocalProfile {
   isLocal: boolean;
 }
 
+type ProfileSnapshot = { profiles: LocalProfile[]; activeProfile: LocalProfile | null };
+let cachedProfiles: ProfileSnapshot | null = null;
+const profileSubscribers = new Set<(snapshot: ProfileSnapshot) => void>();
+
+function publishProfiles(profiles: LocalProfile[], activeProfile: LocalProfile | null) {
+  cachedProfiles = { profiles, activeProfile };
+  profileSubscribers.forEach(listener => listener(cachedProfiles!));
+}
+
 export function useLocalStorage() {
   const [profiles, setProfiles] = useState<LocalProfile[]>([]);
-  const [activeProfile, setActiveProfile] = useState<LocalProfile | null>(null);
+  const [activeProfile, setActiveProfileState] = useState<LocalProfile | null>(null);
   const [results, setResults] = useState<Result[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Profile edits also update the calculator's official rating immediately.
+  useEffect(() => {
+    const receive = (snapshot: ProfileSnapshot) => {
+      setProfiles(snapshot.profiles);
+      setActiveProfileState(snapshot.activeProfile);
+    };
+    profileSubscribers.add(receive);
+    if (cachedProfiles) receive(cachedProfiles);
+    return () => {
+      profileSubscribers.delete(receive);
+      if (profileSubscribers.size === 0) cachedProfiles = null;
+    };
+  }, []);
+
+  // Every mounted consumer shares game changes (e.g. Home and History).
+  useEffect(() => {
+    resultSubscribers.add(setResults);
+    if (cachedResults !== null) setResults(cachedResults);
+    return () => {
+      resultSubscribers.delete(setResults);
+      if (resultSubscribers.size === 0) cachedResults = null;
+    };
+  }, []);
 
   // Load data from AsyncStorage on mount
   useEffect(() => {
@@ -29,34 +93,23 @@ export function useLocalStorage() {
         const storedActiveProfileId = await AsyncStorage.getItem('fide-calculator-active-profile-id');
         const storedResults = await AsyncStorage.getItem('fide-calculator-results');
         
-        if (storedProfiles) {
-          const profilesList = JSON.parse(storedProfiles);
-          setProfiles(profilesList);
-          
-          // Set active profile
-          if (storedActiveProfileId && profilesList.length > 0) {
-            const active = profilesList.find((p: LocalProfile) => p.id === storedActiveProfileId);
-            if (active) {
-              setActiveProfile(active);
-            } else {
-              setActiveProfile(profilesList[0]); // Fallback to first profile
-            }
-          } else if (profilesList.length > 0) {
-            setActiveProfile(profilesList[0]); // Default to first profile
+        if (cachedProfiles === null) {
+          const profilesList: LocalProfile[] = storedProfiles ? JSON.parse(storedProfiles) : [];
+          const selected = profilesList.find(profile => profile.id === storedActiveProfileId) ?? profilesList[0] ?? null;
+          publishProfiles(profilesList, selected);
+        }
+        if (cachedResults === null) {
+          resultLoadError = null;
+          const parsed: Result[] = storedResults ? JSON.parse(storedResults) : [];
+          const migrated = parsed.map(normalizeLocalResult);
+          publishResults(migrated);
+          if (storedResults && JSON.stringify(migrated) !== storedResults) {
+            await changeResults(previous => previous);
           }
         }
-        
-        if (storedResults) {
-          const parsedResults = JSON.parse(storedResults);
-          // Ensure all results have required fields
-          const validatedResults = parsedResults.map((result: { date: string; playerRating: number; opponentName: string; opponentRating: number; kFactor: number; result: string; ratingChange: number; ratingType?: string; monthKey?: string }) => ({
-            ...result,
-            ratingType: result.ratingType || 'standard', // Default to standard if missing
-            monthKey: result.monthKey || (result.date ? `${new Date(result.date).getFullYear()}-${new Date(result.date).toLocaleDateString('en-US', { month: 'short' })}` : undefined)
-          }));
-          setResults(validatedResults);
-        }
+        setResults(cachedResults ?? []);
       } catch (error) {
+        resultLoadError = error instanceof Error ? error : new Error('Unable to load stored games');
         console.error('Error loading from AsyncStorage:', error);
       } finally {
         setLoading(false);
@@ -66,24 +119,10 @@ export function useLocalStorage() {
     loadData();
   }, []);
 
-  // Save results to AsyncStorage whenever they change
-  useEffect(() => {
-    const saveResults = async () => {
-      if (results.length > 0) {
-        try {
-          await AsyncStorage.setItem('fide-calculator-results', JSON.stringify(results));
-        } catch (error) {
-          console.error('Error saving results:', error);
-        }
-      }
-    };
-    saveResults();
-  }, [results]);
-
   // Save profiles to AsyncStorage whenever they change
   useEffect(() => {
     const saveProfiles = async () => {
-      if (profiles.length > 0) {
+      if (!loading && profiles.length > 0) {
         try {
           await AsyncStorage.setItem('fide-calculator-profiles', JSON.stringify(profiles));
         } catch (error) {
@@ -92,12 +131,12 @@ export function useLocalStorage() {
       }
     };
     saveProfiles();
-  }, [profiles]);
+  }, [profiles, loading]);
 
   // Save active profile ID whenever it changes
   useEffect(() => {
     const saveActiveProfile = async () => {
-      if (activeProfile) {
+      if (!loading && activeProfile) {
         try {
           await AsyncStorage.setItem('fide-calculator-active-profile-id', activeProfile.id);
         } catch (error) {
@@ -106,30 +145,28 @@ export function useLocalStorage() {
       }
     };
     saveActiveProfile();
-  }, [activeProfile]);
+  }, [activeProfile, loading]);
 
   const addResult = useCallback((result: Result) => {
-    setResults(prev => [...prev, result]);
+    return changeResults(previous => [...previous, result]);
   }, []);
 
   const removeResult = useCallback((indexOrId: number | string) => {
-    if (typeof indexOrId === 'string') {
-      // Remove by ID
-      setResults(prev => prev.filter(result => result.id !== indexOrId));
-    } else {
-      // Remove by index (for backward compatibility)
-      setResults(prev => prev.filter((_, i) => i !== indexOrId));
-    }
+    const id = typeof indexOrId === 'string' ? indexOrId : cachedResults?.[indexOrId]?.id;
+    if (!id) throw new Error('Game no longer exists');
+    return changeResults(previous => previous.filter(result => result.id !== id));
   }, []);
 
   const updateResult = useCallback((index: number, updates: Partial<Result>) => {
-    setResults(prev => prev.map((result, i) => 
-      i === index ? { ...result, ...updates } : result
+    const id = cachedResults?.[index]?.id;
+    if (!id) throw new Error('Game no longer exists');
+    return changeResults(previous => previous.map(result =>
+      result.id === id ? { ...result, ...updates } : result,
     ));
   }, []);
 
   const setAllResults = useCallback((newResults: Result[]) => {
-    setResults(newResults);
+    return changeResults(() => newResults);
   }, []);
 
   const createProfile = useCallback((profileData: Omit<LocalProfile, 'id'>) => {
@@ -137,107 +174,45 @@ export function useLocalStorage() {
       ...profileData,
       id: 'local-profile-' + Date.now() + Math.random().toString().slice(2),
     };
-    setProfiles(prev => [...prev, newProfile]);
-    setActiveProfile(newProfile);
+    publishProfiles([...(cachedProfiles?.profiles ?? []), newProfile], newProfile);
     return newProfile;
   }, []);
 
   const updateProfile = useCallback((updates: Partial<LocalProfile>) => {
-    if (activeProfile) {
-      const updatedProfile = { ...activeProfile, ...updates };
-      setActiveProfile(updatedProfile);
-      setProfiles(prev => prev.map(p => p.id === activeProfile.id ? updatedProfile : p));
-    }
-  }, [activeProfile]);
+    const current = cachedProfiles;
+    if (!current?.activeProfile) throw new Error('No active profile');
+    const updated = { ...current.activeProfile, ...updates };
+    publishProfiles(current.profiles.map(profile => profile.id === current.activeProfile!.id ? updated : profile), updated);
+  }, []);
 
   const deleteProfile = useCallback((profileId: string) => {
-    setProfiles(prev => prev.filter(p => p.id !== profileId));
-    if (activeProfile?.id === profileId) {
-      const remainingProfiles = profiles.filter(p => p.id !== profileId);
-      setActiveProfile(remainingProfiles.length > 0 ? remainingProfiles[0] : null);
-    }
-  }, [activeProfile, profiles]);
+    const remaining = (cachedProfiles?.profiles ?? []).filter(profile => profile.id !== profileId);
+    const active = remaining.find(profile => profile.id === cachedProfiles?.activeProfile?.id) ?? remaining[0] ?? null;
+    publishProfiles(remaining, active);
+  }, []);
+
+  const setActiveProfile = useCallback((profile: LocalProfile | null) => {
+    const profilesList = cachedProfiles?.profiles ?? [];
+    const active = profile ? profilesList.find(item => item.id === profile.id) ?? profile : null;
+    publishProfiles(profilesList, active);
+  }, []);
 
   const signOut = useCallback(async () => {
     try {
+      await resultWrites.catch(() => {});
       await AsyncStorage.removeItem('fide-calculator-profiles');
       await AsyncStorage.removeItem('fide-calculator-active-profile-id');
       await AsyncStorage.removeItem('fide-calculator-results');
       await AsyncStorage.removeItem('fide-calculator-mode');
-      setProfiles([]);
-      setActiveProfile(null);
-      setResults([]);
+      publishProfiles([], null);
+      publishResults([]);
     } catch (error) {
       console.error('Error signing out:', error);
     }
   }, []);
 
-  // Generate monthly data from results
-  const generateMonthlyData = useCallback((type: 'standard' | 'blitz' | 'rapid'): MonthlyData[] => {
-    const typeResults = results.filter(r => r.ratingType === type);
-    
-    // Group by month
-    const monthlyGroups: Record<string, Result[]> = {};
-    typeResults.forEach(result => {
-      // Parse the date string properly
-      let date: Date;
-      if (result.date.includes('/')) {
-        // Handle MM/DD/YYYY format from toLocaleDateString()
-        const [month, day, year] = result.date.split('/');
-        date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-      } else if (result.date.includes('-')) {
-        // Handle YYYY-MM-DD format
-        date = new Date(result.date);
-      } else {
-        // Handle other date formats
-        date = new Date(result.date);
-      }
-      
-      const monthKey = `${date.getFullYear()}-${date.toLocaleDateString('en-US', { month: 'short' })}`;
-      
-      if (!monthlyGroups[monthKey]) {
-        monthlyGroups[monthKey] = [];
-      }
-      monthlyGroups[monthKey].push(result);
-    });
-
-    // Convert to MonthlyData format
-    const monthlyData: MonthlyData[] = Object.entries(monthlyGroups).map(([monthKey, monthResults]) => {
-      const totalChange = Math.round(100 * monthResults.reduce((acc, curr) => acc + curr.ratingChange, 0)) / 100;
-      const currentDate = new Date();
-      const [year, month] = monthKey.split('-');
-      // Create a proper date object for the month
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const monthIndex = monthNames.indexOf(month);
-      const monthDate = new Date(parseInt(year), monthIndex, 1);
-      
-      const isCurrentMonth = monthDate.getMonth() === currentDate.getMonth() && 
-                           monthDate.getFullYear() === currentDate.getFullYear();
-      
-      // Convert month abbreviation to full name for better display
-      const monthFullNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-      const monthFullName = monthFullNames[monthIndex];
-      
-      return {
-        monthKey,
-        month: `${monthFullName} ${year}`,
-        results: monthResults,
-        totalChange,
-        gameCount: monthResults.length,
-        isCurrentMonth,
-        isReadOnly: !isCurrentMonth,
-      };
-    });
-
-    // Sort by month (newest first)
-    return monthlyData.sort((a, b) => {
-      const [yearA, monthA] = a.monthKey.split('-');
-      const [yearB, monthB] = b.monthKey.split('-');
-      const dateA = new Date(`${monthA} 1, ${yearA}`);
-      const dateB = new Date(`${monthB} 1, ${yearB}`);
-      return dateB.getTime() - dateA.getTime();
-    });
-  }, [results]);
+  const generateMonthlyData = useCallback((type: 'standard' | 'blitz' | 'rapid'): MonthlyData[] =>
+    groupResultsByRatingMonth(results, type), [results]);
 
   return {
     profiles,

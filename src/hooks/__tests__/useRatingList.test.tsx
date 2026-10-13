@@ -4,34 +4,37 @@ import { Result } from '@/util/types';
 
 describe('useRatingList', () => {
   const mockResults: Result[] = [
-    { 
-      id: '1', 
-      playerRating: 1500, 
-      opponentName: 'Player 1', 
-      opponentRating: 1600, 
+    {
+      id: '1',
+      playerRating: 1500,
+      opponentName: 'Player 1',
+      opponentRating: 1600,
       kFactor: 10,
       result: 'win',
       ratingChange: 5.6,
+      ratingType: 'standard',
       date: '2024-03-20'
     },
-    { 
-      id: '2', 
-      playerRating: 1600, 
-      opponentName: 'Player 2', 
-      opponentRating: 1700, 
+    {
+      id: '2',
+      playerRating: 1600,
+      opponentName: 'Player 2',
+      opponentRating: 1700,
       kFactor: 10,
       result: 'loss',
       ratingChange: -4.8,
+      ratingType: 'standard',
       date: '2024-03-20'
     },
-    { 
-      id: '3', 
-      playerRating: 1700, 
-      opponentName: 'Player 3', 
-      opponentRating: 1800, 
+    {
+      id: '3',
+      playerRating: 1700,
+      opponentName: 'Player 3',
+      opponentRating: 1800,
       kFactor: 10,
       result: 'draw',
       ratingChange: 0,
+      ratingType: 'standard',
       date: '2024-03-20'
     },
   ];
@@ -47,7 +50,7 @@ describe('useRatingList', () => {
 
   it('should add a result', () => {
     const { result } = renderHook(() => useRatingList('standard'));
-    
+
     act(() => {
       result.current.addResult(mockResults[0]);
     });
@@ -57,7 +60,7 @@ describe('useRatingList', () => {
 
   it('should remove a result by index', () => {
     const { result } = renderHook(() => useRatingList('standard'));
-    
+
     act(() => {
       result.current.addResult(mockResults[0]);
       result.current.addResult(mockResults[1]);
@@ -72,7 +75,7 @@ describe('useRatingList', () => {
 
   it('should update a result by id', () => {
     const { result } = renderHook(() => useRatingList('standard'));
-    
+
     act(() => {
       result.current.addResult(mockResults[0]);
     });
@@ -87,7 +90,7 @@ describe('useRatingList', () => {
 
   it('should update a result by index', () => {
     const { result } = renderHook(() => useRatingList('standard'));
-    
+
     act(() => {
       result.current.addResult(mockResults[0]);
     });
@@ -102,7 +105,7 @@ describe('useRatingList', () => {
 
   it('should set all results', () => {
     const { result } = renderHook(() => useRatingList('standard'));
-    
+
     act(() => {
       result.current.setAllResults(mockResults);
     });
@@ -112,14 +115,14 @@ describe('useRatingList', () => {
 
   it('should load results from localStorage on mount', () => {
     localStorage.setItem('fideResults_standard', JSON.stringify(mockResults));
-    
+
     const { result } = renderHook(() => useRatingList('standard'));
     expect(result.current.results).toEqual(mockResults);
   });
 
   it('should save results to localStorage on change', () => {
     const { result } = renderHook(() => useRatingList('standard'));
-    
+
     act(() => {
       result.current.addResult(mockResults[0]);
     });
@@ -130,7 +133,7 @@ describe('useRatingList', () => {
 
   it('should handle imported results event', () => {
     const { result } = renderHook(() => useRatingList('standard'));
-    
+
     act(() => {
       const event = new CustomEvent('importedResults', { detail: mockResults });
       window.dispatchEvent(event);
@@ -142,7 +145,7 @@ describe('useRatingList', () => {
   it('should use different storage keys for different rating types', () => {
     const { result: standardResult } = renderHook(() => useRatingList('standard'));
     const { result: blitzResult } = renderHook(() => useRatingList('blitz'));
-    
+
     act(() => {
       standardResult.current.addResult(mockResults[0]);
       blitzResult.current.addResult(mockResults[1]);
@@ -150,7 +153,7 @@ describe('useRatingList', () => {
 
     const standardSaved = localStorage.getItem('fideResults_standard');
     const blitzSaved = localStorage.getItem('fideResults_blitz');
-    
+
     expect(standardSaved).toBe(JSON.stringify([mockResults[0]]));
     expect(blitzSaved).toBe(JSON.stringify([mockResults[1]]));
   });
@@ -158,15 +161,15 @@ describe('useRatingList', () => {
   it('should migrate old data format to standard', () => {
     // Set up old format data
     localStorage.setItem('fideResults', JSON.stringify(mockResults));
-    
+
     const { result } = renderHook(() => useRatingList('standard'));
-    
+
     // Should have migrated the data
     expect(result.current.results).toEqual(mockResults);
-    
+
     // Old data should be removed
     expect(localStorage.getItem('fideResults')).toBeNull();
-    
+
     // New data should be saved
     expect(localStorage.getItem('fideResults_standard')).toBe(JSON.stringify(mockResults));
   });
@@ -174,15 +177,15 @@ describe('useRatingList', () => {
   it.skip('should not migrate old data for non-standard types', () => {
     // Set up old format data
     localStorage.setItem('fideResults', JSON.stringify(mockResults));
-    
+
     const { result } = renderHook(() => useRatingList('blitz'));
-    
+
     // Should not have migrated the data
     expect(result.current.results).toEqual([]);
-    
+
     // Old data should still exist
     expect(localStorage.getItem('fideResults')).toBe(JSON.stringify(mockResults));
-    
+
     // No new data should be created
     expect(localStorage.getItem('fideResults_blitz')).toBeNull();
   });
@@ -191,9 +194,9 @@ describe('useRatingList', () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const resultsWithoutIds = mockResults.map(({ id, ...rest }) => rest);
     localStorage.setItem('fideResults', JSON.stringify(resultsWithoutIds));
-    
+
     const { result } = renderHook(() => useRatingList('standard'));
-    
+
     // Should have migrated and added ids
     expect(result.current.results).toHaveLength(3);
     expect(result.current.results[0].id).toBeDefined();
@@ -204,10 +207,10 @@ describe('useRatingList', () => {
   it('should handle migration errors gracefully', () => {
     // Set up invalid old format data
     localStorage.setItem('fideResults', 'invalid json');
-    
+
     const { result } = renderHook(() => useRatingList('standard'));
-    
+
     // Should handle error gracefully
     expect(result.current.results).toEqual([]);
   });
-}); 
+});

@@ -1,5 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
   Modal,
   Pressable,
   StyleSheet,
@@ -11,28 +15,24 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { GameResult, Result } from '@fide-calculator/shared';
-import { calculateRatingChange } from '@fide-calculator/shared';
+import { calculateRatingChange, getRatingMonthFromDate, getResultRatingMonth, isValidRatingMonth } from '@fide-calculator/shared';
 
 type Props = {
   open: boolean;
   game: Result | null;
   onClose: () => void;
   onSave: (updates: Partial<Result>) => Promise<void> | void;
+  onDelete?: () => Promise<void> | void;
 };
 
-function monthKeyFromDate(dateStr: string): string | undefined {
-  const d = new Date(dateStr);
-  if (!Number.isFinite(d.getTime())) return undefined;
-  const monthKey = `${d.getFullYear()}-${d.toLocaleDateString('en-US', { month: 'short' })}`;
-  return monthKey;
-}
-
-export default function EditGameModal({ open, game, onClose, onSave }: Props) {
+export default function EditGameModal({ open, game, onClose, onSave, onDelete }: Props) {
   const [opponentName, setOpponentName] = useState('');
   const [opponentRating, setOpponentRating] = useState(1400);
   const [kFactor, setKFactor] = useState(20);
   const [result, setResult] = useState<GameResult>('win');
   const [date, setDate] = useState(''); // YYYY-MM-DD preferred
+  const [ratingMonth, setRatingMonth] = useState('');
+  const [moving, setMoving] = useState(false);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -42,14 +42,16 @@ export default function EditGameModal({ open, game, onClose, onSave }: Props) {
     setKFactor(game.kFactor ?? 20);
     setResult(game.result ?? 'win');
     setDate(game.date ?? '');
+    setRatingMonth(getResultRatingMonth(game));
   }, [game]);
 
   const isValidRating = (n: number) => n >= 100 && n <= 3500;
 
   const isFormValid = useMemo(() => {
     if (!game) return false;
-    return isValidRating(game.playerRating) && isValidRating(opponentRating) && !!date;
-  }, [game, opponentRating, date]);
+    try { getRatingMonthFromDate(date); } catch { return false; }
+    return isValidRating(game.playerRating) && isValidRating(opponentRating) && isValidRatingMonth(ratingMonth);
+  }, [game, opponentRating, date, ratingMonth]);
 
   const newDelta = useMemo(() => {
     if (!game) return null;
@@ -59,20 +61,57 @@ export default function EditGameModal({ open, game, onClose, onSave }: Props) {
 
   const handleSave = async () => {
     if (!game) return;
-    if (!isFormValid || newDelta === null) return;
-    const monthKey = monthKeyFromDate(date);
-    await Promise.resolve(
-      onSave({
+    if (moving || !isFormValid || newDelta === null) return;
+    setMoving(true);
+    try {
+      await onSave({
         opponentName,
         opponentRating,
         kFactor,
         result,
         date,
-        monthKey,
+        ratingMonth,
         ratingChange: newDelta,
-      }),
-    );
-    onClose();
+      });
+      onClose();
+    } catch (error) {
+      Alert.alert('Unable to save game', error instanceof Error ? error.message : 'Please try again.');
+    } finally {
+      setMoving(false);
+    }
+  };
+
+  const handleMoveToCurrentMonth = async () => {
+    if (!game || moving) return;
+    setMoving(true);
+    try {
+      await onSave({ ratingMonth: getRatingMonthFromDate(new Date()) });
+      onClose();
+    } catch (error) {
+      Alert.alert('Unable to move game', error instanceof Error ? error.message : 'Please try again.');
+    } finally {
+      setMoving(false);
+    }
+  };
+
+  const canDelete = !!game && !!onDelete && getResultRatingMonth(game) === getRatingMonthFromDate(new Date());
+  const handleDelete = () => {
+    if (!canDelete || moving) return;
+    Alert.alert('Delete game', `Remove this game vs ${game?.opponentName || 'Opponent'}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+        if (!onDelete || moving) return;
+        setMoving(true);
+        try {
+          await onDelete();
+          onClose();
+        } catch (error) {
+          Alert.alert('Unable to delete game', error instanceof Error ? error.message : 'Please try again.');
+        } finally {
+          setMoving(false);
+        }
+      } },
+    ]);
   };
 
   return (
@@ -82,11 +121,13 @@ export default function EditGameModal({ open, game, onClose, onSave }: Props) {
       animationType="slide"
       onRequestClose={onClose}
     >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable
           style={[styles.sheet, { paddingBottom: 16 + insets.bottom }]}
           onPress={(e) => e.stopPropagation()}
         >
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <Text style={styles.title}>Edit game</Text>
             <TouchableOpacity onPress={onClose} hitSlop={12}>
@@ -184,33 +225,49 @@ export default function EditGameModal({ open, game, onClose, onSave }: Props) {
                 />
               </View>
 
+              <View style={styles.field}>
+                <Text style={styles.label}>Rating month (YYYY-MM)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={ratingMonth}
+                  onChangeText={setRatingMonth}
+                  placeholder="2026-10"
+                  autoCapitalize="none"
+                />
+              </View>
+
               {!isFormValid ? (
-                <Text style={styles.validation}>Please enter a valid date and ratings.</Text>
+                <Text style={styles.validation}>Please enter valid ratings, a game date and a rating month (YYYY-MM).</Text>
               ) : null}
 
 
               <TouchableOpacity
                 style={[styles.saveButton, { backgroundColor: '#e0f2fe', marginTop: 10 }]}
-                onPress={() => {
-                  const today = new Date().toISOString().split('T')[0];
-                  setDate(today);
-                  // Optional: auto-save immediately? We'll just change the date and they can press Save.
-                }}
+                onPress={handleMoveToCurrentMonth}
+                disabled={moving}
               >
                 <Text style={[styles.saveButtonText, { color: '#0369a1' }]}>Move to Current Month</Text>
               </TouchableOpacity>
 
+              {canDelete ? (
+                <TouchableOpacity style={[styles.saveButton, { backgroundColor: '#b91c1c' }]} onPress={handleDelete} disabled={moving}>
+                  <Text style={styles.saveButtonText}>Delete game</Text>
+                </TouchableOpacity>
+              ) : null}
+
               <TouchableOpacity
                 style={[styles.saveButton, (!isFormValid || newDelta === null) && styles.disabled]}
                 onPress={handleSave}
-                disabled={!isFormValid || newDelta === null}
+                disabled={moving || !isFormValid || newDelta === null}
               >
                 <Text style={styles.saveButtonText}>Save changes</Text>
               </TouchableOpacity>
             </>
           )}
+          </ScrollView>
         </Pressable>
       </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -222,6 +279,8 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
+    maxHeight: '90%',
+    flexShrink: 1,
     backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,

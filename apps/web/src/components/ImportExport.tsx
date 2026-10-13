@@ -1,34 +1,24 @@
-import { useRef } from 'react';
+import { exportRatingCsv, importRatingCsv } from './ratingMonthCsv';
+import { useState, useRef } from 'react';
 import { Result } from '@/util/types';
 import { FaFileImport, FaFileExport, FaDownload, FaUndo } from 'react-icons/fa';
 
 interface ImportExportProps {
   results: Result[];
-  onImport: (imported: Result[]) => void;
+  onImport: (imported: Result[]) => void | Promise<void>;
  onViewDetails?: () => void;
  onReset?: () => void;
  ratingType?: 'standard' | 'blitz' | 'rapid';
 }
 
 export default function ImportExport({ results, onImport, onViewDetails, onReset, ratingType }: ImportExportProps) {
+    const [error, setError] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Export to CSV
     const handleExport = () => {
         if (!results || results.length === 0) return;
-        const csvRows = [
-            'Date,Player Rating,Opponent Name,Opponent Rating,K-Factor,Result,Rating Change',
-            ...results.map(r => [
-                r.date,
-                r.playerRating,
-                r.opponentName,
-                r.opponentRating,
-                r.kFactor,
-                r.result,
-                r.ratingChange
-            ].join(';'))
-        ];
-        const csvContent = csvRows.join('\n');
+        const csvContent = exportRatingCsv(results);
         const blob = new Blob([csvContent], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -43,41 +33,20 @@ export default function ImportExport({ results, onImport, onViewDetails, onReset
         const file = e.target.files?.[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = (event) => {
-            const text = event.target?.result as string;
-            const lines = text.split('\n').filter(Boolean);
-            if (lines.length < 2) return;
-            const imported: Result[] = [];
-            for (let i = 1; i < lines.length; i++) {
-                const [date, playerRating, opponentName, opponentRating, kFactor, result, ratingChange] = lines[i].split(';');
-                if (!date) continue;
-                
-                // Parse the date to get month key
-                const dateObj = new Date(date);
-                const monthKey = `${dateObj.getFullYear()}-${dateObj.toLocaleDateString('en-US', { month: 'short' })}`;
-                
-                imported.push({
-                    id: Date.now().toString() + Math.random().toString().slice(2), // Generate unique ID
-                    date,
-                    playerRating: Number(playerRating),
-                    opponentName,
-                    opponentRating: Number(opponentRating),
-                    kFactor: Number(kFactor),
-                    result: result as Result['result'],
-                    ratingChange: Number(ratingChange),
-                    ratingType: ratingType || 'standard', // Use provided rating type or default to standard
-                    monthKey
-                });
-            }
-            if (imported.length > 0) {
-                onImport(imported);
-            }
+        reader.onload = async (event) => {
+            try {
+                setError('');
+                const imported = importRatingCsv(String(event.target?.result || ''), ratingType || 'standard');
+                if (imported.length > 0) await onImport(imported);
+            } catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to import games.'); }
         };
         reader.readAsText(file);
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     return (
+        <>
+        {error && <p role="alert" className="text-red-700">{error}</p>}
         <div className="flex justify-between items-center gap-x-2 mt-4 print:hidden">
             <button onClick={handleExport} className="flex-1 flex flex-col items-center justify-center px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm gap-y-1 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!results || results.length === 0}>
                 <FaFileExport className="text-2xl md:text-lg" />
@@ -105,5 +74,6 @@ export default function ImportExport({ results, onImport, onViewDetails, onReset
             </button>
             <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
         </div>
+        </>
     );
 }

@@ -36,12 +36,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const fetchedProfiles = await fetchUserProfiles(supabase, userId);
       
       if (fetchedProfiles.length > 0) {
-        console.log('AuthContext: Profiles found:', fetchedProfiles);
         setProfiles(fetchedProfiles);
         // Set the first profile as active by default
         setActiveProfile(fetchedProfiles[0]);
       } else {
-        console.log('AuthContext: No profiles found for user');
         setProfiles([]);
         setActiveProfile(null);
       }

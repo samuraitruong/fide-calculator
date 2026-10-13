@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -10,7 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import {
   cacheDirectory,
   documentDirectory,
@@ -19,6 +19,7 @@ import {
 } from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import type { RatingType, Result } from '@fide-calculator/shared';
+import { getResultRatingMonth, getRatingMonthFromDate } from '@fide-calculator/shared';
 import { useStorageMode } from '@/contexts/StorageModeContext';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useSupabaseRatingList } from '@/hooks/useSupabaseRatingList';
@@ -36,24 +37,27 @@ export default function HistoryScreen() {
   const [ratingType, setRatingType] = useState<RatingType>('standard');
   const [expandedByMonthKey, setExpandedByMonthKey] = useState<Record<string, boolean>>({});
   const [editingGame, setEditingGame] = useState<Result | null>(null);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [exportingPdfMonthKey, setExportingPdfMonthKey] = useState<string | null>(null);
 
   const {
     results: localResults,
     generateMonthlyData,
     updateResult: localUpdateResult,
+    removeResult: localRemoveResult,
   } = useLocalStorage();
   const {
     results: cloudResults,
     monthlyData: cloudMonthlyData,
     loading: cloudLoading,
     updateResult: cloudUpdateResult,
+    removeResult: cloudRemoveResult,
   } =
     useSupabaseRatingList(ratingType);
 
   const isLocal = storageMode === 'local';
   const results = isLocal ? localResults : cloudResults;
+  const latestResults = useRef(results);
+  latestResults.current = results;
   const monthlyData = isLocal
     ? generateMonthlyData(ratingType)
     : cloudMonthlyData;
@@ -68,30 +72,29 @@ export default function HistoryScreen() {
   };
 
   const openEdit = (game: Result) => {
-    const idx =
-      game.id
-        ? results.findIndex((r) => r.id === game.id)
-        : results.findIndex(
-            (r) =>
-              r.date === game.date &&
-              r.opponentName === game.opponentName &&
-              r.opponentRating === game.opponentRating &&
-              r.kFactor === game.kFactor &&
-              r.result === game.result &&
-              r.ratingChange === game.ratingChange,
-          );
+    const idx = game.id ? results.findIndex((r) => r.id === game.id) : results.indexOf(game);
     if (idx === -1) return;
     setEditingGame(game);
-    setEditingIndex(idx);
+  };
+
+  const getEditingIndex = () => {
+    if (!editingGame) throw new Error('No game selected.');
+    const index = editingGame.id ? latestResults.current.findIndex((r) => r.id === editingGame.id) : latestResults.current.indexOf(editingGame);
+    if (index < 0) throw new Error('Game no longer exists.');
+    return index;
   };
 
   const handleSaveEdits = async (updates: Partial<Result>) => {
-    if (editingIndex === null) return;
-    if (isLocal) {
-      localUpdateResult(editingIndex, updates);
-      return;
-    }
-    await cloudUpdateResult(editingIndex, updates);
+    const index = getEditingIndex();
+    if (isLocal) await localUpdateResult(index, updates);
+    else await cloudUpdateResult(index, updates);
+  };
+
+  const handleDelete = async () => {
+    const index = getEditingIndex();
+    if (getResultRatingMonth(latestResults.current[index]) !== getRatingMonthFromDate(new Date())) throw new Error('Only current rating-month games can be deleted.');
+    if (isLocal) await localRemoveResult(index);
+    else await cloudRemoveResult(index);
   };
 
   const handleDownloadPdf = async (month: (typeof monthlyData)[0]) => {
@@ -136,7 +139,7 @@ export default function HistoryScreen() {
 
           Alert.alert('PDF saved', 'Your report has been saved to the folder you selected.');
           return;
-        } catch (androidError) {
+        } catch {
           // If anything goes wrong with SAF, fall back to the generic sharing flow below.
         }
       }
@@ -374,9 +377,9 @@ export default function HistoryScreen() {
         game={editingGame}
         onClose={() => {
           setEditingGame(null);
-          setEditingIndex(null);
         }}
         onSave={handleSaveEdits}
+        onDelete={handleDelete}
       />
     </ScrollView>
   );

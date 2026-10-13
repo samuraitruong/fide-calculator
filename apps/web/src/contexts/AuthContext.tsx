@@ -48,13 +48,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfiles([]);
         setActiveProfile(null);
       } else if (data && data.length > 0) {
-        console.log('AuthContext: Profiles found:', data);
         const convertedProfiles = data.map(profile => convertToCamelCaseRecursive(profile) as UserProfile);
         setProfiles(convertedProfiles);
         // Set the first profile as active by default
         setActiveProfile(convertedProfiles[0]);
       } else {
-        console.log('AuthContext: No profiles found for user');
         setProfiles([]);
         setActiveProfile(null);
       }

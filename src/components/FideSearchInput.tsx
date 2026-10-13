@@ -26,16 +26,19 @@ interface FideSearchInputProps {
 }
 
 export default function FideSearchInput({
+  value,
   onChange,
   onSelect,
   placeholder = "Search FIDE players...",
   className = ""
 }: FideSearchInputProps) {
   const [showDropdown, setShowDropdown] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(value);
   const debouncedSearch = useDebouncedValue(searchTerm, 500);
   const { fideData, loading, search } = useFideData('');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setSearchTerm(value); }, [value]);
 
   // Trigger search when debounced search term changes
   useEffect(() => {

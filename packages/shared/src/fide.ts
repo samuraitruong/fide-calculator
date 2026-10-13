@@ -120,6 +120,7 @@ export async function searchFidePlayers(keyword: string): Promise<FidePlayer[]> 
     const url = `https://ratings.fide.com/incl_search_l.php?search=${keyword}&simple=1`;
     const response = await fetch('https://no-cors.fly.dev/cors/' + url, {
       headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      cache: 'no-store',
     });
     
     if (!response.ok) {
@@ -134,3 +135,26 @@ export async function searchFidePlayers(keyword: string): Promise<FidePlayer[]> 
   }
 }
 
+/** Fetch current ratings while preserving the player's exact identity. */
+export async function refreshFidePlayer(profile: { fideId?: string; name: string }): Promise<FidePlayer> {
+  const id = profile.fideId?.trim();
+  const name = profile.name.trim().replace(/\s+/g, ' ');
+  if (!id && !name) throw new Error('Enter a player name or FIDE ID before refreshing.');
+  if (id) {
+    const players = await searchFidePlayers(encodeURIComponent(id));
+    const match = players.find(player => player.fideId.trim() === id);
+    if (match) return match;
+    if (name) {
+      const byName = await searchFidePlayers(encodeURIComponent(name));
+      const exact = byName.find(player => player.fideId.trim() === id);
+      if (exact) return exact;
+    }
+    throw new Error('No matching FIDE ID found. Your profile has not been changed.');
+  }
+  const players = await searchFidePlayers(encodeURIComponent(name));
+  const normalize = (value: string) => value.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+  const matches = players.filter(player => normalize(player.name) === normalize(name));
+  if (matches.length > 1) throw new Error('Multiple players match this name. Select your player or enter your FIDE ID first.');
+  if (!matches.length) throw new Error('No matching FIDE player found. Your profile has not been changed.');
+  return matches[0];
+}

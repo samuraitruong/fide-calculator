@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { getRatingMonthFromDate, getResultRatingMonth, isValidRatingMonth } from '@fide-calculator/shared';
 import { calculateRatingChange } from '../util/util';
 
 import CurrentChangeBox from '@/components/CurrentChangeBox';
@@ -48,7 +49,7 @@ function getPlayerRatingForType(player: FidePlayer, type: RatingType): string {
 
 export default function FideCalculator({ type }: FideCalculatorProps) {
   // Determine storage mode
-  const storageMode = localStorage.getItem('fide-calculator-mode') === 'local' ? 'local' : 'cloud';
+  const storageMode = typeof window !== 'undefined' && localStorage.getItem('fide-calculator-mode') === 'local' ? 'local' : 'cloud';
 
   // Use appropriate storage system based on mode
   const {
@@ -71,6 +72,10 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
 
   // Use the appropriate data and functions based on storage mode
   const results = storageMode === 'local' ? localResults : cloudResults;
+  const latestResultsRef = useRef(results);
+  latestResultsRef.current = results;
+  const latestRemovalRef = useRef({ storageMode, localRemoveResult, cloudRemoveResult });
+  latestRemovalRef.current = { storageMode, localRemoveResult, cloudRemoveResult };
 
   // Make monthly data reactive using useMemo
   const monthlyData = useMemo(() => {
@@ -84,22 +89,6 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
   const addResult = storageMode === 'local' ? localAddResult : cloudAddResult;
   const updateResult = storageMode === 'local' ? localUpdateResult : cloudUpdateResult;
   const setAllResults = storageMode === 'local' ? localSetAllResults : cloudSetAllResults;
-
-  // Create a wrapper function for removeResult that handles both local and cloud modes
-  const handleRemoveResult = useCallback((indexOrId: number | string) => {
-    console.log('handleRemoveResult called with:', indexOrId, 'storageMode:', storageMode);
-    if (storageMode === 'local') {
-      // Local mode: can handle both index and ID
-      console.log('Calling localRemoveResult with:', indexOrId);
-      localRemoveResult(indexOrId);
-    } else {
-      // Cloud mode: expects index
-      if (typeof indexOrId === 'number') {
-        console.log('Calling cloudRemoveResult with:', indexOrId);
-        cloudRemoveResult(indexOrId);
-      }
-    }
-  }, [storageMode, localRemoveResult, cloudRemoveResult]);
 
   // Debug logging
   useEffect(() => {
@@ -119,6 +108,22 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
   };
 
   const [selectedResult, setSelectedResult] = useState<Result | null>(null);
+  const today = () => { const now = new Date(); return `${getRatingMonthFromDate(now)}-${String(now.getDate()).padStart(2, '0')}`; };
+  const [gameDate, setGameDate] = useState(today);
+  const [ratingMonth, setRatingMonth] = useState(() => getRatingMonthFromDate(new Date()));
+  const [saving, setSaving] = useState(false);
+  const findResultIndex = (record: Result) => {
+    const latestResults = latestResultsRef.current;
+    if (record.id) return latestResults.findIndex(r => r.id === record.id);
+    const exactIndex = latestResults.indexOf(record);
+    if (exactIndex >= 0) return exactIndex;
+    return latestResults.findIndex(r => !r.id && r.date === record.date && r.ratingType === record.ratingType &&
+      r.playerRating === record.playerRating && r.opponentName === record.opponentName &&
+      r.opponentRating === record.opponentRating && r.kFactor === record.kFactor &&
+      r.result === record.result && r.ratingChange === record.ratingChange &&
+      getResultRatingMonth(r) === getResultRatingMonth(record));
+  };
+  const showError = (error: unknown) => setSnackbar({ open: true, message: error instanceof Error ? error.message : 'Unable to save changes. Please try again.', type: 'error' });
   // On first load, use profile rating, else last saved result, else default
   const getInitialPlayerRating = () => {
     if (Array.isArray(results) && results.length > 0) {
@@ -184,7 +189,7 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
   };
 
   const isValidRating = (rating: number) => rating >= 1400 && rating <= 3500;
-  const isFormValid = isValidRating(playerRating) && isValidRating(opponentRating);
+  const isFormValid = isValidRating(playerRating) && isValidRating(opponentRating) && !!gameDate && isValidRatingMonth(ratingMonth);
 
   const handleCalculate = () => {
     if (!isFormValid) return;
@@ -192,119 +197,92 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
     setCurrentRatingChange(ratingChange);
   };
 
-  const handleTrack = () => {
-    if (!isFormValid) return;
-    const ratingChange = calculateRatingChange(playerRating, opponentRating, result, kFactor);
-    setCurrentRatingChange(ratingChange);
+  const handleTrack = async () => {
+    if (!isFormValid || saving) return;
+    setSaving(true);
+    try {
+      getRatingMonthFromDate(gameDate);
+      const ratingChange = calculateRatingChange(playerRating, opponentRating, result, kFactor);
+      setCurrentRatingChange(ratingChange);
 
-    const newResult: Result = {
-      id: selectedResult?.id || (Date.now().toString() + Math.random().toString().slice(2)),
-      ...(selectedResult || {}),
-      playerRating,
-      opponentName,
-      opponentRating,
-      kFactor,
-      result,
-      ratingChange,
-      ratingType: type,
-      date: selectedResult?.date || new Date().toLocaleDateString('en-CA'), // Use YYYY-MM-DD format for consistency
-      monthKey: selectedResult?.monthKey || `${new Date().getFullYear()}-${new Date().toLocaleDateString('en-US', { month: 'short' })}`
-    };
+      const newResult: Result = {
+        ...(selectedResult || {}),
+        id: selectedResult?.id || (Date.now().toString() + Math.random().toString().slice(2)),
+        playerRating,
+        opponentName,
+        opponentRating,
+        kFactor,
+        result,
+        ratingChange,
+        ratingType: type,
+        date: gameDate,
+        ratingMonth,
+        monthKey: ratingMonth
+      };
 
-    if (selectedResult) {
-      // Update existing result
-      const index = results.findIndex(r => r.id === selectedResult.id);
-      if (index !== -1) {
-        updateResult(index, newResult);
+      if (selectedResult) {
+        // Update existing result
+        const index = findResultIndex(selectedResult);
+        if (index < 0) throw new Error('This game is no longer available.');
+        await updateResult(index, newResult);
+      } else {
+        // Add new result
+        await addResult(newResult);
       }
-    } else {
-      // Add new result
-      addResult(newResult);
-    }
-    // Reset form after add/update, but preserve player rating from profile
-    setSelectedResult(null);
-    if (activeProfile) {
-      let rating = 1500; // Default fallback
-      if (type === 'standard') {
-        rating = activeProfile.standardRating;
-      } else if (type === 'rapid') {
-        rating = activeProfile.rapidRating;
-      } else if (type === 'blitz') {
-        rating = activeProfile.blitzRating;
-      }
-      setPlayerRating(rating);
-    } else {
-      setPlayerRating(1500);
-    }
-    setOpponentName('');
-    setOpponentRating(1400);
-    setKFactor(getDefaultK(type));
-    setResult('win');
-    setCurrentRatingChange(null);
-  };
-
-  const handleRemove = (index: number) => {
-    // Find the actual result to remove from the monthly data
-    if (monthlyData && monthlyData.length > 0) {
-      // Find which month contains the result at this index
-      let foundResult: Result | null = null;
-      let globalIndex = -1;
-
-      // Calculate the global index across all months
-      for (const month of monthlyData) {
-        if (index < month.results.length) {
-          foundResult = month.results[index];
-          // Find the global index in the main results array
-          globalIndex = results.findIndex(r => r.id === foundResult?.id);
-          break;
+      setGameDate(today());
+      setRatingMonth(getRatingMonthFromDate(new Date()));
+      // Reset form after add/update, but preserve player rating from profile
+      setSelectedResult(null);
+      if (activeProfile) {
+        let rating = 1500; // Default fallback
+        if (type === 'standard') {
+          rating = activeProfile.standardRating;
+        } else if (type === 'rapid') {
+          rating = activeProfile.rapidRating;
+        } else if (type === 'blitz') {
+          rating = activeProfile.blitzRating;
         }
-        index -= month.results.length;
+        setPlayerRating(rating);
+      } else {
+        setPlayerRating(1500);
       }
-
-      if (foundResult && foundResult.id) {
-        if (storageMode === 'local') {
-          // Local mode: pass the ID
-          handleRemoveResult(foundResult.id);
-        } else {
-          // Cloud mode: pass the global index
-          if (globalIndex !== -1) {
-            handleRemoveResult(globalIndex);
-          }
-        }
-      }
-    }
+      setOpponentName('');
+      setOpponentRating(1400);
+      setKFactor(getDefaultK(type));
+      setResult('win');
+      setCurrentRatingChange(null);
+    } catch (error) { showError(error); }
+    finally { setSaving(false); }
   };
 
-
-  const handleUpdateDate = (index: number, date: string) => {
-    // Note: index here is the local index in monthData.results, which is broken if we just pass it to updateResult.
-    // Assuming the user meant to update the first month (current month)
-    const currentMonth = monthlyData.find(m => m.isCurrentMonth);
-    if (currentMonth && index < currentMonth.results.length) {
-      const foundResult = currentMonth.results[index];
-      const globalIndex = results.findIndex(r => r.id === foundResult?.id);
-      if (globalIndex !== -1) {
-        updateResult(globalIndex, { date });
-      }
-    }
+  const handleRemove = async (record: Result) => {
+    const index = findResultIndex(record);
+    if (index < 0) return;
+    const latestRecord = latestResultsRef.current[index];
+    if (getResultRatingMonth(latestRecord) !== getRatingMonthFromDate(new Date())) return;
+    try {
+      const removal = latestRemovalRef.current;
+      if (removal.storageMode === 'local') await removal.localRemoveResult(latestRecord.id || index);
+      else await removal.cloudRemoveResult(index);
+      if (selectedResult && findResultIndex(selectedResult) === index) setSelectedResult(null);
+    } catch (error) { showError(error); throw error; }
   };
 
-  const handleMoveToCurrentMonth = (result: Result) => {
-    const globalIndex = results.findIndex(r => r.id === result.id);
-    if (globalIndex !== -1) {
-      // Find the current month's key or generate it for today
-      const currentMonthDate = new Date();
-      // useLocalStorage expects game_date to be updated to fall into the current month bucket
-      // useSupabaseRatingList expects month_key to be updated or game_date to be updated
-      updateResult(globalIndex, { date: currentMonthDate.toISOString().split('T')[0] });
-      setSnackbar({
-        open: true,
-        message: 'Game moved to current month!',
-        type: 'success'
-      });
-    }
+  const handleUpdateDate = async (record: Result, date: string) => {
+    const index = findResultIndex(record);
+    if (index < 0) return;
+    try { await updateResult(index, { date }); }
+    catch (error) { showError(error); }
   };
 
+  const handleMoveToCurrentMonth = async (record: Result) => {
+    const index = findResultIndex(record);
+    if (index < 0) return;
+    try {
+      await updateResult(index, { ratingMonth: getRatingMonthFromDate(new Date()) });
+      setSnackbar({ open: true, message: 'Game moved to current rating month!', type: 'success' });
+    } catch (error) { showError(error); }
+  };
 
   const handleResultChange = (option: GameResult) => {
     setResult(option);
@@ -346,6 +324,8 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
     setResult(result.result);
     setCurrentRatingChange(result.ratingChange);
     setSelectedResult(result);
+    setGameDate(result.date);
+    setRatingMonth(getResultRatingMonth(result));
     // Optionally scroll to form
     const formSection = document.getElementById('fide-form-section');
     if (formSection) {
@@ -354,38 +334,44 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
   };
 
   // Handler for row reordering
-  const handleReorder = (newResults: Result[]) => {
-    setAllResults(newResults);
+  const handleReorder = async (newResults: Result[]) => {
+    // The table contains one month; retain every other month when importing/reordering.
+    const month = monthlyData.find(m => m.isCurrentMonth);
+    const retained = results.filter(r => !month?.results.some(existing => findResultIndex(existing) === findResultIndex(r)));
+    try { await setAllResults([...retained, ...newResults]); }
+    catch (error) { showError(error); throw error; }
   };
 
 
 
-  const handleReset = () => {
-    // Clear all results
-    setAllResults([]);
-    // Reset form state
-    setSelectedResult(null);
-    setCurrentRatingChange(null);
-    // After reset, use profile rating if available
-    if (activeProfile) {
-      let rating = 1500; // Default fallback
-      if (type === 'standard') {
-        rating = activeProfile.standardRating;
-      } else if (type === 'rapid') {
-        rating = activeProfile.rapidRating;
-      } else if (type === 'blitz') {
-        rating = activeProfile.blitzRating;
+  const handleReset = async () => {
+    try {
+      // Clear all results
+      await setAllResults([]);
+      // Reset form state
+      setSelectedResult(null);
+      setCurrentRatingChange(null);
+      // After reset, use profile rating if available
+      if (activeProfile) {
+        let rating = 1500; // Default fallback
+        if (type === 'standard') {
+          rating = activeProfile.standardRating;
+        } else if (type === 'rapid') {
+          rating = activeProfile.rapidRating;
+        } else if (type === 'blitz') {
+          rating = activeProfile.blitzRating;
+        }
+        setPlayerRating(rating);
+      } else {
+        setPlayerRating(1500);
       }
-      setPlayerRating(rating);
-    } else {
-      setPlayerRating(1500);
-    }
-    // Show success message
-    setSnackbar({
-      open: true,
-      message: 'Data reset successfully!',
-      type: 'success'
-    });
+      // Show success message
+      setSnackbar({
+        open: true,
+        message: 'Data reset successfully!',
+        type: 'success'
+      });
+    } catch (error) { showError(error); }
   };
 
   const handleResetClick = () => {
@@ -604,6 +590,18 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="block text-sm font-semibold text-gray-700">Game date
+                  <input aria-label="Game date" type="date" value={gameDate} className="block w-full border rounded-lg px-3 py-2 mt-2" onChange={e => {
+                    setGameDate(e.target.value);
+                    if (!selectedResult && e.target.value) setRatingMonth(getRatingMonthFromDate(e.target.value));
+                  }} />
+                </label>
+                <label className="block text-sm font-semibold text-gray-700">Rating month
+                  <input aria-label="Rating month" type="text" placeholder="YYYY-MM" value={ratingMonth} className="block w-full border rounded-lg px-3 py-2 mt-2" onChange={e => setRatingMonth(e.target.value)} aria-invalid={!isValidRatingMonth(ratingMonth)} />
+                  {!isValidRatingMonth(ratingMonth) && <span className="text-red-700">Enter a valid rating month (YYYY-MM).</span>}
+                </label>
+              </div>
               {/* Result Selection */}
               <div className="group">
                 <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
@@ -642,7 +640,7 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
                 <button
                   className="group relative w-full px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg font-semibold text-base hover:from-emerald-600 hover:to-emerald-700 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-emerald-500/30 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:shadow-emerald-500/30"
                   onClick={handleCalculate}
-                  disabled={!isFormValid}
+                  disabled={!isFormValid || saving}
                 >
                   <div className="flex items-center justify-center gap-2">
                     <FaCalculator className="text-lg group-hover:rotate-12 transition-transform duration-200" />
@@ -653,7 +651,7 @@ export default function FideCalculator({ type }: FideCalculatorProps) {
                 <button
                   className="group relative w-full px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold text-base hover:from-green-600 hover:to-green-700 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-green-500/30 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30"
                   onClick={handleTrack}
-                  disabled={!isFormValid}
+                  disabled={!isFormValid || saving}
                 >
                   <div className="flex items-center justify-center gap-2">
                     <FaSave className="text-lg group-hover:scale-110 transition-transform duration-200" />

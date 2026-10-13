@@ -57,6 +57,7 @@ export interface Database {
           user_profile_id: string;
           rating_type: RatingType;
           month_key: string;
+          rating_month: string;
           player_rating: number;
           opponent_name: string;
           opponent_rating: number;
@@ -71,7 +72,8 @@ export interface Database {
           id?: string;
           user_profile_id: string;
           rating_type: RatingType;
-          month_key: string;
+          month_key?: string;
+          rating_month?: string;
           player_rating: number;
           opponent_name: string;
           opponent_rating: number;
@@ -87,6 +89,7 @@ export interface Database {
           user_profile_id?: string;
           rating_type?: RatingType;
           month_key?: string;
+          rating_month?: string;
           player_rating?: number;
           opponent_name?: string;
           opponent_rating?: number;
@@ -114,6 +117,8 @@ export interface Result {
   ratingType: RatingType;
   date: string;
   monthKey?: string;
+  /** Optional only for legacy input; persisted records have a canonical YYYY-MM value. */
+  ratingMonth?: string;
 }
 
 // Monthly data interface
@@ -150,6 +155,7 @@ export interface Game {
   userProfileId: string;
   ratingType: RatingType;
   monthKey: string;
+  ratingMonth?: string;
   playerRating: number;
   opponentName: string;
   opponentRating: number;

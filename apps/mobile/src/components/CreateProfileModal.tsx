@@ -120,7 +120,7 @@ export default function CreateProfileModal({
           onClose();
         }
       }
-    } catch (e) {
+    } catch {
       setError('Something went wrong.');
     } finally {
       setLoading(false);

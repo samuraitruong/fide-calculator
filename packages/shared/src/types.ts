@@ -12,6 +12,8 @@ export interface Result {
   ratingType: RatingType;
   date: string;
   monthKey?: string;
+  /** Optional only for legacy input; persisted records have a canonical YYYY-MM value. */
+  ratingMonth?: string;
 }
 
 // Alias for compatibility with Supabase types
@@ -19,6 +21,7 @@ export interface Game extends Omit<Result, 'playerRating' | 'opponentName' | 'op
   user_profile_id: string;
   rating_type: RatingType;
   month_key: string;
+  rating_month: string;
   player_rating: number;
   opponent_name: string;
   opponent_rating: number;
@@ -126,6 +129,7 @@ export interface Database {
           user_profile_id: string;
           rating_type: RatingType;
           month_key: string;
+          rating_month: string;
           player_rating: number;
           opponent_name: string;
           opponent_rating: number;
@@ -140,7 +144,8 @@ export interface Database {
           id?: string;
           user_profile_id: string;
           rating_type: RatingType;
-          month_key: string;
+          month_key?: string;
+          rating_month?: string;
           player_rating: number;
           opponent_name: string;
           opponent_rating: number;
@@ -156,6 +161,7 @@ export interface Database {
           user_profile_id?: string;
           rating_type?: RatingType;
           month_key?: string;
+          rating_month?: string;
           player_rating?: number;
           opponent_name?: string;
           opponent_rating?: number;

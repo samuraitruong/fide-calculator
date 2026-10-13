@@ -21,7 +21,8 @@ describe('useRatingList', () => {
       opponentRating: 1600,
       result: 'win',
       kFactor: 20,
-      ratingChange: 5.6
+      ratingChange: 5.6,
+      ratingType: 'standard',
     }];
     localStorage.setItem('fideResults', JSON.stringify(savedResults));
 
@@ -38,7 +39,8 @@ describe('useRatingList', () => {
       opponentRating: 1600,
       result: 'win',
       kFactor: 20,
-      ratingChange: 5.6
+      ratingChange: 5.6,
+      ratingType: 'standard',
     };
 
     act(() => {
@@ -58,7 +60,8 @@ describe('useRatingList', () => {
       opponentRating: 1600,
       result: 'win',
       kFactor: 20,
-      ratingChange: 5.6
+      ratingChange: 5.6,
+      ratingType: 'standard',
     };
 
     act(() => {
@@ -78,7 +81,8 @@ describe('useRatingList', () => {
       opponentRating: 1600,
       result: 'win',
       kFactor: 20,
-      ratingChange: 5.6
+      ratingChange: 5.6,
+      ratingType: 'standard',
     };
 
     act(() => {
@@ -100,7 +104,8 @@ describe('useRatingList', () => {
         opponentRating: 1600,
         result: 'win',
         kFactor: 20,
-        ratingChange: 5.6
+        ratingChange: 5.6,
+        ratingType: 'standard',
       },
       {
         date: '2024-03-21',
@@ -109,7 +114,8 @@ describe('useRatingList', () => {
         opponentRating: 1700,
         result: 'loss',
         kFactor: 20,
-        ratingChange: -4.2
+        ratingChange: -4.2,
+        ratingType: 'standard',
       }
     ];
 
@@ -129,7 +135,8 @@ describe('useRatingList', () => {
       opponentRating: 1600,
       result: 'win',
       kFactor: 20,
-      ratingChange: 5.6
+      ratingChange: 5.6,
+      ratingType: 'standard',
     };
 
     act(() => {
@@ -139,4 +146,4 @@ describe('useRatingList', () => {
     const savedResults = JSON.parse(localStorage.getItem('fideResults') || '[]');
     expect(savedResults).toEqual([testResult]);
   });
-}); 
+});

@@ -19,7 +19,7 @@ import ForgotPasswordModal from './src/components/ForgotPasswordModal';
 import MainTabs from './src/navigation/MainTabs';
 
 function AppContent() {
-  const { user, loading, profiles, activeProfile, signOut } = useAuth();
+  const { user, loading } = useAuth();
   const {
     activeProfile: localActiveProfile,
     createProfile,

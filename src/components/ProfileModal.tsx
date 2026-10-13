@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { FaTimes, FaSave, FaUser } from 'react-icons/fa';
+import { FaTimes, FaSave, FaUser, FaSyncAlt } from 'react-icons/fa';
+import { refreshFidePlayer } from '@fide-calculator/shared';
 import FideSearchInput, { type FidePlayer } from './FideSearchInput';
 
 
@@ -20,6 +21,19 @@ export default function ProfileModal({ open, onClose, onSuccess, isLocalMode = f
   const { createProfile: createLocalProfile, updateProfile: updateLocalProfile } = useLocalStorage();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshStatus, setRefreshStatus] = useState('');
+  const refreshRequest = useRef(0);
+  const currentProfile = isLocalMode ? localProfile : activeProfile;
+  const profileIdentity = `${isLocalMode}:${currentProfile?.id ?? ''}:${currentProfile?.fideId ?? ''}:${currentProfile?.name ?? ''}`;
+
+  useEffect(() => {
+    refreshRequest.current += 1;
+    setRefreshing(false);
+    setRefreshStatus('');
+    setError('');
+    return () => { refreshRequest.current += 1; };
+  }, [open, profileIdentity]);
 
   // Debug logging
   useEffect(() => {
@@ -61,6 +75,24 @@ export default function ProfileModal({ open, onClose, onSuccess, isLocalMode = f
     }
   };
 
+  const handleRefresh = async () => {
+    if (refreshing || loading) return;
+    const request = ++refreshRequest.current;
+    setRefreshing(true);
+    setError('');
+    setRefreshStatus('');
+    try {
+      const player = await refreshFidePlayer({ fideId: fideId.trim() || undefined, name });
+      if (request !== refreshRequest.current) return;
+      handleFidePlayerSelect(player);
+      setRefreshStatus('FIDE data refreshed. Save to apply these changes.');
+    } catch (err) {
+      if (request === refreshRequest.current) setError(err instanceof Error ? err.message : 'Unable to refresh FIDE data. Please try again.');
+    } finally {
+      if (request === refreshRequest.current) setRefreshing(false);
+    }
+  };
+
   // Initialize form with existing profile data
   useEffect(() => {
     const profile = isLocalMode ? localProfile : activeProfile;
@@ -74,10 +106,11 @@ export default function ProfileModal({ open, onClose, onSuccess, isLocalMode = f
       setRapidRating(profile.rapidRating);
       setBlitzRating(profile.blitzRating);
     }
-  }, [activeProfile, localProfile, isLocalMode]);
+  }, [activeProfile, localProfile, isLocalMode, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (refreshing || loading) return;
     setLoading(true);
     setError('');
 
@@ -213,6 +246,13 @@ export default function ProfileModal({ open, onClose, onSuccess, isLocalMode = f
             </>
           )}
           
+          <button type="button" onClick={handleRefresh} disabled={refreshing || loading || (!name.trim() && !fideId.trim())}
+            className="flex items-center gap-2 px-4 py-2 border border-blue-200 rounded-lg text-blue-700 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed">
+            <FaSyncAlt aria-hidden="true" className={refreshing ? 'animate-spin' : ''} />
+            {refreshing ? 'Refreshing FIDE data...' : 'Refresh FIDE data'}
+          </button>
+          {refreshStatus && <p role="status" className="text-sm text-green-700">{refreshStatus}</p>}
+          <fieldset disabled={refreshing || loading} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
@@ -351,6 +391,7 @@ export default function ProfileModal({ open, onClose, onSuccess, isLocalMode = f
             </div>
           </div>
 
+          </fieldset>
           {error && (
             <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">
               {error}
@@ -367,13 +408,13 @@ export default function ProfileModal({ open, onClose, onSuccess, isLocalMode = f
             </button>
             <button
               type="submit"
-              disabled={loading || authLoading || !user}
+              disabled={loading || refreshing || (!isLocalMode && (authLoading || !user))}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
             >
               <FaSave className="w-4 h-4" />
-              {loading ? 'Saving...' : (activeProfile ? 'Update Profile' : 'Create Profile')}
+              {loading ? 'Saving...' : (currentProfile ? 'Update Profile' : 'Create Profile')}
             </button>
-            {!authLoading && !user && (
+            {!isLocalMode && !authLoading && !user && (
               <p className="text-red-600 text-xs mt-1">
                 You must be logged in to create a profile
               </p>

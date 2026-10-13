@@ -23,7 +23,6 @@ export default function ProfileScreen() {
     activeProfile: cloudActiveProfile,
     setActiveProfile: setCloudActiveProfile,
     signOut: cloudSignOut,
-    createProfile: cloudCreateProfile,
   } = useAuth();
   const {
     profiles: localProfiles,

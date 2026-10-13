@@ -1,3 +1,4 @@
+import { getResultRatingMonth } from '@fide-calculator/shared';
 import Confirm from '@/components/Confirm';
 import ImportExport from '@/components/ImportExport';
 import { Result } from '@/util/types';
@@ -21,10 +22,10 @@ interface DragItem {
 
 interface ListRatingChangeProps {
   results: Result[];
-  onRemove?: (index: number) => void;
+  onRemove?: (result: Result) => void | Promise<void>;
   onSelect?: (result: Result, index: number) => void;
-  onUpdateDate?: (index: number, date: string) => void;
-  onReorder?: (newResults: Result[]) => void;
+  onUpdateDate?: (result: Result, date: string) => void;
+  onReorder?: (newResults: Result[]) => void | Promise<void>;
 
   onViewDetails?: () => void;
   onReset?: () => void;
@@ -54,8 +55,8 @@ const DraggableRow = ({
   index: number;
   moveRow: (from: number, to: number) => void;
   onSelect?: (result: Result, index: number) => void;
-  onUpdateDate?: (index: number, date: string) => void;
-  handleRemoveClick: (index: number) => void;
+  onUpdateDate?: (result: Result, date: string) => void;
+  handleRemoveClick: (result: Result) => void;
   hoveredIndex: number | null;
   setHoveredIndex: (index: number | null) => void;
   onOpponentNameClick: (name: string) => void;
@@ -100,12 +101,12 @@ const DraggableRow = ({
       )}
       {/* Date cell */}
       <td className="border border-gray-200 p-3 text-sm text-gray-700 flex items-center gap-2 group">
-        <span>{result.date}</span>
+        <span>{result.date}<span className="block text-xs">Rating month: {getResultRatingMonth(result)}</span></span>
         {onUpdateDate && !readOnly && (
           <span style={{ zIndex: 10, position: 'relative' }}>
             <EditDateButton
               date={result.date}
-              onChange={(date: string) => onUpdateDate(index, date)}
+              onChange={(date: string) => onUpdateDate(result, date)}
             />
           </span>
         )}
@@ -137,7 +138,7 @@ const DraggableRow = ({
             )}
             {!readOnly && (
               <button
-                onClick={e => { e.stopPropagation(); handleRemoveClick(index); }}
+                onClick={e => { e.stopPropagation(); handleRemoveClick(result); }}
                 className="text-red-600 hover:text-red-800"
                 title="Delete entry"
               >
@@ -153,7 +154,9 @@ const DraggableRow = ({
 
 export default function ListRatingChange({ results, onRemove, onSelect, onUpdateDate, onReorder, onViewDetails, onReset, readOnly = false, ratingType, onMoveToCurrentMonth, allowMoveToCurrent = false }: ListRatingChangeProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [pendingRemove, setPendingRemove] = useState<number | null>(null);
+  const [pendingRemove, setPendingRemove] = useState<Result | null>(null);
+  const [removeError, setRemoveError] = useState('');
+  const [removing, setRemoving] = useState(false);
   const [tableData, setTableData] = useState<Result[]>(results);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const totalChange = roundNumber(results.reduce((acc, curr) => acc + curr.ratingChange, 0));
@@ -166,18 +169,23 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
   // Keep tableData in sync with results
   useEffect(() => { setTableData(results); }, [results]);
 
-  const handleRemoveClick = (index: number) => {
+  const handleRemoveClick = (record: Result) => {
     if (readOnly || !onRemove) return;
-    setPendingRemove(index);
+    setPendingRemove(record);
+    setRemoveError('');
     setConfirmOpen(true);
   };
 
-  const handleConfirm = () => {
-    if (pendingRemove !== null && onRemove) {
-      onRemove(pendingRemove);
-    }
-    setConfirmOpen(false);
-    setPendingRemove(null);
+  const handleConfirm = async () => {
+    if (!pendingRemove || !onRemove || removing) return;
+    setRemoving(true);
+    try {
+      await onRemove(pendingRemove);
+      setConfirmOpen(false);
+      setPendingRemove(null);
+    } catch (error) {
+      setRemoveError(error instanceof Error ? error.message : 'Unable to delete this game. Please try again.');
+    } finally { setRemoving(false); }
   };
 
   const handleCancel = () => {
@@ -191,7 +199,10 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
     const [moved] = updated.splice(from, 1);
     updated.splice(to, 0, moved);
     setTableData(updated);
-    onReorder(updated);
+    Promise.resolve(onReorder(updated)).catch(error => {
+      setTableData(results);
+      setRemoveError(error instanceof Error ? error.message : 'Unable to reorder games.');
+    });
   };
 
   const handleOpponentNameClick = (name: string) => {
@@ -200,18 +211,13 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
   };
 
   // Handle import callback
-  const handleImport = (imported: Result[]) => {
+  const handleImport = async (imported: Result[]) => {
     // Merge existing results with imported results
     const merged = [...results, ...imported];
     
-    // Dispatch custom event for backward compatibility
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('importedResults', { detail: merged }));
-    }
-    
     // Also call onReorder to update the data in the current storage system
     if (onReorder) {
-      onReorder(merged);
+      return onReorder(merged);
     }
   };
 
@@ -219,6 +225,7 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
     <>
       <DndProvider backend={HTML5Backend}>
         <div className="w-full">
+          {removeError && <p role="alert" className="text-red-700">{removeError}</p>}
           <Confirm
             open={confirmOpen}
             title="Remove Rating Change"
@@ -287,19 +294,19 @@ export default function ListRatingChange({ results, onRemove, onSelect, onUpdate
               >
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-500 flex items-center gap-2 group">
-                    {result.date}
+                    {result.date} · Rating month: {getResultRatingMonth(result)}
                     {onUpdateDate && !readOnly && (
                       <span style={{ zIndex: 10, position: 'relative' }}>
                         <EditDateButton
                           date={result.date}
-                          onChange={(date: string) => onUpdateDate(index, date)}
+                          onChange={(date: string) => onUpdateDate(result, date)}
                         />
                       </span>
                     )}
                   </span>
                   {!readOnly && (
                     <button
-                      onClick={e => { e.stopPropagation(); handleRemoveClick(index); }}
+                      onClick={e => { e.stopPropagation(); handleRemoveClick(result); }}
                       className="text-red-600 hover:text-red-800"
                       title="Delete entry"
                     >

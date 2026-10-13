@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Modal,
   View,
@@ -11,12 +11,13 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import type { UserProfile } from '@fide-calculator/shared';
+import { refreshFidePlayer, type UserProfile } from '@fide-calculator/shared';
 import type { LocalProfile } from '@/hooks/useLocalStorage';
 import FideSearchInput from './FideSearchInput';
 import type { FidePlayer } from '@/hooks/useFideData';
 
 type ProfileLike = {
+  id?: string;
   name: string;
   fideId?: string;
   title?: string;
@@ -56,9 +57,22 @@ export default function EditProfileModal({
   const [blitzRating, setBlitzRating] = useState(1500);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [metadata, setMetadata] = useState<{ title?: string; federation?: string; birthYear?: number }>({});
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshStatus, setRefreshStatus] = useState('');
+  const refreshRequest = useRef(0);
+  const profileIdentity = `${isLocal}:${profile?.id ?? ''}:${profile?.fideId ?? ''}:${profile?.name ?? ''}`;
+  useEffect(() => {
+    refreshRequest.current += 1;
+    setRefreshing(false);
+    setRefreshStatus('');
+    setError('');
+    return () => { refreshRequest.current += 1; };
+  }, [open, profileIdentity]);
 
   useEffect(() => {
     if (profile) {
+      setMetadata({ title: profile.title, federation: profile.federation, birthYear: profile.birthYear });
       setName(profile.name);
       setFideId(profile.fideId ?? '');
       setStandardRating(profile.standardRating);
@@ -68,6 +82,7 @@ export default function EditProfileModal({
   }, [profile, open]);
 
   const handleFideSelect = (player: FidePlayer) => {
+    setMetadata({ title: player.title || undefined, federation: player.federation || undefined, birthYear: parseInt(player.birthYear, 10) || undefined });
     setName(player.name);
     setFideId(player.fideId ?? '');
     if (player.standard && player.standard !== '-') setStandardRating(parseInt(player.standard, 10) || 1500);
@@ -75,7 +90,26 @@ export default function EditProfileModal({
     if (player.blitz && player.blitz !== '-') setBlitzRating(parseInt(player.blitz, 10) || 1500);
   };
 
+  const handleRefresh = async () => {
+    if (refreshing || loading) return;
+    const request = ++refreshRequest.current;
+    setRefreshing(true);
+    setError('');
+    setRefreshStatus('');
+    try {
+      const player = await refreshFidePlayer({ fideId: fideId.trim() || undefined, name });
+      if (request !== refreshRequest.current) return;
+      handleFideSelect(player);
+      setRefreshStatus('FIDE data refreshed. Save to apply these changes.');
+    } catch (err) {
+      if (request === refreshRequest.current) setError(err instanceof Error ? err.message : 'Unable to refresh FIDE data. Please try again.');
+    } finally {
+      if (request === refreshRequest.current) setRefreshing(false);
+    }
+  };
+
   const handleSubmit = async () => {
+    if (loading || refreshing) return;
     if (!name.trim()) {
       setError('Name is required.');
       return;
@@ -85,6 +119,7 @@ export default function EditProfileModal({
     try {
       await Promise.resolve(
         onSave({
+          ...metadata,
           name: name.trim(),
           fideId: fideId.trim() || undefined,
           standardRating,
@@ -94,7 +129,7 @@ export default function EditProfileModal({
       );
       onSuccess();
       onClose();
-    } catch (e) {
+    } catch {
       setError('Something went wrong.');
     } finally {
       setLoading(false);
@@ -125,15 +160,27 @@ export default function EditProfileModal({
             <ScrollView showsVerticalScrollIndicator={false}>
               {error ? <Text style={styles.error}>{error}</Text> : null}
               <Text style={styles.hint}>Search by name to fill from FIDE and update ratings.</Text>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Refresh FIDE data"
+                style={[styles.refreshBtn, (refreshing || loading) && styles.buttonDisabled]}
+                onPress={handleRefresh}
+                disabled={refreshing || loading || (!name.trim() && !fideId.trim())}
+              >
+                {refreshing && <ActivityIndicator size="small" color="#2563eb" />}
+                <Text style={styles.refreshBtnText}>{refreshing ? 'Refreshing FIDE data...' : 'Refresh FIDE data'}</Text>
+              </TouchableOpacity>
+              {refreshStatus ? <Text accessibilityLiveRegion="polite" style={styles.hint}>{refreshStatus}</Text> : null}
               <Text style={styles.label}>Name *</Text>
-              <FideSearchInput
+              {refreshing || loading ? <TextInput style={styles.input} value={name} editable={false} /> : <FideSearchInput
                 value={name}
                 onChange={setName}
                 onSelect={handleFideSelect}
                 placeholder="Search FIDE or enter name"
-              />
+              />}
               <Text style={styles.label}>FIDE ID</Text>
               <TextInput
+                editable={!refreshing && !loading}
                 style={styles.input}
                 value={fideId}
                 onChangeText={setFideId}
@@ -142,6 +189,7 @@ export default function EditProfileModal({
               />
               <Text style={styles.label}>Standard rating</Text>
               <TextInput
+                editable={!refreshing && !loading}
                 style={styles.input}
                 value={String(standardRating)}
                 onChangeText={(t) => setNum(setStandardRating, t)}
@@ -150,6 +198,7 @@ export default function EditProfileModal({
               />
               <Text style={styles.label}>Rapid rating</Text>
               <TextInput
+                editable={!refreshing && !loading}
                 style={styles.input}
                 value={String(rapidRating)}
                 onChangeText={(t) => setNum(setRapidRating, t)}
@@ -158,6 +207,7 @@ export default function EditProfileModal({
               />
               <Text style={styles.label}>Blitz rating</Text>
               <TextInput
+                editable={!refreshing && !loading}
                 style={styles.input}
                 value={String(blitzRating)}
                 onChangeText={(t) => setNum(setBlitzRating, t)}
@@ -169,9 +219,9 @@ export default function EditProfileModal({
                   <Text style={styles.cancelBtnText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.submitBtn, loading && styles.buttonDisabled]}
+                  style={[styles.submitBtn, (loading || refreshing) && styles.buttonDisabled]}
                   onPress={handleSubmit}
-                  disabled={loading}
+                  disabled={loading || refreshing}
                 >
                   {loading ? (
                     <ActivityIndicator size="small" color="#fff" />
@@ -220,6 +270,8 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     padding: 4,
   },
+  refreshBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderColor: '#bfdbfe', borderRadius: 8, padding: 12, marginBottom: 12 },
+  refreshBtnText: { color: '#1d4ed8', fontSize: 14, fontWeight: '600' },
   hint: {
     fontSize: 13,
     color: '#6b7280',

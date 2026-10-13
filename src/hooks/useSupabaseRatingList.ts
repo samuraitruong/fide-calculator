@@ -1,35 +1,20 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { Result, RatingType, MonthlyData } from '@/util/types';
+import type { Result, RatingType } from '@/util/types';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Helper function to generate month key
-export function generateMonthKey(date: Date = new Date()): string {
-  const year = date.getFullYear();
-  const month = date.toLocaleDateString('en-US', { month: 'short' });
-  return `${year}-${month}`;
-}
+import { getRatingMonthFromDate, getRatingMonthDisplayName, migrateResultRatingMonth, groupResultsByRatingMonth } from '@fide-calculator/shared';
 
-// Helper function to get month display name
-export function getMonthDisplayName(monthKey: string): string {
-  const [year, month] = monthKey.split('-');
-  const date = new Date(`${month} 1, ${year}`);
-  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-}
+const gameChangeSubscribers = new Set<() => Promise<void>>();
 
-// Helper function to check if month is current month
-export function isCurrentMonth(monthKey: string): boolean {
-  return monthKey === generateMonthKey();
-}
-
-// Helper function to check if month is read-only (previous months)
-export function isReadOnlyMonth(monthKey: string): boolean {
-  return !isCurrentMonth(monthKey);
-}
+export const generateMonthKey = (date: Date = new Date()): string => getRatingMonthFromDate(date);
+export const getMonthDisplayName = (month: string): string => getRatingMonthDisplayName(month);
+export const isCurrentMonth = (month: string): boolean => month === generateMonthKey();
+export const isReadOnlyMonth = (month: string): boolean => !isCurrentMonth(month);
 
 export function useSupabaseRatingList(type: RatingType = 'standard') {
   const [results, setResults] = useState<Result[]>([]);
-  const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
+  const monthlyData = useMemo(() => groupResultsByRatingMonth(results, type), [results, type]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { activeProfile } = useAuth();
@@ -38,7 +23,6 @@ export function useSupabaseRatingList(type: RatingType = 'standard') {
   const loadGames = useCallback(async () => {
     if (!activeProfile) {
       setResults([]);
-      setMonthlyData([]);
       setLoading(false);
       return;
     }
@@ -59,7 +43,7 @@ export function useSupabaseRatingList(type: RatingType = 'standard') {
       }
 
       // Convert database games to Result format for backward compatibility
-      const convertedResults: Result[] = (data || []).map((game: { id: string; player_rating: number; opponent_name: string; opponent_rating: number; k_factor: number; result: string; rating_change: number; rating_type: string; game_date: string; month_key: string }) => ({
+      const convertedResults: Result[] = (data || []).map((game: { id: string; player_rating: number; opponent_name: string; opponent_rating: number; k_factor: number; result: string; rating_change: number; rating_type: string; game_date: string; month_key: string; rating_month?: string }) => ({
         id: game.id as string,
         playerRating: game.player_rating as number,
         opponentName: game.opponent_name as string,
@@ -70,44 +54,13 @@ export function useSupabaseRatingList(type: RatingType = 'standard') {
         ratingType: game.rating_type as 'standard' | 'blitz' | 'rapid',
         date: game.game_date as string,
         monthKey: game.month_key as string,
+        ratingMonth: game.rating_month,
       }));
 
-      setResults(convertedResults);
+      const normalizedResults = convertedResults.map(migrateResultRatingMonth);
+      setResults(normalizedResults);
 
-      // Group results by month
-      const monthlyGroups: Record<string, Result[]> = {};
-      convertedResults.forEach(result => {
-        const monthKey = result.monthKey || generateMonthKey(new Date(result.date));
-        if (!monthlyGroups[monthKey]) {
-          monthlyGroups[monthKey] = [];
-        }
-        monthlyGroups[monthKey].push(result);
-      });
 
-      // Convert to MonthlyData format
-      const monthlyDataArray: MonthlyData[] = Object.entries(monthlyGroups).map(([monthKey, monthResults]) => {
-        const totalChange = Math.round(100 * monthResults.reduce((acc, curr) => acc + curr.ratingChange, 0)) / 100;
-        return {
-          monthKey,
-          month: getMonthDisplayName(monthKey),
-          results: monthResults,
-          totalChange,
-          gameCount: monthResults.length,
-          isCurrentMonth: isCurrentMonth(monthKey),
-          isReadOnly: isReadOnlyMonth(monthKey),
-        };
-      });
-
-      // Sort by month (newest first)
-      monthlyDataArray.sort((a, b) => {
-        const [yearA, monthA] = a.monthKey.split('-');
-        const [yearB, monthB] = b.monthKey.split('-');
-        const dateA = new Date(`${monthA} 1, ${yearA}`);
-        const dateB = new Date(`${monthB} 1, ${yearB}`);
-        return dateB.getTime() - dateA.getTime();
-      });
-
-      setMonthlyData(monthlyDataArray);
     } catch (err) {
       console.error('Error loading games:', err);
       setError(err instanceof Error ? err.message : 'Failed to load games');
@@ -121,22 +74,27 @@ export function useSupabaseRatingList(type: RatingType = 'standard') {
     loadGames();
   }, [loadGames]);
 
+  useEffect(() => {
+    gameChangeSubscribers.add(loadGames);
+    return () => { gameChangeSubscribers.delete(loadGames); };
+  }, [loadGames]);
+
   const addResult = useCallback(async (result: Result) => {
     if (!activeProfile) {
-      console.error('No active profile available');
-      return;
+      throw new Error('No active profile available');
     }
 
     try {
       setError(null);
 
       // Generate month key from the game date
-      const monthKey = result.monthKey || generateMonthKey(new Date(result.date));
+      const normalizedResult = migrateResultRatingMonth(result);
+      const monthKey = normalizedResult.ratingMonth!;
 
       const gameData = {
         user_profile_id: activeProfile.id,
         rating_type: type,
-        month_key: monthKey,
+        rating_month: monthKey,
         player_rating: result.playerRating,
         opponent_name: result.opponentName,
         opponent_rating: result.opponentRating,
@@ -168,23 +126,27 @@ export function useSupabaseRatingList(type: RatingType = 'standard') {
         ratingType: data.rating_type as RatingType,
         date: data.game_date as string,
         monthKey: data.month_key as string,
+          ratingMonth: data.rating_month as string,
       };
 
-      setResults(prev => [...prev, newResult]);
+      setResults(prev => [...prev, migrateResultRatingMonth(newResult)]);
       
       // Reload to update monthly data
       await loadGames();
+        gameChangeSubscribers.forEach(reload => {
+          if (reload !== loadGames) void reload();
+        });
     } catch (err) {
       console.error('Error adding game:', err);
       setError(err instanceof Error ? err.message : 'Failed to add game');
+      throw err;
     }
   }, [activeProfile, type, loadGames]);
 
   const removeResult = useCallback(async (index: number) => {
     const resultToRemove = results[index];
     if (!resultToRemove?.id) {
-      console.error('No result ID to remove');
-      return;
+      throw new Error('No result ID to remove');
     }
 
     try {
@@ -200,21 +162,24 @@ export function useSupabaseRatingList(type: RatingType = 'standard') {
       }
 
       // Remove from local state
-      setResults(prev => prev.filter((_, i) => i !== index));
+      setResults(prev => prev.filter(result => result.id !== resultToRemove.id));
       
       // Reload to update monthly data
       await loadGames();
+        gameChangeSubscribers.forEach(reload => {
+          if (reload !== loadGames) void reload();
+        });
     } catch (err) {
       console.error('Error removing game:', err);
       setError(err instanceof Error ? err.message : 'Failed to remove game');
+      throw err;
     }
   }, [results, loadGames]);
 
   const updateResult = useCallback(async (index: number, updates: Partial<Result>) => {
     const resultToUpdate = results[index];
     if (!resultToUpdate?.id) {
-      console.error('No result ID to update');
-      return;
+      throw new Error('No result ID to update');
     }
 
     try {
@@ -228,7 +193,12 @@ export function useSupabaseRatingList(type: RatingType = 'standard') {
       if (updates.result !== undefined) updateData.result = updates.result;
       if (updates.ratingChange !== undefined) updateData.rating_change = updates.ratingChange;
       if (updates.date !== undefined) updateData.game_date = updates.date;
-      if (updates.monthKey !== undefined) updateData.month_key = updates.monthKey;
+      if (updates.ratingMonth !== undefined || updates.monthKey !== undefined) {
+          updateData.rating_month = migrateResultRatingMonth({
+            ...resultToUpdate, ...updates,
+            ratingMonth: updates.ratingMonth ?? undefined,
+          }).ratingMonth;
+        }
 
       const { data, error: updateError } = await supabase
         .from('games')
@@ -253,26 +223,32 @@ export function useSupabaseRatingList(type: RatingType = 'standard') {
           ratingType: data.rating_type as RatingType,
           date: data.game_date as string,
           monthKey: data.month_key as string,
+          ratingMonth: data.rating_month as string,
         };
 
-      setResults(prev => prev.map((r, i) => i === index ? updatedResult : r));
+      setResults(prev => prev.map(r => r.id === resultToUpdate.id ? migrateResultRatingMonth(updatedResult) : r));
       
       // Reload to update monthly data
       await loadGames();
+        gameChangeSubscribers.forEach(reload => {
+          if (reload !== loadGames) void reload();
+        });
     } catch (err) {
       console.error('Error updating game:', err);
       setError(err instanceof Error ? err.message : 'Failed to update game');
+      throw err;
     }
   }, [results, loadGames]);
 
   const setAllResults = useCallback(async (newResults: Result[]) => {
     if (!activeProfile) {
-      console.error('No active profile available');
-      return;
+      throw new Error('No active profile available');
     }
 
     try {
       setError(null);
+
+      newResults = newResults.map(migrateResultRatingMonth);
 
       // Delete existing games for this profile and type
       const { error: deleteError } = await supabase
@@ -290,7 +266,7 @@ export function useSupabaseRatingList(type: RatingType = 'standard') {
         const gameData = newResults.map(result => ({
           user_profile_id: activeProfile.id,
           rating_type: type,
-          month_key: result.monthKey || generateMonthKey(new Date(result.date)),
+          rating_month: migrateResultRatingMonth(result).ratingMonth!,
           player_rating: result.playerRating,
           opponent_name: result.opponentName,
           opponent_rating: result.opponentRating,
@@ -314,9 +290,13 @@ export function useSupabaseRatingList(type: RatingType = 'standard') {
       
       // Reload to update monthly data
       await loadGames();
+        gameChangeSubscribers.forEach(reload => {
+          if (reload !== loadGames) void reload();
+        });
     } catch (err) {
       console.error('Error setting all results:', err);
       setError(err instanceof Error ? err.message : 'Failed to update games');
+      throw err;
     }
   }, [activeProfile, type, loadGames]);
 

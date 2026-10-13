@@ -1,5 +1,7 @@
 'use client';
 
+import { getRatingMonthDisplayName } from '@fide-calculator/shared';
+
 import { useState } from 'react';
 import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import type { MonthlyData, Result, RatingType } from '@/util/types';
@@ -7,9 +9,9 @@ import ListRatingChange from './ListRatingChange';
 
 interface MonthlyRatingListProps {
   monthlyData: MonthlyData[];
-  onRemove: (index: number) => void;
+  onRemove: (result: Result) => void | Promise<void>;
   onSelect: (result: Result) => void;
-  onUpdateDate: (index: number, date: string) => void;
+  onUpdateDate: (result: Result, date: string) => void;
   onReorder: (newResults: Result[]) => void;
   onReset: () => void;
   onViewDetails?: () => void;
@@ -80,7 +82,7 @@ export default function MonthlyRatingList({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <h3 className="text-lg font-semibold text-gray-900">
-                  {monthData.month}
+                  {getRatingMonthDisplayName(monthData.monthKey)}
                 </h3>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-600">
@@ -113,16 +115,16 @@ export default function MonthlyRatingList({
             <div className="p-4 border-t border-gray-100">
               <ListRatingChange
                 results={monthData.results}
-                onRemove={monthData.isReadOnly ? undefined : onRemove}
+                onRemove={monthData.isCurrentMonth ? onRemove : undefined}
                 onSelect={onSelect}
-                onUpdateDate={monthData.isReadOnly ? undefined : onUpdateDate}
-                onReorder={monthData.isReadOnly ? undefined : onReorder}
+                onUpdateDate={monthData.isCurrentMonth ? onUpdateDate : undefined}
+                onReorder={monthData.isCurrentMonth ? onReorder : undefined}
                 onViewDetails={onViewDetails}
-                onReset={monthData.isReadOnly ? undefined : onReset}
-                readOnly={monthData.isReadOnly}
+                onReset={monthData.isCurrentMonth ? onReset : undefined}
+                readOnly={!monthData.isCurrentMonth}
                 ratingType={type}
                 onMoveToCurrentMonth={onMoveToCurrentMonth}
-                allowMoveToCurrent={monthData.isReadOnly && monthData.monthKey === monthlyData[1]?.monthKey}
+                allowMoveToCurrent={!monthData.isCurrentMonth}
               />
             </div>
           )}

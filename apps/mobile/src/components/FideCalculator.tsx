@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,11 +9,13 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { MainTabsParamList } from '../types/navigation';
 import type { GameResult, RatingType, Result, FidePlayer } from '@fide-calculator/shared';
-import { calculateRatingChange } from '@fide-calculator/shared';
+import { calculateRatingChange, getRatingMonthFromDate, getResultRatingMonth, isValidRatingMonth } from '@fide-calculator/shared';
 import FideSearchInput from './FideSearchInput';
-import WinDrawLossBar from '@/components/WinDrawLossBar';
-import EditGameModal from '@/components/EditGameModal';
+import WinDrawLossBar from './WinDrawLossBar';
+import EditGameModal from './EditGameModal';
 
 type Mode = 'local' | 'cloud';
 
@@ -60,32 +62,7 @@ const getDefaultK = (type: RatingType) => (type === 'standard' ? 40 : 20);
 
 const isValidRating = (rating: number) => rating >= 100 && rating <= 3500;
 
-function parseMonthKeyToDate(monthKey: string): Date | null {
-  const [yearRaw, monthRaw] = monthKey.split('-');
-  const year = Number(yearRaw);
-  if (!Number.isFinite(year) || !monthRaw) return null;
-
-  const monthTrimmed = monthRaw.trim();
-  const numericMonth = Number(monthTrimmed);
-  if (Number.isFinite(numericMonth) && numericMonth >= 1 && numericMonth <= 12) {
-    return new Date(year, numericMonth - 1, 1);
-  }
-
-  const monthToken = monthTrimmed.slice(0, 3).toLowerCase();
-  const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-  const idx = monthNames.indexOf(monthToken);
-  if (idx === -1) return null;
-  return new Date(year, idx, 1);
-}
-
-function isCurrentMonthForMonthKey(monthKey: string, now: Date): boolean {
-  const d = parseMonthKeyToDate(monthKey);
-  if (!d) return false;
-  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-}
-
 export default function FideCalculatorMobile({
-  mode,
   ratingType,
   onChangeRatingType,
   profile,
@@ -94,7 +71,9 @@ export default function FideCalculatorMobile({
   updateResult,
   removeResult,
 }: FideCalculatorProps) {
-  const navigation = useNavigation() as any;
+  const navigation = useNavigation<BottomTabNavigationProp<MainTabsParamList>>();
+  const latestResults = useRef(results);
+  latestResults.current = results;
   const [playerRating, setPlayerRating] = useState<number>(
     profile ? getProfileRatingForType(profile, ratingType) : 1500,
   );
@@ -105,6 +84,10 @@ export default function FideCalculatorMobile({
   const [gameResult, setGameResult] = useState<GameResult>('win');
   const [currentChange, setCurrentChange] = useState<number | null>(null);
   const [hasCalculated, setHasCalculated] = useState(false);
+  const [date, setDate] = useState(() => { const now = new Date(); return `${getRatingMonthFromDate(now)}-${String(now.getDate()).padStart(2, '0')}`; });
+  const [ratingMonth, setRatingMonth] = useState(() => getRatingMonthFromDate(new Date()));
+  const [monthManuallyChanged, setMonthManuallyChanged] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [editingGame, setEditingGame] = useState<Result | null>(null);
 
   // When rating type or profile changes, reset defaults
@@ -124,15 +107,8 @@ export default function FideCalculatorMobile({
   );
 
   const currentMonthResults = useMemo(() => {
-    const now = new Date();
-    return typeResults.filter((r) => {
-      if (r.monthKey) {
-        return isCurrentMonthForMonthKey(r.monthKey, now);
-      }
-      if (!r.date) return false;
-      const d = new Date(r.date);
-      return Number.isFinite(d.getTime()) && d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-    });
+    const currentMonth = getRatingMonthFromDate(new Date());
+    return typeResults.filter((r) => getResultRatingMonth(r) === currentMonth);
   }, [typeResults]);
 
   const currentMonthChange = useMemo(
@@ -155,7 +131,10 @@ export default function FideCalculatorMobile({
     return { wins, draws, losses };
   }, [currentMonthResults]);
 
-  const isFormValid = isValidRating(playerRating) && isValidRating(opponentRating);
+  const isDateValid = useMemo(() => {
+    try { getRatingMonthFromDate(date); return true; } catch { return false; }
+  }, [date]);
+  const isFormValid = isValidRating(playerRating) && isValidRating(opponentRating) && isDateValid && isValidRatingMonth(ratingMonth);
 
   // After user calculates once, keep the entry's rating change live-updated
   useEffect(() => {
@@ -181,12 +160,6 @@ export default function FideCalculatorMobile({
     setCurrentChange(delta);
     setHasCalculated(true);
 
-    const now = new Date();
-    const date = now.toISOString().slice(0, 10); // YYYY-MM-DD
-    const monthKey = `${now.getFullYear()}-${now.toLocaleDateString('en-US', {
-      month: 'short',
-    })}`;
-
     const newResult: Result = {
       id: Date.now().toString() + Math.random().toString().slice(2),
       playerRating,
@@ -197,10 +170,20 @@ export default function FideCalculatorMobile({
       ratingChange: delta,
       ratingType,
       date,
-      monthKey,
+      ratingMonth,
+      monthKey: ratingMonth,
     };
 
-    await Promise.resolve(addResult(newResult));
+    if (saving) return;
+    setSaving(true);
+    try {
+      await addResult(newResult);
+    } catch (error) {
+      Alert.alert('Unable to track game', error instanceof Error ? error.message : 'Please try again.');
+      return;
+    } finally {
+      setSaving(false);
+    }
 
     // Keep player rating as the base (official) rating like web.
     // Live Rating will reflect the current-month progress.
@@ -392,9 +375,24 @@ export default function FideCalculatorMobile({
         </View>
       </View>
 
+      <View style={styles.section}>
+        <Text style={styles.label}>Game date (YYYY-MM-DD)</Text>
+        <TextInput style={styles.input} value={date} autoCapitalize="none" onChangeText={(value) => {
+          setDate(value);
+          if (!monthManuallyChanged) {
+            try { setRatingMonth(getRatingMonthFromDate(value)); } catch { /* Keep last valid default while typing. */ }
+          }
+        }} />
+        <Text style={[styles.label, styles.subLabel]}>Rating month (YYYY-MM)</Text>
+        <TextInput style={styles.input} value={ratingMonth} autoCapitalize="none" onChangeText={(value) => {
+          setMonthManuallyChanged(true);
+          setRatingMonth(value);
+        }} />
+      </View>
+
       {!isFormValid && (
         <Text style={styles.validationText}>
-          Ratings should be between 100 and 3500.
+          Enter ratings between 100 and 3500, a game date and a rating month (YYYY-MM).
         </Text>
       )}
 
@@ -409,7 +407,7 @@ export default function FideCalculatorMobile({
         <TouchableOpacity
           style={[styles.secondaryButton, !isFormValid && styles.buttonDisabled]}
           onPress={handleTrackGame}
-          disabled={!isFormValid}
+          disabled={saving || !isFormValid}
         >
           <Text style={styles.secondaryButtonText}>Track Game</Text>
         </TouchableOpacity>
@@ -431,7 +429,7 @@ export default function FideCalculatorMobile({
               .reverse()
               .slice(0, 5)
               .map((r) => {
-                const fullIndex = results.findIndex((x) => x.id === r.id);
+                const fullIndex = r.id ? results.findIndex((x) => x.id === r.id) : results.indexOf(r);
                 const canDelete = removeResult != null && fullIndex !== -1;
                 return (
                   <View key={r.id} style={[
@@ -486,8 +484,15 @@ export default function FideCalculatorMobile({
                               {
                                 text: 'Delete',
                                 style: 'destructive',
-                                onPress: () => {
-                                  if (fullIndex !== -1) Promise.resolve(removeResult(fullIndex)).catch(() => {});
+                                onPress: async () => {
+                                  try {
+                                    const index = r.id ? latestResults.current.findIndex((item) => item.id === r.id) : latestResults.current.indexOf(r);
+                                    if (index < 0) throw new Error('Game no longer exists.');
+                                    if (getResultRatingMonth(latestResults.current[index]) !== getRatingMonthFromDate(new Date())) throw new Error('Only current rating-month games can be deleted.');
+                                    await removeResult(index);
+                                  } catch (error) {
+                                    Alert.alert('Unable to delete game', error instanceof Error ? error.message : 'Please try again.');
+                                  }
                                 },
                               },
                             ]
@@ -514,11 +519,18 @@ export default function FideCalculatorMobile({
           open={editingGame !== null}
           game={editingGame}
           onClose={() => setEditingGame(null)}
+          onDelete={removeResult ? async () => {
+            if (!editingGame) throw new Error('No game selected.');
+            const idx = editingGame.id ? latestResults.current.findIndex((r) => r.id === editingGame.id) : latestResults.current.indexOf(editingGame);
+            if (idx < 0) throw new Error('Game no longer exists.');
+            if (getResultRatingMonth(latestResults.current[idx]) !== getRatingMonthFromDate(new Date())) throw new Error('Only current rating-month games can be deleted.');
+            await removeResult(idx);
+          } : undefined}
           onSave={async (updates) => {
             if (!editingGame) return;
-            const idx = results.findIndex((r) => r.id === editingGame.id);
-            if (idx !== -1) await Promise.resolve(updateResult(idx, updates));
-            setEditingGame(null);
+            const idx = editingGame.id ? latestResults.current.findIndex((r) => r.id === editingGame.id) : latestResults.current.indexOf(editingGame);
+            if (idx < 0) throw new Error('Game no longer exists.');
+            await updateResult(idx, updates);
           }}
         />
       ) : null}

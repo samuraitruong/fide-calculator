@@ -13,3 +13,5 @@ export * from './fide';
 // Export PDF generator (shared between web and mobile)
 export { buildPdfDocument } from './pdfGenerator';
 
+
+export * from './ratingMonth';

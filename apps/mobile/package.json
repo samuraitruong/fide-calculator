@@ -8,11 +8,12 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "eslint .",
-    "test": "jest",
+    "test": "pnpm --filter web exec jest --runInBand src/components/__tests__/EditGameModal.test.tsx src/components/__tests__/MobileRatingMonth.test.tsx src/hooks/__tests__/ratingMonthNativeStorage.test.tsx src/components/__tests__/MobileProfileRefresh.test.tsx src/hooks/__tests__/profileSynchronizationNative.test.tsx",
     "clean": "rm -rf node_modules .expo",
     "prebuild:android": "expo prebuild --platform android --clean",
     "build:apk": "NODE_ENV=production expo prebuild --platform android --clean && cd android && NODE_ENV=production ./gradlew assembleRelease",
-    "build:apk:fast": "cd android && ./gradlew assembleRelease"
+    "build:apk:fast": "cd android && ./gradlew assembleRelease",
+    "deploy:release": "bash ../../scripts/deploy-mobile-release.sh"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",

@@ -4,7 +4,7 @@
     "slug": "fide-calculator",
     "version": "0.1.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/rating-knight-icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -18,8 +18,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/rating-knight-adaptive.png",
+        "backgroundColor": "#0B2730"
       },
       "package": "com.fidecalculator.app",
       "edgeToEdgeEnabled": true,
@@ -30,7 +30,7 @@
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/rating-knight-icon.png"
     },
     "extra": {
       "eas": {

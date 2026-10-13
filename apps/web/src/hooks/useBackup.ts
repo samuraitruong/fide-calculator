@@ -1,3 +1,4 @@
+import { getResultRatingMonth, getRatingMonthDisplayName, migrateResultRatingMonth } from '@fide-calculator/shared';
 import { useState, useEffect, useCallback } from 'react';
 import { Result, RatingType } from '@/util/types';
 import type { BackupData } from '@fide-calculator/shared';
@@ -9,6 +10,7 @@ const OLD_BACKUP_STORAGE_KEY = 'fideBackups'; // Old format key
 
 export function useBackup(type: RatingType = 'standard') {
   const [backups, setBackups] = useState<BackupData[]>([]);
+  const [loadedStorageKey, setLoadedStorageKey] = useState<string | null>(null);
   const storageKey = getBackupStorageKey(type);
 
   // Migration function to handle old backup data format
@@ -22,6 +24,7 @@ export function useBackup(type: RatingType = 'standard') {
         // Migrate the data to new format
         const migratedData = parsedData.map(backup => ({
           ...backup,
+          data: backup.data.map(migrateResultRatingMonth),
           type: 'standard' as RatingType // Add type to old backups
         }));
         if (migratedData.length > 0) {
@@ -43,7 +46,10 @@ export function useBackup(type: RatingType = 'standard') {
     if (saved) {
       try {
         const loaded: BackupData[] = JSON.parse(saved);
-        setBackups(loaded);
+        const migrated = loaded.map(backup => ({ ...backup, data: backup.data.map(migrateResultRatingMonth) }));
+        setBackups(migrated);
+        setLoadedStorageKey(storageKey);
+        localStorage.setItem(storageKey, JSON.stringify(migrated));
       } catch (error) {
         console.error('Error loading backups:', error);
         setBackups([]);
@@ -53,57 +59,28 @@ export function useBackup(type: RatingType = 'standard') {
       const migratedData = migrateOldBackupData(type);
       if (Array.isArray(migratedData) && migratedData.length > 0) {
         setBackups(migratedData);
+        setLoadedStorageKey(storageKey);
       }
-      // If migration is skipped or fails, do not set state or localStorage
+      if ((!Array.isArray(migratedData) || migratedData.length === 0) && (!localStorage.getItem(OLD_BACKUP_STORAGE_KEY) || type !== 'standard')) {
+        setBackups([]);
+        setLoadedStorageKey(storageKey);
+      }
+      // If migration fails, preserve the stored backup data
     }
   }, [storageKey, migrateOldBackupData, type]);
 
   // Save backups to localStorage on change
   useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify(backups));
-  }, [backups, storageKey]);
+    if (loadedStorageKey === storageKey) localStorage.setItem(storageKey, JSON.stringify(backups));
+  }, [backups, storageKey, loadedStorageKey]);
 
   // Get the most popular month from the data
   const getMostPopularMonth = useCallback((results: Result[]): string => {
     const monthCounts: { [key: string]: number } = {};
     
     results.forEach(result => {
-      try {
-        // Try to parse the date more robustly
-        let date: Date;
-        
-        // Handle different date formats
-        if (result.date.includes('/')) {
-          // Handle DD/MM/YYYY or MM/DD/YYYY format
-          const parts = result.date.split('/');
-          if (parts.length === 3) {
-            // Assume DD/MM/YYYY for Australian format
-            const day = parseInt(parts[0]);
-            const month = parseInt(parts[1]) - 1; // Month is 0-indexed
-            const year = parseInt(parts[2]);
-            date = new Date(year, month, day);
-          } else {
-            date = new Date(result.date);
-          }
-        } else {
-          date = new Date(result.date);
-        }
-        
-        // Check if date is valid
-        if (isNaN(date.getTime())) {
-          console.warn('Invalid date format:', result.date);
-          return;
-        }
-        
-        const monthKey = date.toLocaleDateString('en-AU', { 
-          month: 'long', 
-          year: 'numeric' 
-        });
-        monthCounts[monthKey] = (monthCounts[monthKey] || 0) + 1;
-      } catch {
-        // If date parsing fails, skip this result
-        console.warn('Invalid date format:', result.date);
-      }
+      const month = getRatingMonthDisplayName(getResultRatingMonth(result));
+      monthCounts[month] = (monthCounts[month] || 0) + 1;
     });
 
     // Find the month with the most games
@@ -135,7 +112,7 @@ export function useBackup(type: RatingType = 'standard') {
     const backup: BackupData = {
       id: Date.now().toString() + Math.random().toString().slice(2),
       month,
-      data: [...results],
+      data: results.map(migrateResultRatingMonth),
       createdAt: new Date().toISOString(),
       totalChange,
       gameCount: results.length,
