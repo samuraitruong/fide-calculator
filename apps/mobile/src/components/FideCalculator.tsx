@@ -249,7 +249,7 @@ export default function FideCalculatorMobile({
       {/* 2. Live Rating & Monthly Progress Card */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>♞ Rating Progress (Estimate)</Text>
+          <Text style={styles.cardTitle}>♞ Rating Progress</Text>
           <View style={styles.badgePeach}>
             <Text style={styles.badgePeachText}>Current Month</Text>
           </View>
@@ -480,7 +480,6 @@ export default function FideCalculatorMobile({
       <View style={[styles.card, styles.estimateCard]}>
         <View style={styles.estimateHeader}>
           <Text style={styles.estimateTitle}>Calculated Estimate</Text>
-          <Text style={styles.estimateNotice}>Unofficial FIDE Projection</Text>
         </View>
 
         <View style={styles.estimateValueContainer}>
@@ -638,51 +637,58 @@ export default function FideCalculatorMobile({
                       accessibilityRole="button"
                       accessibilityLabel={`Game vs ${r.opponentName || 'Opponent'}`}
                     >
-                      <View style={styles.gameAvatar}>
-                        <Ionicons name="person" size={16} color={colors.primary} />
-                      </View>
-                      <View style={styles.gameMain}>
-                        <Text style={styles.gameOpponent} numberOfLines={1}>
+                      {/* Full-width Opponent Name Row without truncation */}
+                      <View style={styles.gameOpponentRow}>
+                        <View style={styles.gameAvatar}>
+                          <Ionicons name="person" size={14} color={colors.primary} />
+                        </View>
+                        <Text style={styles.gameOpponent}>
                           {r.opponentName || 'Opponent'} ({r.opponentRating})
                         </Text>
+                      </View>
+
+                      {/* Subrow: Game metadata + Rating Change Badge + Chevron */}
+                      <View style={styles.gameMetaRow}>
                         <Text style={styles.gameMeta}>
                           {r.date} · {r.result.toUpperCase()} · K={r.kFactor}
                         </Text>
-                      </View>
 
-                      <View
-                        style={[
-                          styles.gameChangeBadge,
-                          isPositive
-                            ? styles.changeBadgePositive
-                            : isNegative
-                              ? styles.changeBadgeNegative
-                              : styles.changeBadgeZero,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.gameChangeText,
-                            isPositive
-                              ? styles.changeTextPositive
-                              : isNegative
-                                ? styles.changeTextNegative
-                                : styles.changeTextZero,
-                          ]}
-                        >
-                          {isPositive ? '+' : ''}
-                          {r.ratingChange}
-                        </Text>
-                      </View>
+                        <View style={styles.gameBadgeAndChevron}>
+                          <View
+                            style={[
+                              styles.gameChangeBadge,
+                              isPositive
+                                ? styles.changeBadgePositive
+                                : isNegative
+                                  ? styles.changeBadgeNegative
+                                  : styles.changeBadgeZero,
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.gameChangeText,
+                                isPositive
+                                  ? styles.changeTextPositive
+                                  : isNegative
+                                    ? styles.changeTextNegative
+                                    : styles.changeTextZero,
+                              ]}
+                            >
+                              {isPositive ? '+' : ''}
+                              {r.ratingChange}
+                            </Text>
+                          </View>
 
-                      {updateResult ? (
-                        <Ionicons
-                          name="chevron-forward"
-                          size={16}
-                          color={colors.textMuted}
-                          style={styles.chevronIcon}
-                        />
-                      ) : null}
+                          {updateResult ? (
+                            <Ionicons
+                              name="chevron-forward"
+                              size={16}
+                              color={colors.textMuted}
+                              style={styles.chevronIcon}
+                            />
+                          ) : null}
+                        </View>
+                      </View>
                     </TouchableOpacity>
 
                     {canDelete ? (
@@ -701,8 +707,8 @@ export default function FideCalculatorMobile({
                                   try {
                                     const index = r.id
                                       ? latestResults.current.findIndex(
-                                          (item) => item.id === r.id,
-                                        )
+                                        (item) => item.id === r.id,
+                                      )
                                       : latestResults.current.indexOf(r);
                                     if (index < 0)
                                       throw new Error('Game no longer exists.');
@@ -769,15 +775,15 @@ export default function FideCalculatorMobile({
           onDelete={
             removeResult
               ? async () => {
-                  if (!editingGame) return;
-                  const index = editingGame.id
-                    ? latestResults.current.findIndex(
-                        (r) => r.id === editingGame.id,
-                      )
-                    : latestResults.current.indexOf(editingGame);
-                  if (index < 0) return;
-                  await removeResult(index);
-                }
+                if (!editingGame) return;
+                const index = editingGame.id
+                  ? latestResults.current.findIndex(
+                    (r) => r.id === editingGame.id,
+                  )
+                  : latestResults.current.indexOf(editingGame);
+                if (index < 0) return;
+                await removeResult(index);
+              }
               : undefined
           }
         />
@@ -959,6 +965,7 @@ const styles = StyleSheet.create({
     ...typography.label,
     color: colors.textSecondary,
     marginBottom: spacing.xs + 2,
+    minHeight: 20,
   },
   textInput: {
     minHeight: touchTargets.min,
@@ -1174,43 +1181,59 @@ const styles = StyleSheet.create({
   gameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radii.control,
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
     borderWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md - 2,
+    gap: spacing.sm,
   },
   gameRowTouchable: {
     flex: 1,
+    flexDirection: 'column',
+    gap: spacing.xs + 2,
+  },
+  gameOpponentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: touchTargets.min,
-    gap: spacing.md,
+    gap: spacing.sm,
+    width: '100%',
   },
   gameAvatar: {
-    width: 32,
-    height: 32,
+    width: 26,
+    height: 26,
     borderRadius: radii.pill,
     backgroundColor: colors.surfaceSelected,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  gameMain: {
-    flex: 1,
-  },
   gameOpponent: {
     ...typography.bodyBold,
     color: colors.textPrimary,
+    flex: 1,
+    flexWrap: 'wrap',
+  },
+  gameMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
   },
   gameMeta: {
     ...typography.caption,
     color: colors.textSecondary,
-    marginTop: 2,
+    flexShrink: 1,
+    marginRight: spacing.sm,
+  },
+  gameBadgeAndChevron: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   gameChangeBadge: {
     paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs,
+    paddingVertical: spacing.xs - 2,
     borderRadius: radii.pill,
   },
   gameChangeText: {
@@ -1218,14 +1241,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   chevronIcon: {
-    marginLeft: spacing.xs,
+    marginLeft: 2,
   },
   deleteButton: {
     padding: spacing.sm,
     justifyContent: 'center',
     alignItems: 'center',
-    minHeight: 40,
+    minHeight: 44,
     minWidth: 40,
+    borderLeftWidth: 1,
+    borderLeftColor: colors.border,
+    paddingLeft: spacing.sm,
   },
   summaryFooter: {
     marginTop: spacing.sm,

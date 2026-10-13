@@ -389,7 +389,7 @@ export default function HistoryScreen() {
                             </View>
 
                             <View style={styles.gameMain}>
-                              <Text style={styles.gameOpponent} numberOfLines={1}>
+                              <Text style={styles.gameOpponent}>
                                 {item.opponentName || 'Opponent'}
                               </Text>
                               <Text style={styles.gameMeta}>

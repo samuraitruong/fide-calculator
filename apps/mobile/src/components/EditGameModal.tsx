@@ -345,7 +345,7 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
 
                     <View style={styles.fieldGrid}>
                       <View style={styles.fieldCol}>
-                        <Text style={styles.label}>Date (YYYY-MM-DD)</Text>
+                        <Text style={styles.label} numberOfLines={1}>Game date</Text>
                         <TextInput
                           style={styles.input}
                           value={date}
@@ -353,11 +353,12 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
                           placeholder="YYYY-MM-DD"
                           placeholderTextColor={colors.textMuted}
                           autoCapitalize="none"
+                          accessibilityLabel="Game date"
                         />
                       </View>
 
                       <View style={styles.fieldCol}>
-                        <Text style={styles.label}>Rating month (YYYY-MM)</Text>
+                        <Text style={styles.label} numberOfLines={1}>Rating month</Text>
                         <TextInput
                           style={styles.input}
                           value={ratingMonth}
@@ -365,6 +366,7 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
                           placeholder="YYYY-MM"
                           placeholderTextColor={colors.textMuted}
                           autoCapitalize="none"
+                          accessibilityLabel="Rating month"
                         />
                       </View>
                     </View>
@@ -596,6 +598,7 @@ const styles = StyleSheet.create({
     ...typography.label,
     color: colors.textSecondary,
     marginBottom: spacing.xs + 2,
+    minHeight: 20,
   },
   input: {
     minHeight: touchTargets.min,

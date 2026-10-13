@@ -32,7 +32,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchProfiles = useCallback(async (userId: string) => {
     try {
-      console.log('AuthContext: Fetching profiles for user:', userId);
       const fetchedProfiles = await fetchUserProfiles(supabase, userId);
       
       if (fetchedProfiles.length > 0) {
@@ -43,8 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfiles([]);
         setActiveProfile(null);
       }
-    } catch (error) {
-      console.error('AuthContext: Error fetching profiles:', error);
+    } catch {
       setProfiles([]);
       setActiveProfile(null);
     } finally {
@@ -53,17 +51,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    console.log('AuthContext: Initializing auth state...');
     
     // Add a timeout to prevent infinite loading
     const timeoutId = setTimeout(() => {
-      console.warn('AuthContext: Loading timeout reached, forcing loading to false');
       setLoading(false);
     }, 10000); // 10 second timeout
     
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('AuthContext: Initial session loaded:', session ? 'User logged in' : 'No session');
       clearTimeout(timeoutId);
       setSession(session);
       setUser(session?.user ?? null);
@@ -86,10 +81,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange((event, session) => {
         // Use setTimeout to avoid React rendering issues with Supabase auth state changes
         setTimeout(async () => {
-            console.log('AuthContext: Auth state changed:', event, session ? 'User logged in' : 'No session');
             setSession(session);
             setUser(session?.user ?? null);
-            console.log('AuthContext: User state set to:', session?.user?.id || 'null');
             if (session?.user) {
                 await fetchProfiles(session.user.id);
             } else {
@@ -179,16 +172,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshSession = async () => {
     try {
-      console.log('AuthContext: Refreshing session...');
       const { data, error } = await supabase.auth.refreshSession();
       if (error) {
-        console.error('AuthContext: Error refreshing session:', error);
         return { error };
       }
-      console.log('AuthContext: Session refreshed successfully');
       return { data };
-    } catch (err) {
-      console.error('AuthContext: Exception refreshing session:', err);
+    } catch {
       return { error: new Error('Failed to refresh session') };
     }
   };
