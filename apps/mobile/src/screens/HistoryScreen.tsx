@@ -25,6 +25,7 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useSupabaseRatingList } from '@/hooks/useSupabaseRatingList';
 import EditGameModal from '@/components/EditGameModal';
 import { generatePdfBase64, type BackupData } from '@/util/pdfGenerator';
+import { colors, radii, spacing, typography, touchTargets, shadows } from '../theme/tokens';
 
 const RATING_TYPES: { key: RatingType; label: string }[] = [
   { key: 'standard', label: 'Standard' },
@@ -51,8 +52,7 @@ export default function HistoryScreen() {
     loading: cloudLoading,
     updateResult: cloudUpdateResult,
     removeResult: cloudRemoveResult,
-  } =
-    useSupabaseRatingList(ratingType);
+  } = useSupabaseRatingList(ratingType);
 
   const isLocal = storageMode === 'local';
   const results = isLocal ? localResults : cloudResults;
@@ -79,7 +79,9 @@ export default function HistoryScreen() {
 
   const getEditingIndex = () => {
     if (!editingGame) throw new Error('No game selected.');
-    const index = editingGame.id ? latestResults.current.findIndex((r) => r.id === editingGame.id) : latestResults.current.indexOf(editingGame);
+    const index = editingGame.id
+      ? latestResults.current.findIndex((r) => r.id === editingGame.id)
+      : latestResults.current.indexOf(editingGame);
     if (index < 0) throw new Error('Game no longer exists.');
     return index;
   };
@@ -92,7 +94,11 @@ export default function HistoryScreen() {
 
   const handleDelete = async () => {
     const index = getEditingIndex();
-    if (getResultRatingMonth(latestResults.current[index]) !== getRatingMonthFromDate(new Date())) throw new Error('Only current rating-month games can be deleted.');
+    if (
+      getResultRatingMonth(latestResults.current[index]) !==
+      getRatingMonthFromDate(new Date())
+    )
+      throw new Error('Only current rating-month games can be deleted.');
     if (isLocal) await localRemoveResult(index);
     else await cloudRemoveResult(index);
   };
@@ -112,8 +118,6 @@ export default function HistoryScreen() {
       const base64 = generatePdfBase64(backup);
       const filename = `FIDE-${month.month.replace(/\s/g, '-')}.pdf`;
 
-      // On Android, prefer saving via Storage Access Framework so the user
-      // explicitly grants a folder and we avoid storage permission issues.
       if (Platform.OS === 'android') {
         try {
           const permissions =
@@ -122,7 +126,7 @@ export default function HistoryScreen() {
           if (!permissions.granted) {
             Alert.alert(
               'Permission needed',
-              'Please choose a folder so we can save the PDF report.'
+              'Please choose a folder so we can save the PDF report.',
             );
             return;
           }
@@ -130,17 +134,20 @@ export default function HistoryScreen() {
           const uri = await FileSystem.StorageAccessFramework.createFileAsync(
             permissions.directoryUri,
             filename,
-            'application/pdf'
+            'application/pdf',
           );
 
           await FileSystem.writeAsStringAsync(uri, base64, {
             encoding: FileSystem.EncodingType.Base64,
           });
 
-          Alert.alert('PDF saved', 'Your report has been saved to the folder you selected.');
+          Alert.alert(
+            'PDF saved',
+            'Your report has been saved to the folder you selected.',
+          );
           return;
         } catch {
-          // If anything goes wrong with SAF, fall back to the generic sharing flow below.
+          // Fall back to sharing below if SAF has issues
         }
       }
 
@@ -162,7 +169,7 @@ export default function HistoryScreen() {
       } else {
         Alert.alert(
           'PDF ready',
-          `PDF saved to cache. Sharing is not available on this device. Filename: ${filename}`
+          `PDF saved to cache. Sharing is not available on this device. Filename: ${filename}`,
         );
       }
     } catch (e) {
@@ -176,7 +183,8 @@ export default function HistoryScreen() {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.loadingText}>Loading history…</Text>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading rating history…</Text>
       </View>
     );
   }
@@ -187,191 +195,270 @@ export default function HistoryScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.title}>Game History</Text>
-      <View style={styles.tabs}>
-        {RATING_TYPES.map(({ key, label }) => (
-          <TouchableOpacity
-            key={key}
-            style={[styles.tab, ratingType === key && styles.tabActive]}
-            onPress={() => setRatingType(key)}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                ratingType === key && styles.tabTextActive,
-              ]}
-            >
-              {label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>♜ Game History</Text>
+        <Text style={styles.subtitle}>
+          Browse your monthly performance records and export FIDE reports.
+        </Text>
       </View>
 
+      {/* Segmented Control */}
+      <View style={styles.tabs}>
+        {RATING_TYPES.map(({ key, label }) => {
+          const isActive = ratingType === key;
+          return (
+            <TouchableOpacity
+              key={key}
+              style={[styles.tab, isActive && styles.tabActive]}
+              onPress={() => setRatingType(key)}
+              activeOpacity={0.8}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isActive }}
+              accessibilityLabel={`${label} history`}
+            >
+              <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                {label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Monthly Cards List */}
       {monthlyData.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyText}>No games recorded yet.</Text>
+        <View style={styles.emptyCard}>
+          <Ionicons name="flag-outline" size={36} color={colors.textMuted} />
+          <Text style={styles.emptyText}>No games recorded yet</Text>
           <Text style={styles.emptyHint}>
-            Track games from the Calculator tab.
+            Track your matches in the Calculator tab to view monthly rating breakdowns.
           </Text>
         </View>
       ) : (
         <View style={styles.list}>
-          {monthlyData.map((month) => (
-            <View key={month.monthKey} style={styles.monthCard}>
-              <TouchableOpacity
-                style={styles.monthHeader}
-                onPress={() => toggleMonth(month.monthKey)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.monthTitleRow}>
-                  <Text style={styles.monthTitle}>{month.month}</Text>
-                  <Ionicons
-                    name={isExpanded(month.monthKey) ? 'chevron-up' : 'chevron-down'}
-                    size={22}
-                    color="#6b7280"
-                  />
-                </View>
-                <View style={styles.monthSubRow}>
-                  <View style={styles.monthLeft}>
-                    <Text style={styles.gamesLabel}>{month.gameCount} GAMES</Text>
-                    <View
-                      style={[
-                        styles.totalChangeBadge,
-                        month.totalChange > 0
-                          ? styles.totalChangeBadgePositive
-                          : month.totalChange < 0
-                            ? styles.totalChangeBadgeNegative
-                            : styles.totalChangeBadgeZero,
-                      ]}
-                    >
-                      <Ionicons
-                        name={
-                          month.totalChange > 0
-                            ? 'arrow-up'
-                            : month.totalChange < 0
-                              ? 'arrow-down'
-                              : 'remove'
-                        }
-                        size={14}
-                        color="#fff"
-                      />
-                      <Text style={styles.totalChangeBadgeText}>
-                        {month.totalChange >= 0 ? '+' : ''}
-                        {month.totalChange}
-                      </Text>
-                    </View>
-                  </View>
-                  <TouchableOpacity
-                    hitSlop={8}
-                    onPress={(ev) => {
-                      ev.stopPropagation();
-                      handleDownloadPdf(month);
-                    }}
-                    style={styles.pdfIconButton}
-                    disabled={exportingPdfMonthKey !== null}
-                  >
-                    {exportingPdfMonthKey === month.monthKey ? (
-                      <ActivityIndicator size="small" color="#2563eb" />
-                    ) : (
-                      <Ionicons name="download-outline" size={18} color="#2563eb" />
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </TouchableOpacity>
+          {monthlyData.map((month) => {
+            const expanded = isExpanded(month.monthKey);
+            const isPositive = month.totalChange > 0;
+            const isNegative = month.totalChange < 0;
 
-              {isExpanded(month.monthKey) ? (
-                <View style={styles.expandedContent}>
-                  <TouchableOpacity
-                    style={styles.downloadReportButton}
-                    onPress={() => handleDownloadPdf(month)}
-                    disabled={exportingPdfMonthKey !== null}
-                  >
-                    {exportingPdfMonthKey === month.monthKey ? (
-                      <ActivityIndicator size="small" color="#2563eb" />
-                    ) : (
-                      <>
-                        <Text style={styles.downloadReportButtonText}>DOWNLOAD REPORT</Text>
-                        <Ionicons name="download-outline" size={20} color="#2563eb" />
-                      </>
-                    )}
-                  </TouchableOpacity>
-                  <View style={styles.gameList}>
-                    {month.results.map((item) => (
-                      <TouchableOpacity
-                        key={item.id ?? `${item.date}-${item.opponentName}-${item.ratingChange}`}
-                        style={styles.gameRow}
-                        activeOpacity={0.7}
-                        onPress={() => openEdit(item)}
-                      >
-                        <View style={styles.gameIconWrap}>
-                          <Ionicons name="flag-outline" size={20} color="#9ca3af" />
-                        </View>
-                        <View style={styles.gameMain}>
-                          <Text style={styles.gameOpponent} numberOfLines={1}>
-                            {item.opponentName || 'Opponent'}
-                          </Text>
-                          <Text style={styles.gameMeta}>
-                            {item.ratingType?.toUpperCase() ?? 'STANDARD'} • {item.date}
-                          </Text>
-                        </View>
+            return (
+              <View key={month.monthKey} style={styles.monthCard}>
+                {/* Header (Accordion Toggle) */}
+                <TouchableOpacity
+                  style={styles.monthHeader}
+                  onPress={() => toggleMonth(month.monthKey)}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${month.month}, ${month.gameCount} games, change ${month.totalChange >= 0 ? '+' : ''}${month.totalChange}`}
+                >
+                  <View style={styles.monthTitleRow}>
+                    <View style={styles.monthTitleLeft}>
+                      <Text style={styles.monthTitle}>{month.month}</Text>
+                      <View style={styles.monthMetaRow}>
+                        <Text style={styles.gamesLabel}>
+                          {month.gameCount} {month.gameCount === 1 ? 'GAME' : 'GAMES'}
+                        </Text>
                         <View
                           style={[
-                            styles.gameChangeBadge,
-                            item.ratingChange > 0
-                              ? styles.gameChangeBadgePositive
-                              : item.ratingChange < 0
-                                ? styles.gameChangeBadgeNegative
-                                : styles.gameChangeBadgeZero,
+                            styles.totalChangeBadge,
+                            isPositive
+                              ? styles.badgePositive
+                              : isNegative
+                                ? styles.badgeNegative
+                                : styles.badgeZero,
                           ]}
                         >
                           <Ionicons
                             name={
-                              item.ratingChange > 0
+                              isPositive
                                 ? 'arrow-up'
-                                : item.ratingChange < 0
+                                : isNegative
                                   ? 'arrow-down'
-                                  : 'arrow-forward'
+                                  : 'remove'
                             }
                             size={12}
                             color={
-                              item.ratingChange > 0
-                                ? '#166534'
-                                : item.ratingChange < 0
-                                  ? '#b91c1c'
-                                  : '#6b7280'
+                              isPositive
+                                ? colors.positiveText
+                                : isNegative
+                                  ? colors.negativeText
+                                  : colors.textSecondary
                             }
                           />
                           <Text
                             style={[
-                              styles.gameChangeBadgeText,
-                              item.ratingChange > 0
-                                ? styles.gameChangeBadgeTextPositive
-                                : item.ratingChange < 0
-                                  ? styles.gameChangeBadgeTextNegative
-                                  : styles.gameChangeBadgeTextZero,
+                              styles.totalChangeBadgeText,
+                              isPositive
+                                ? styles.textPositive
+                                : isNegative
+                                  ? styles.textNegative
+                                  : styles.textZero,
                             ]}
                           >
-                            {item.ratingChange === 0
-                              ? '→ 0.0'
-                              : `${item.ratingChange > 0 ? '+' : ''}${item.ratingChange}`}
+                            {month.totalChange >= 0 ? '+' : ''}
+                            {month.totalChange}
                           </Text>
                         </View>
-                        <Ionicons
-                          name="chevron-forward"
-                          size={18}
-                          color="#9ca3af"
-                          style={styles.gameRowChevron}
-                        />
+                      </View>
+                    </View>
+
+                    {/* Right side: Separate PDF export button + Accordion Chevron */}
+                    <View style={styles.monthHeaderActions}>
+                      <TouchableOpacity
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        onPress={(ev) => {
+                          ev.stopPropagation();
+                          handleDownloadPdf(month);
+                        }}
+                        style={styles.pdfIconButton}
+                        disabled={exportingPdfMonthKey !== null}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Export PDF report for ${month.month}`}
+                      >
+                        {exportingPdfMonthKey === month.monthKey ? (
+                          <ActivityIndicator size="small" color={colors.primary} />
+                        ) : (
+                          <Ionicons
+                            name="download-outline"
+                            size={20}
+                            color={colors.primary}
+                          />
+                        )}
                       </TouchableOpacity>
-                    ))}
+
+                      <Ionicons
+                        name={expanded ? 'chevron-up' : 'chevron-down'}
+                        size={22}
+                        color={colors.textSecondary}
+                        style={styles.chevron}
+                      />
+                    </View>
                   </View>
-                </View>
-              ) : null}
-            </View>
-          ))}
+                </TouchableOpacity>
+
+                {/* Expanded Content */}
+                {expanded ? (
+                  <View style={styles.expandedContent}>
+                    <TouchableOpacity
+                      style={styles.downloadReportButton}
+                      onPress={() => handleDownloadPdf(month)}
+                      disabled={exportingPdfMonthKey !== null}
+                      activeOpacity={0.85}
+                      accessibilityRole="button"
+                      accessibilityLabel="Download full PDF report"
+                    >
+                      {exportingPdfMonthKey === month.monthKey ? (
+                        <ActivityIndicator size="small" color={colors.primary} />
+                      ) : (
+                        <>
+                          <Ionicons
+                            name="document-text-outline"
+                            size={18}
+                            color={colors.primary}
+                          />
+                          <Text style={styles.downloadReportButtonText}>
+                            EXPORT MONTHLY REPORT (PDF)
+                          </Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+
+                    <View style={styles.gameList}>
+                      {month.results.map((item) => {
+                        const gamePos = item.ratingChange > 0;
+                        const gameNeg = item.ratingChange < 0;
+
+                        return (
+                          <TouchableOpacity
+                            key={
+                              item.id ??
+                              `${item.date}-${item.opponentName}-${item.ratingChange}`
+                            }
+                            style={styles.gameRow}
+                            activeOpacity={0.7}
+                            onPress={() => openEdit(item)}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Game vs ${item.opponentName || 'Opponent'}`}
+                          >
+                            <View style={styles.gameIconWrap}>
+                              <Ionicons
+                                name="person-outline"
+                                size={18}
+                                color={colors.primary}
+                              />
+                            </View>
+
+                            <View style={styles.gameMain}>
+                              <Text style={styles.gameOpponent} numberOfLines={1}>
+                                {item.opponentName || 'Opponent'}
+                              </Text>
+                              <Text style={styles.gameMeta}>
+                                {item.ratingType?.toUpperCase() ?? 'STANDARD'} · {item.date}
+                              </Text>
+                            </View>
+
+                            <View
+                              style={[
+                                styles.gameChangeBadge,
+                                gamePos
+                                  ? styles.badgePositive
+                                  : gameNeg
+                                    ? styles.badgeNegative
+                                    : styles.badgeZero,
+                              ]}
+                            >
+                              <Ionicons
+                                name={
+                                  gamePos
+                                    ? 'arrow-up'
+                                    : gameNeg
+                                      ? 'arrow-down'
+                                      : 'arrow-forward'
+                                }
+                                size={12}
+                                color={
+                                  gamePos
+                                    ? colors.positiveText
+                                    : gameNeg
+                                      ? colors.negativeText
+                                      : colors.textSecondary
+                                }
+                              />
+                              <Text
+                                style={[
+                                  styles.gameChangeBadgeText,
+                                  gamePos
+                                    ? styles.textPositive
+                                    : gameNeg
+                                      ? styles.textNegative
+                                      : styles.textZero,
+                                ]}
+                              >
+                                {item.ratingChange === 0
+                                  ? '0.0'
+                                  : `${item.ratingChange > 0 ? '+' : ''}${item.ratingChange}`}
+                              </Text>
+                            </View>
+
+                            <Ionicons
+                              name="chevron-forward"
+                              size={16}
+                              color={colors.textMuted}
+                              style={styles.gameRowChevron}
+                            />
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ) : null}
+              </View>
+            );
+          })}
         </View>
       )}
 
+      {/* Edit Game Modal */}
       <EditGameModal
         open={editingGame !== null}
         game={editingGame}
@@ -388,231 +475,256 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.canvas,
   },
   content: {
-    paddingVertical: 20,
-    paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.screenInset,
+    paddingBottom: spacing.xxxl + spacing.xl,
   },
   centered: {
     flex: 1,
+    backgroundColor: colors.canvas,
     justifyContent: 'center',
     alignItems: 'center',
+    gap: spacing.md,
   },
   loadingText: {
-    fontSize: 16,
-    color: '#6b7280',
+    ...typography.body,
+    color: colors.textSecondary,
+  },
+
+  // Header
+  header: {
+    marginBottom: spacing.lg,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1f2937',
-    marginBottom: 4,
+    ...typography.heading,
+    color: colors.textPrimary,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 20,
+    ...typography.body,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
   },
+
+  // Segmented Tabs
   tabs: {
     flexDirection: 'row',
-    marginBottom: 20,
-    backgroundColor: '#f3f4f6',
-    borderRadius: 12,
-    padding: 4,
+    marginBottom: spacing.xl,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radii.control,
+    padding: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   tab: {
     flex: 1,
-    paddingVertical: 10,
+    minHeight: touchTargets.min,
     alignItems: 'center',
-    borderRadius: 8,
+    justifyContent: 'center',
+    borderRadius: radii.control - 2,
   },
   tabActive: {
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: colors.surfaceSelected,
+    borderWidth: 1,
+    borderColor: colors.primary,
   },
   tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6b7280',
+    ...typography.label,
+    color: colors.textSecondary,
   },
   tabTextActive: {
-    color: '#1f2937',
+    ...typography.label,
+    color: colors.primary,
+    fontWeight: '700',
   },
-  empty: {
-    paddingVertical: 48,
+
+  // Empty State
+  emptyCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    padding: spacing.xxxl,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.card,
+    gap: spacing.sm,
   },
   emptyText: {
-    fontSize: 16,
-    color: '#6b7280',
-    marginBottom: 4,
+    ...typography.subheading,
+    color: colors.textPrimary,
+    marginTop: spacing.sm,
   },
   emptyHint: {
-    fontSize: 14,
-    color: '#9ca3af',
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
+
+  // Monthly Cards List
   list: {
-    gap: 16,
+    gap: spacing.md,
   },
   monthCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+    ...shadows.card,
   },
   monthHeader: {
-    paddingVertical: 2,
+    padding: spacing.lg,
   },
   monthTitleRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'center',
+  },
+  monthTitleLeft: {
+    flex: 1,
+    marginRight: spacing.md,
   },
   monthTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
+    ...typography.subheading,
+    color: colors.textPrimary,
   },
-  monthSubRow: {
+  monthMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  monthLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+    marginTop: spacing.xs + 2,
+    gap: spacing.sm,
   },
   gamesLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#9ca3af',
-    letterSpacing: 0.5,
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontWeight: '700',
+    letterSpacing: 0.6,
   },
+  monthHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  pdfIconButton: {
+    width: touchTargets.min,
+    height: touchTargets.min,
+    borderRadius: radii.pill,
+    backgroundColor: colors.surfaceSelected,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chevron: {
+    marginLeft: spacing.xs,
+  },
+
+  // Total Change Badges
   totalChangeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  totalChangeBadgePositive: {
-    backgroundColor: '#059669',
-  },
-  totalChangeBadgeNegative: {
-    backgroundColor: '#b91c1c',
-  },
-  totalChangeBadgeZero: {
-    backgroundColor: '#6b7280',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radii.pill,
+    gap: 2,
   },
   totalChangeBadgeText: {
-    fontSize: 14,
+    ...typography.caption,
     fontWeight: '700',
-    color: '#fff',
   },
-  pdfIconButton: {
-    paddingHorizontal: 4,
-    paddingVertical: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
+  badgePositive: {
+    backgroundColor: colors.positiveBg,
   },
+  badgeNegative: {
+    backgroundColor: colors.negativeBg,
+  },
+  badgeZero: {
+    backgroundColor: colors.neutralBg,
+  },
+  textPositive: {
+    color: colors.positiveText,
+  },
+  textNegative: {
+    color: colors.negativeText,
+  },
+  textZero: {
+    color: colors.textSecondary,
+  },
+
+  // Expanded Content
   expandedContent: {
-    marginTop: 12,
-    paddingTop: 12,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: colors.border,
   },
   downloadReportButton: {
+    marginTop: spacing.md,
+    marginBottom: spacing.md,
+    minHeight: touchTargets.min,
+    backgroundColor: colors.surfaceSelected,
+    borderRadius: radii.control,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    marginBottom: 16,
-    backgroundColor: '#eff6ff',
-    borderRadius: 12,
+    justifyContent: 'center',
+    gap: spacing.sm,
   },
   downloadReportButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#2563eb',
+    ...typography.label,
+    color: colors.primary,
+    fontWeight: '700',
   },
   gameList: {
-    gap: 0,
+    gap: spacing.xs + 2,
   },
   gameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 4,
-    minHeight: 56,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    minHeight: touchTargets.min,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radii.control,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
   gameIconWrap: {
-    width: 36,
+    width: 32,
+    height: 32,
+    borderRadius: radii.pill,
+    backgroundColor: colors.surfaceSelected,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   gameMain: {
     flex: 1,
-    marginRight: 12,
+    marginRight: spacing.sm,
   },
   gameOpponent: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1f2937',
+    ...typography.bodyBold,
+    color: colors.textPrimary,
   },
   gameMeta: {
-    fontSize: 12,
-    color: '#6b7280',
+    ...typography.caption,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   gameChangeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginRight: 8,
-  },
-  gameChangeBadgePositive: {
-    backgroundColor: '#dcfce7',
-  },
-  gameChangeBadgeNegative: {
-    backgroundColor: '#fee2e2',
-  },
-  gameChangeBadgeZero: {
-    backgroundColor: '#f3f4f6',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.pill,
+    gap: 2,
   },
   gameChangeBadgeText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  gameChangeBadgeTextPositive: {
-    color: '#166534',
-  },
-  gameChangeBadgeTextNegative: {
-    color: '#b91c1c',
-  },
-  gameChangeBadgeTextZero: {
-    color: '#6b7280',
+    ...typography.caption,
+    fontWeight: '700',
   },
   gameRowChevron: {
-    marginLeft: 4,
+    marginLeft: spacing.xs,
   },
 });

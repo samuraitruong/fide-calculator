@@ -17,6 +17,7 @@ import AuthModal from './src/components/AuthModal';
 import LocalStorageModal from './src/components/LocalStorageModal';
 import ForgotPasswordModal from './src/components/ForgotPasswordModal';
 import MainTabs from './src/navigation/MainTabs';
+import { colors, radii, touchTargets } from './src/theme/tokens';
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -52,7 +53,7 @@ function AppContent() {
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2563eb" />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Loading...</Text>
         </View>
         <StatusBar style="auto" />
@@ -106,7 +107,7 @@ function AppContent() {
                 style={styles.secondaryButton}
                 onPress={() => setShowAuthModal(true)}
               >
-                <Ionicons name="person-outline" size={20} color="#2563eb" />
+                <Ionicons name="person-outline" size={20} color={colors.primary} />
                 <Text style={styles.secondaryButtonText}>Sign In / Create Account</Text>
               </TouchableOpacity>
 
@@ -148,6 +149,10 @@ function AppContent() {
         <AuthModal
           open={showAuthModal}
           onClose={() => setShowAuthModal(false)}
+          onForgotPassword={() => {
+            setShowAuthModal(false);
+            setShowForgotPasswordModal(true);
+          }}
           onSuccess={() => {
             setStorageMode('cloud');
           }}
@@ -193,7 +198,7 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.canvas,
   },
   loadingContainer: {
     flex: 1,
@@ -242,7 +247,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 320,
     borderBottomLeftRadius: 280,
     borderBottomRightRadius: 300,
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.primary,
     opacity: 0.95,
   },
   authContent: {
@@ -262,7 +267,7 @@ const styles = StyleSheet.create({
   },
   authSubtitle: {
     fontSize: 15,
-    color: '#6b7280',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     paddingHorizontal: 8,
@@ -273,9 +278,10 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   primaryButton: {
-    backgroundColor: '#2563eb',
-    borderRadius: 12,
-    paddingVertical: 16,
+    backgroundColor: colors.primary,
+    borderRadius: radii.control,
+    minHeight: touchTargets.primaryControl,
+    paddingVertical: 14,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
@@ -285,29 +291,30 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   orText: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   secondaryButton: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingVertical: 16,
+    backgroundColor: colors.surfaceSelected,
+    borderRadius: radii.control,
+    minHeight: touchTargets.primaryControl,
+    paddingVertical: 14,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderWidth: 1.5,
+    borderColor: colors.primary,
   },
   secondaryButtonText: {
-    color: '#374151',
+    color: colors.primary,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   forgotPasswordLink: {
     alignSelf: 'center',
@@ -315,7 +322,7 @@ const styles = StyleSheet.create({
   },
   forgotPasswordLinkText: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: colors.textSecondary,
   },
   storageSection: {
     gap: 16,
@@ -323,17 +330,17 @@ const styles = StyleSheet.create({
   storageCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border,
   },
   storageIconCloud: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
@@ -342,7 +349,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#22c55e',
+    backgroundColor: colors.positiveText,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
@@ -353,12 +360,12 @@ const styles = StyleSheet.create({
   storageCardTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1f2937',
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   storageCardDesc: {
     fontSize: 13,
-    color: '#6b7280',
+    color: colors.textSecondary,
     lineHeight: 18,
   },
   welcomeSection: {
@@ -367,71 +374,72 @@ const styles = StyleSheet.create({
   },
   welcomeText: {
     fontSize: 18,
-    color: '#1f2937',
+    color: colors.textPrimary,
     marginBottom: 16,
   },
   welcomeTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1f2937',
+    color: colors.textPrimary,
     marginBottom: 8,
     textAlign: 'center',
   },
   welcomeSubtitle: {
     fontSize: 16,
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginBottom: 24,
     textAlign: 'center',
   },
   createProfileButton: {
-    backgroundColor: '#2563eb',
-    borderRadius: 8,
+    backgroundColor: colors.primary,
+    borderRadius: radii.control,
+    minHeight: touchTargets.primaryControl,
     padding: 16,
     alignItems: 'center',
+    justifyContent: 'center',
     width: '100%',
     marginBottom: 16,
   },
   createProfileButtonText: {
-    color: '#fff',
+    color: colors.primaryText,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   signOutButton: {
     padding: 12,
     alignItems: 'center',
+    minHeight: touchTargets.min,
+    justifyContent: 'center',
   },
   signOutButtonText: {
-    color: '#6b7280',
+    color: colors.textSecondary,
     fontSize: 14,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1f2937',
+    color: colors.textPrimary,
     marginBottom: 24,
   },
   profileInfo: {
     marginTop: 20,
     padding: 20,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    borderColor: colors.border,
     width: '100%',
   },
   profileName: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.textPrimary,
     marginBottom: 12,
   },
   modeIndicator: {
     marginTop: 16,
     fontSize: 14,
-    color: '#16a34a',
+    color: colors.positiveText,
     fontWeight: '600',
   },
 });

@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useMenu } from '@/contexts/MenuContext';
 import ProfileMenuContent from '@/components/ProfileMenuContent';
+import { colors, radii, spacing, typography, touchTargets, shadows } from '../theme/tokens';
 
 export default function MenuModal() {
   const { open, closeMenu } = useMenu();
@@ -45,7 +46,7 @@ export default function MenuModal() {
           style={[
             styles.drawer,
             {
-              paddingTop: insets.top + 8,
+              paddingTop: insets.top + spacing.sm,
               transform: [
                 {
                   translateX: slideAnim.interpolate({
@@ -59,13 +60,18 @@ export default function MenuModal() {
         >
           <Pressable onPress={(e) => e.stopPropagation()} style={styles.drawerContent}>
             <View style={styles.header}>
-              <Text style={styles.title}>Menu</Text>
+              <View style={styles.headerTitleRow}>
+                <Text style={styles.headerMotif}>♟</Text>
+                <Text style={styles.title}>Account & Profiles</Text>
+              </View>
               <TouchableOpacity
                 onPress={closeMenu}
-                hitSlop={12}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 style={styles.closeButton}
+                accessibilityRole="button"
+                accessibilityLabel="Close profile menu"
               >
-                <Ionicons name="close" size={28} color="#374151" />
+                <Ionicons name="close" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
             <ProfileMenuContent />
@@ -81,19 +87,17 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: colors.overlay,
   },
   drawer: {
     width: '85%',
-    maxWidth: 340,
-    backgroundColor: '#f9fafb',
-    borderTopLeftRadius: 24,
-    borderBottomLeftRadius: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: -2, height: 0 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
+    maxWidth: 360,
+    backgroundColor: colors.canvas,
+    borderTopLeftRadius: radii.sheet,
+    borderBottomLeftRadius: radii.sheet,
+    borderLeftWidth: 1,
+    borderColor: colors.border,
+    ...shadows.drawer,
     overflow: 'hidden',
   },
   drawerContent: {
@@ -103,18 +107,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    backgroundColor: '#fff',
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  headerMotif: {
+    fontSize: 20,
+    color: colors.primary,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1f2937',
+    ...typography.subheading,
+    color: colors.textPrimary,
   },
   closeButton: {
-    padding: 4,
+    width: touchTargets.min,
+    height: touchTargets.min,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.pill,
   },
 });

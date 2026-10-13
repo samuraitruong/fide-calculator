@@ -7,6 +7,7 @@ import MenuModal from '@/components/MenuModal';
 import HomeScreen from '@/screens/HomeScreen';
 import HistoryScreen from '@/screens/HistoryScreen';
 import appIcon from '../../assets/rating-knight-icon.png';
+import { colors, radii, spacing, typography, touchTargets } from '../theme/tokens';
 
 import type { MainTabsParamList } from '../types/navigation';
 
@@ -36,8 +37,9 @@ function HeaderMenuButton() {
       style={styles.menuButton}
       accessibilityRole="button"
       accessibilityLabel="Open menu"
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
     >
-      <Ionicons name="menu" size={28} color="#1f2937" />
+      <Ionicons name="menu" size={26} color={colors.textPrimary} />
     </TouchableOpacity>
   );
 }
@@ -49,18 +51,43 @@ export default function MainTabs() {
       <Tab.Navigator
         screenOptions={{
           headerShown: true,
+          headerStyle: {
+            backgroundColor: colors.canvas,
+            borderBottomColor: colors.border,
+            borderBottomWidth: 1,
+            elevation: 0,
+            shadowOpacity: 0,
+          },
           headerTitle: () => <HeaderBrand />,
           headerTitleAlign: 'left',
           headerRight: () => <HeaderMenuButton />,
+          tabBarStyle: {
+            backgroundColor: colors.surface,
+            borderTopColor: colors.border,
+            borderTopWidth: 1,
+            height: 60,
+            paddingBottom: 8,
+            paddingTop: 6,
+          },
+          tabBarActiveTintColor: colors.primary,
+          tabBarInactiveTintColor: colors.textSecondary,
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '600',
+          },
         }}
       >
         <Tab.Screen
           name="Home"
           component={HomeScreen}
           options={{
-            title: 'FIDE Calculator',
+            title: 'Calculator',
             tabBarIcon: ({ focused, color, size }) => (
-              <Ionicons name={focused ? 'calculator' : 'calculator-outline'} size={size} color={color} />
+              <Ionicons
+                name={focused ? 'calculator' : 'calculator-outline'}
+                size={size}
+                color={color}
+              />
             ),
           }}
         />
@@ -70,7 +97,11 @@ export default function MainTabs() {
           options={{
             title: 'History',
             tabBarIcon: ({ focused, color, size }) => (
-              <Ionicons name={focused ? 'time' : 'time-outline'} size={size} color={color} />
+              <Ionicons
+                name={focused ? 'time' : 'time-outline'}
+                size={size}
+                color={color}
+              />
             ),
           }}
         />
@@ -83,24 +114,23 @@ const styles = StyleSheet.create({
   brand: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: spacing.sm + 2,
     flexShrink: 1,
   },
   icon: {
     width: 32,
     height: 32,
-    borderRadius: 8,
+    borderRadius: radii.sm,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1f2937',
+    ...typography.subheading,
+    color: colors.textPrimary,
     flexShrink: 1,
   },
   menuButton: {
-    width: 44,
-    height: 44,
-    marginRight: 8,
+    width: touchTargets.min,
+    height: touchTargets.min,
+    marginRight: spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },

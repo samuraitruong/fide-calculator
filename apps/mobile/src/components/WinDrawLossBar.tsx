@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { colors, radii, spacing, typography } from '../theme/tokens';
 
 type Props = {
   wins: number;
@@ -25,9 +26,9 @@ export default function WinDrawLossBar({ wins, draws, losses, showLegend = true 
 
   const parts = useMemo(
     () => [
-      { key: 'win', value: wins, color: '#10b981' },
-      { key: 'draw', value: draws, color: '#6b7280' },
-      { key: 'loss', value: losses, color: '#ef4444' },
+      { key: 'win', value: wins, color: colors.positiveText },
+      { key: 'draw', value: draws, color: colors.textSecondary },
+      { key: 'loss', value: losses, color: colors.negativeText },
     ],
     [wins, draws, losses],
   );
@@ -35,13 +36,13 @@ export default function WinDrawLossBar({ wins, draws, losses, showLegend = true 
   if (total === 0) {
     return (
       <View style={styles.empty}>
-        <Text style={styles.emptyText}>No games this month yet.</Text>
+        <Text style={styles.emptyText}>♟ No games tracked this month yet.</Text>
       </View>
     );
   }
 
   return (
-    <View>
+    <View style={styles.container}>
       <View style={styles.bar}>
         {parts
           .filter((p) => p.value > 0)
@@ -53,10 +54,10 @@ export default function WinDrawLossBar({ wins, draws, losses, showLegend = true 
                 {
                   backgroundColor: p.color,
                   flex: p.value,
-                  borderTopLeftRadius: idx === 0 ? 10 : 0,
-                  borderBottomLeftRadius: idx === 0 ? 10 : 0,
-                  borderTopRightRadius: idx === arr.length - 1 ? 10 : 0,
-                  borderBottomRightRadius: idx === arr.length - 1 ? 10 : 0,
+                  borderTopLeftRadius: idx === 0 ? radii.sm : 0,
+                  borderBottomLeftRadius: idx === 0 ? radii.sm : 0,
+                  borderTopRightRadius: idx === arr.length - 1 ? radii.sm : 0,
+                  borderBottomRightRadius: idx === arr.length - 1 ? radii.sm : 0,
                 },
               ]}
             />
@@ -65,9 +66,9 @@ export default function WinDrawLossBar({ wins, draws, losses, showLegend = true 
 
       {showLegend ? (
         <View style={styles.legend}>
-          <LegendItem color="#10b981" label="Wins" value={wins} />
-          <LegendItem color="#6b7280" label="Draws" value={draws} />
-          <LegendItem color="#ef4444" label="Losses" value={losses} />
+          <LegendItem color={colors.positiveText} label="Wins" value={wins} />
+          <LegendItem color={colors.textSecondary} label="Draws" value={draws} />
+          <LegendItem color={colors.negativeText} label="Losses" value={losses} />
         </View>
       ) : null}
     </View>
@@ -75,10 +76,15 @@ export default function WinDrawLossBar({ wins, draws, losses, showLegend = true 
 }
 
 const styles = StyleSheet.create({
+  container: {
+    marginVertical: spacing.xs,
+  },
   bar: {
     height: 12,
-    borderRadius: 10,
-    backgroundColor: '#e5e7eb',
+    borderRadius: radii.sm,
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.border,
     flexDirection: 'row',
     overflow: 'hidden',
   },
@@ -86,32 +92,31 @@ const styles = StyleSheet.create({
     height: 12,
   },
   legend: {
-    marginTop: 10,
+    marginTop: spacing.sm,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: spacing.md,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: spacing.xs + 2,
   },
   dot: {
     width: 10,
     height: 10,
-    borderRadius: 999,
+    borderRadius: radii.pill,
   },
   legendText: {
-    fontSize: 12,
-    color: '#374151',
+    ...typography.caption,
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   empty: {
-    paddingVertical: 10,
+    paddingVertical: spacing.sm,
   },
   emptyText: {
-    fontSize: 13,
-    color: '#6b7280',
+    ...typography.caption,
+    color: colors.textSecondary,
   },
 });
-

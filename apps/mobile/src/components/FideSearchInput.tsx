@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useFideData, FidePlayer } from '../hooks/useFideData';
+import { colors, radii, spacing, typography, touchTargets, shadows } from '../theme/tokens';
 
 interface FideSearchInputProps {
   value: string;
@@ -69,14 +70,24 @@ export default function FideSearchInput({
 
   return (
     <View style={styles.container}>
-      <View style={[styles.inputContainer, (isFocused || showDropdown) && styles.inputContainerFocused]}>
-        <Ionicons name="search" size={18} color="#9ca3af" style={styles.searchIcon} />
+      <View
+        style={[
+          styles.inputContainer,
+          (isFocused || showDropdown) && styles.inputContainerFocused,
+        ]}
+      >
+        <Ionicons
+          name="search"
+          size={18}
+          color={isFocused ? colors.primary : colors.textMuted}
+          style={styles.searchIcon}
+        />
         <TextInput
           style={styles.input}
           value={searchTerm}
           onChangeText={handleInputChange}
           placeholder={placeholder}
-          placeholderTextColor="#9ca3af"
+          placeholderTextColor={colors.textMuted}
           onFocus={() => {
             setIsFocused(true);
             setShowDropdown(true);
@@ -84,10 +95,17 @@ export default function FideSearchInput({
           onBlur={() => {
             setIsFocused(false);
           }}
+          accessibilityLabel="Search FIDE player name"
         />
         {searchTerm ? (
-          <TouchableOpacity onPress={handleClear} style={styles.clearButton}>
-            <Ionicons name="close" size={18} color="#9ca3af" />
+          <TouchableOpacity
+            onPress={handleClear}
+            style={styles.clearButton}
+            accessibilityRole="button"
+            accessibilityLabel="Clear search text"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -96,8 +114,8 @@ export default function FideSearchInput({
         <View style={styles.dropdown}>
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#2563eb" />
-              <Text style={styles.loadingText}>Searching...</Text>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={styles.loadingText}>Searching FIDE database...</Text>
             </View>
           ) : fideData.length > 0 ? (
             <View style={styles.list}>
@@ -107,9 +125,11 @@ export default function FideSearchInput({
                   style={styles.playerItem}
                   onPress={() => handleSelectPlayer(item)}
                   activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Select player ${item.name}`}
                 >
                   <View style={styles.playerAvatar}>
-                    <Ionicons name="person" size={16} color="#6b7280" />
+                    <Ionicons name="person" size={16} color={colors.primary} />
                   </View>
                   <View style={styles.playerInfo}>
                     <Text style={styles.playerName} numberOfLines={1}>
@@ -128,7 +148,7 @@ export default function FideSearchInput({
             </View>
           ) : searchTerm ? (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No players found</Text>
+              <Text style={styles.emptyText}>No players found matching "{searchTerm}"</Text>
             </View>
           ) : null}
         </View>
@@ -140,72 +160,76 @@ export default function FideSearchInput({
 const styles = StyleSheet.create({
   container: {
     position: 'relative',
+    zIndex: 20,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 14,
-    backgroundColor: '#fff',
-    paddingHorizontal: 12,
+    minHeight: touchTargets.min,
+    borderWidth: 1.5,
+    borderColor: colors.borderInput,
+    borderRadius: radii.control,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.md,
   },
   inputContainerFocused: {
-    borderColor: '#2563eb',
-    shadowColor: '#2563eb',
+    borderColor: colors.borderFocus,
+    backgroundColor: colors.surface,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.15,
     shadowRadius: 6,
     elevation: 2,
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: spacing.sm,
   },
   input: {
     flex: 1,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#1f2937',
+    minHeight: touchTargets.min,
+    paddingVertical: spacing.md - 2,
+    ...typography.body,
+    color: colors.textPrimary,
   },
   clearButton: {
-    padding: 8,
-    marginRight: -4,
+    padding: spacing.xs,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 32,
+    minHeight: 32,
   },
   dropdown: {
     position: 'absolute',
     top: '100%',
     left: 0,
     right: 0,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 14,
-    marginTop: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 5,
+    borderColor: colors.border,
+    borderRadius: radii.control,
+    marginTop: spacing.xs + 2,
+    ...shadows.sheet,
     zIndex: 1000,
     overflow: 'hidden',
   },
   list: {
-    maxHeight: 240,
+    maxHeight: 250,
   },
   playerItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    minHeight: touchTargets.min,
+    paddingVertical: spacing.md - 2,
+    paddingHorizontal: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-    gap: 12,
+    borderBottomColor: colors.border,
+    gap: spacing.md,
   },
   playerAvatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#f3f4f6',
+    width: 32,
+    height: 32,
+    borderRadius: radii.pill,
+    backgroundColor: colors.surfaceSelected,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -213,50 +237,47 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   playerName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1f2937',
+    ...typography.bodyBold,
+    color: colors.textPrimary,
   },
   playerId: {
     marginTop: 2,
-    fontSize: 12,
-    color: '#9ca3af',
-    fontWeight: '600',
+    ...typography.caption,
+    color: colors.textSecondary,
   },
   playerRatingRight: {
     alignItems: 'flex-end',
-    minWidth: 64,
+    minWidth: 60,
   },
   ratingNumber: {
     fontSize: 16,
-    fontWeight: '800',
-    color: '#2563eb',
+    fontWeight: '700',
+    color: colors.primary,
   },
   ratingLabel: {
     marginTop: 2,
     fontSize: 10,
     letterSpacing: 0.6,
-    color: '#9ca3af',
+    color: colors.textSecondary,
     fontWeight: '700',
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 12,
-    gap: 8,
+    padding: spacing.lg,
+    gap: spacing.sm,
   },
   loadingText: {
-    color: '#6b7280',
-    fontSize: 14,
+    ...typography.caption,
+    color: colors.textSecondary,
   },
   emptyContainer: {
-    padding: 12,
+    padding: spacing.lg,
     alignItems: 'center',
   },
   emptyText: {
-    color: '#6b7280',
-    fontSize: 14,
+    ...typography.caption,
+    color: colors.textSecondary,
   },
 });
-

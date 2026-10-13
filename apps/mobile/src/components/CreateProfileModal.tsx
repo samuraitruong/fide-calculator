@@ -11,11 +11,13 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import type { UserProfile } from '@fide-calculator/shared';
 import { useAuth } from '@/contexts/AuthContext';
 import type { LocalProfile } from '@/hooks/useLocalStorage';
 import type { FidePlayer } from '@/hooks/useFideData';
 import FideSearchInput from './FideSearchInput';
+import { colors, radii, spacing, typography, touchTargets, shadows } from '../theme/tokens';
 
 interface CreateProfileModalProps {
   open: boolean;
@@ -78,7 +80,7 @@ export default function CreateProfileModal({
 
   const handleSubmit = async () => {
     if (!name.trim()) {
-      setError('Name is required.');
+      setError('Player name is required.');
       return;
     }
     setLoading(true);
@@ -121,7 +123,7 @@ export default function CreateProfileModal({
         }
       }
     } catch {
-      setError('Something went wrong.');
+      setError('Something went wrong creating this profile.');
     } finally {
       setLoading(false);
     }
@@ -147,108 +149,211 @@ export default function CreateProfileModal({
           style={styles.keyboardView}
         >
           <View style={styles.modal}>
+            {/* Header */}
             <View style={styles.header}>
-              <Text style={styles.title}>New Profile</Text>
-              <TouchableOpacity onPress={onClose} hitSlop={12}>
-                <Text style={styles.closeText}>✕</Text>
+              <View style={styles.headerTitleRow}>
+                <Text style={styles.headerMotif}>♟</Text>
+                <Text style={styles.title}>New Profile</Text>
+              </View>
+              <TouchableOpacity
+                onPress={onClose}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={styles.closeButton}
+                accessibilityRole="button"
+                accessibilityLabel="Close new profile modal"
+              >
+                <Ionicons name="close" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {error ? <Text style={styles.error}>{error}</Text> : null}
-              <Text style={styles.hint}>
-                Search FIDE players or enter your name to auto-fill ratings.
-              </Text>
 
-              <Text style={styles.label}>Player name *</Text>
-              <FideSearchInput
-                value={name}
-                onChange={setName}
-                onSelect={handleFideSelect}
-                placeholder="Search FIDE players or enter your name"
-              />
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              {error ? (
+                <View style={styles.errorBanner}>
+                  <Ionicons name="alert-circle-outline" size={18} color={colors.negativeText} />
+                  <Text style={styles.errorText}>{error}</Text>
+                </View>
+              ) : null}
 
-              <Text style={styles.label}>FIDE ID</Text>
-              <TextInput
-                style={styles.input}
-                value={fideId}
-                onChangeText={setFideId}
-                placeholder="e.g. 12345678"
-                keyboardType="number-pad"
-              />
-
-              <Text style={styles.label}>Title</Text>
-              <View style={styles.titleRow}>
-                {TITLES.map((t) => (
-                  <TouchableOpacity
-                    key={t || 'none'}
-                    style={[styles.titleChip, t === title && styles.titleChipActive]}
-                    onPress={() => setTitle(t)}
-                  >
-                    <Text style={[styles.titleChipText, t === title && styles.titleChipTextActive]}>
-                      {t || 'None'}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+              <View style={styles.hintBox}>
+                <Ionicons name="sparkles-outline" size={16} color={colors.primary} />
+                <Text style={styles.hintText}>
+                  Search your FIDE record or enter manually to autofill ratings.
+                </Text>
               </View>
 
-              <Text style={styles.label}>Federation</Text>
-              <TextInput
-                style={styles.input}
-                value={federation}
-                onChangeText={(text) => setFederation(text.toUpperCase().slice(0, 3))}
-                placeholder="e.g. USA, GER"
-                autoCapitalize="characters"
-                maxLength={3}
-              />
+              {/* Group 1: Player Identity */}
+              <View style={styles.groupCard}>
+                <Text style={styles.groupHeader}>Player</Text>
 
-              <Text style={styles.label}>Birth year</Text>
-              <TextInput
-                style={styles.input}
-                value={birthYear}
-                onChangeText={setBirthYear}
-                placeholder="e.g. 1990"
-                keyboardType="number-pad"
-              />
+                <View style={styles.fieldSpacing}>
+                  <Text style={styles.label}>Player name *</Text>
+                  <FideSearchInput
+                    value={name}
+                    onChange={setName}
+                    onSelect={handleFideSelect}
+                    placeholder="Search FIDE players or type name..."
+                  />
+                </View>
 
-              <Text style={styles.sectionLabel}>Current ratings</Text>
-              <Text style={styles.label}>Standard</Text>
-              <TextInput
-                style={styles.input}
-                value={String(standardRating)}
-                onChangeText={(t) => setNum(setStandardRating, t)}
-                keyboardType="number-pad"
-                placeholder="1500"
-              />
-              <Text style={styles.label}>Rapid</Text>
-              <TextInput
-                style={styles.input}
-                value={String(rapidRating)}
-                onChangeText={(t) => setNum(setRapidRating, t)}
-                keyboardType="number-pad"
-                placeholder="1500"
-              />
-              <Text style={styles.label}>Blitz</Text>
-              <TextInput
-                style={styles.input}
-                value={String(blitzRating)}
-                onChangeText={(t) => setNum(setBlitzRating, t)}
-                keyboardType="number-pad"
-                placeholder="1500"
-              />
+                <View style={styles.fieldSpacing}>
+                  <Text style={styles.label}>FIDE ID</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={fideId}
+                    onChangeText={setFideId}
+                    placeholder="e.g. 12345678"
+                    placeholderTextColor={colors.textMuted}
+                    keyboardType="number-pad"
+                    accessibilityLabel="FIDE ID"
+                  />
+                </View>
+              </View>
 
+              {/* Group 2: Player Details */}
+              <View style={styles.groupCard}>
+                <Text style={styles.groupHeader}>Details</Text>
+
+                <View style={styles.fieldSpacing}>
+                  <Text style={styles.label}>Title</Text>
+                  <View style={styles.titleRow}>
+                    {TITLES.map((t) => {
+                      const isSelected = t === title;
+                      return (
+                        <TouchableOpacity
+                          key={t || 'none'}
+                          style={[
+                            styles.titleChip,
+                            isSelected && styles.titleChipActive,
+                          ]}
+                          onPress={() => setTitle(t)}
+                          activeOpacity={0.8}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: isSelected }}
+                          accessibilityLabel={`Title ${t || 'None'}`}
+                        >
+                          <Text
+                            style={[
+                              styles.titleChipText,
+                              isSelected && styles.titleChipTextActive,
+                            ]}
+                          >
+                            {t || 'None'}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                <View style={styles.fieldGrid}>
+                  <View style={styles.fieldCol}>
+                    <Text style={styles.label}>Federation</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={federation}
+                      onChangeText={(text) =>
+                        setFederation(text.toUpperCase().slice(0, 3))
+                      }
+                      placeholder="e.g. USA"
+                      placeholderTextColor={colors.textMuted}
+                      autoCapitalize="characters"
+                      maxLength={3}
+                      accessibilityLabel="Federation 3-letter code"
+                    />
+                  </View>
+
+                  <View style={styles.fieldCol}>
+                    <Text style={styles.label}>Birth year</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={birthYear}
+                      onChangeText={setBirthYear}
+                      placeholder="e.g. 1995"
+                      placeholderTextColor={colors.textMuted}
+                      keyboardType="number-pad"
+                      accessibilityLabel="Birth year"
+                    />
+                  </View>
+                </View>
+              </View>
+
+              {/* Group 3: Current Ratings */}
+              <View style={styles.groupCard}>
+                <Text style={styles.groupHeader}>Ratings</Text>
+                <Text style={styles.groupSubhead}>
+                  Starting official or initial estimates
+                </Text>
+
+                <View style={styles.ratingGrid}>
+                  <View style={styles.ratingCol}>
+                    <Text style={styles.label}>Standard</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={String(standardRating)}
+                      onChangeText={(t) => setNum(setStandardRating, t)}
+                      keyboardType="number-pad"
+                      placeholder="1500"
+                      placeholderTextColor={colors.textMuted}
+                      accessibilityLabel="Standard starting rating"
+                    />
+                  </View>
+
+                  <View style={styles.ratingCol}>
+                    <Text style={styles.label}>Rapid</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={String(rapidRating)}
+                      onChangeText={(t) => setNum(setRapidRating, t)}
+                      keyboardType="number-pad"
+                      placeholder="1500"
+                      placeholderTextColor={colors.textMuted}
+                      accessibilityLabel="Rapid starting rating"
+                    />
+                  </View>
+
+                  <View style={styles.ratingCol}>
+                    <Text style={styles.label}>Blitz</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={String(blitzRating)}
+                      onChangeText={(t) => setNum(setBlitzRating, t)}
+                      keyboardType="number-pad"
+                      placeholder="1500"
+                      placeholderTextColor={colors.textMuted}
+                      accessibilityLabel="Blitz starting rating"
+                    />
+                  </View>
+                </View>
+              </View>
+
+              {/* Actions */}
               <View style={styles.actions}>
-                <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
+                <TouchableOpacity
+                  style={styles.cancelBtn}
+                  onPress={onClose}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel creating profile"
+                >
                   <Text style={styles.cancelBtnText}>Cancel</Text>
                 </TouchableOpacity>
+
                 <TouchableOpacity
                   style={[styles.submitBtn, loading && styles.buttonDisabled]}
                   onPress={handleSubmit}
                   disabled={loading}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel="Create profile"
                 >
                   {loading ? (
-                    <ActivityIndicator size="small" color="#fff" />
+                    <ActivityIndicator size="small" color={colors.primaryText} />
                   ) : (
-                    <Text style={styles.submitBtnText}>Create</Text>
+                    <Text style={styles.submitBtnText}>Create Profile</Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -263,125 +368,210 @@ export default function CreateProfileModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: colors.overlay,
     justifyContent: 'flex-end',
   },
   keyboardView: {
-    maxHeight: '90%',
+    flex: 1,
+    justifyContent: 'flex-end',
   },
   modal: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 24,
-    paddingBottom: 40,
+    maxHeight: '90%',
+    backgroundColor: colors.canvas,
+    borderTopLeftRadius: radii.sheet,
+    borderTopRightRadius: radii.sheet,
+    borderTopWidth: 1,
+    borderColor: colors.border,
+    ...shadows.sheet,
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  headerMotif: {
+    fontSize: 20,
+    color: colors.primary,
   },
   title: {
-    fontSize: 20,
+    ...typography.subheading,
+    color: colors.textPrimary,
+  },
+  closeButton: {
+    width: touchTargets.min,
+    height: touchTargets.min,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.pill,
+  },
+  scrollContent: {
+    paddingHorizontal: spacing.screenInset,
+    paddingVertical: spacing.xl,
+    gap: spacing.lg,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.negativeBg,
+    padding: spacing.md,
+    borderRadius: radii.control,
+    gap: spacing.sm,
+  },
+  errorText: {
+    flex: 1,
+    ...typography.caption,
+    color: colors.negativeText,
     fontWeight: '700',
-    color: '#1f2937',
   },
-  closeText: {
-    fontSize: 22,
-    color: '#6b7280',
-    padding: 4,
+  hintBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceSelected,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.control,
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  hint: {
-    fontSize: 13,
-    color: '#6b7280',
-    marginBottom: 12,
+  hintText: {
+    flex: 1,
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '600',
   },
-  sectionLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#374151',
-    marginTop: 16,
-    marginBottom: 8,
+
+  // Grouped Cards
+  groupCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    ...shadows.card,
+  },
+  groupHeader: {
+    ...typography.subheading,
+    color: colors.primary,
+    marginBottom: spacing.xs,
+  },
+  groupSubhead: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+  },
+  fieldSpacing: {
+    marginTop: spacing.md,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 6,
-    marginTop: 8,
+    ...typography.label,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs + 2,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#1f2937',
-    marginBottom: 8,
+    minHeight: touchTargets.min,
+    borderWidth: 1.5,
+    borderColor: colors.borderInput,
+    borderRadius: radii.control,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md - 2,
+    ...typography.body,
+    color: colors.textPrimary,
   },
+  fieldGrid: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.md,
+  },
+  fieldCol: {
+    flex: 1,
+  },
+
+  // Title Chips
   titleRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 8,
+    gap: spacing.sm,
   },
   titleChip: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#fff',
+    minWidth: 44,
+    minHeight: 40,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+    borderRadius: radii.pill,
+    borderWidth: 1.5,
+    borderColor: colors.borderInput,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   titleChipActive: {
-    backgroundColor: '#2563eb',
-    borderColor: '#2563eb',
+    backgroundColor: colors.surfaceSelected,
+    borderColor: colors.primary,
   },
   titleChipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#4b5563',
+    ...typography.label,
+    color: colors.textSecondary,
   },
   titleChipTextActive: {
-    color: '#fff',
+    color: colors.primary,
+    fontWeight: '700',
   },
-  error: {
-    fontSize: 14,
-    color: '#b91c1c',
-    marginBottom: 12,
+
+  // Rating Grid
+  ratingGrid: {
+    flexDirection: 'row',
+    gap: spacing.sm,
   },
+  ratingCol: {
+    flex: 1,
+  },
+
+  // Actions
   actions: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
+    gap: spacing.md,
+    marginTop: spacing.xs,
   },
   cancelBtn: {
     flex: 1,
-    paddingVertical: 14,
+    minHeight: touchTargets.primaryControl,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radii.control,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
-    borderRadius: 8,
-    backgroundColor: '#f3f4f6',
+    justifyContent: 'center',
   },
   cancelBtnText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#4b5563',
+    ...typography.bodyBold,
+    color: colors.textSecondary,
   },
   submitBtn: {
-    flex: 1,
-    paddingVertical: 14,
+    flex: 2,
+    minHeight: touchTargets.primaryControl,
+    backgroundColor: colors.primary,
+    borderRadius: radii.control,
     alignItems: 'center',
-    borderRadius: 8,
-    backgroundColor: '#2563eb',
+    justifyContent: 'center',
   },
   submitBtnText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    ...typography.bodyBold,
+    color: colors.primaryText,
   },
   buttonDisabled: {
-    opacity: 0.7,
+    opacity: 0.5,
   },
 });

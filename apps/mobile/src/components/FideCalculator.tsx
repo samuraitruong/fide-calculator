@@ -16,6 +16,7 @@ import { calculateRatingChange, getRatingMonthFromDate, getResultRatingMonth, is
 import FideSearchInput from './FideSearchInput';
 import WinDrawLossBar from './WinDrawLossBar';
 import EditGameModal from './EditGameModal';
+import { colors, radii, spacing, typography, touchTargets, shadows } from '../theme/tokens';
 
 type Mode = 'local' | 'cloud';
 
@@ -84,7 +85,10 @@ export default function FideCalculatorMobile({
   const [gameResult, setGameResult] = useState<GameResult>('win');
   const [currentChange, setCurrentChange] = useState<number | null>(null);
   const [hasCalculated, setHasCalculated] = useState(false);
-  const [date, setDate] = useState(() => { const now = new Date(); return `${getRatingMonthFromDate(now)}-${String(now.getDate()).padStart(2, '0')}`; });
+  const [date, setDate] = useState(() => {
+    const now = new Date();
+    return `${getRatingMonthFromDate(now)}-${String(now.getDate()).padStart(2, '0')}`;
+  });
   const [ratingMonth, setRatingMonth] = useState(() => getRatingMonthFromDate(new Date()));
   const [monthManuallyChanged, setMonthManuallyChanged] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -132,9 +136,19 @@ export default function FideCalculatorMobile({
   }, [currentMonthResults]);
 
   const isDateValid = useMemo(() => {
-    try { getRatingMonthFromDate(date); return true; } catch { return false; }
+    try {
+      getRatingMonthFromDate(date);
+      return true;
+    } catch {
+      return false;
+    }
   }, [date]);
-  const isFormValid = isValidRating(playerRating) && isValidRating(opponentRating) && isDateValid && isValidRatingMonth(ratingMonth);
+
+  const isFormValid =
+    isValidRating(playerRating) &&
+    isValidRating(opponentRating) &&
+    isDateValid &&
+    isValidRatingMonth(ratingMonth);
 
   // After user calculates once, keep the entry's rating change live-updated
   useEffect(() => {
@@ -185,8 +199,6 @@ export default function FideCalculatorMobile({
       setSaving(false);
     }
 
-    // Keep player rating as the base (official) rating like web.
-    // Live Rating will reflect the current-month progress.
     if (profile) {
       setPlayerRating(getProfileRatingForType(profile, ratingType));
       setPlayerRatingManuallyChanged(false);
@@ -208,273 +220,474 @@ export default function FideCalculatorMobile({
     return Math.round(playerRating + currentMonthChange);
   }, [playerRating, currentMonthChange]);
 
-  const liveColor =
-    currentMonthChange > 0 ? '#059669' : currentMonthChange < 0 ? '#b91c1c' : '#111827';
-
-  const displayChange = hasCalculated && currentChange !== null ? currentChange : currentMonthChange;
-  const displayIsPositive = displayChange > 0;
-  const displayIsNegative = displayChange < 0;
   const showingEntryChange = hasCalculated && currentChange !== null;
 
   return (
     <View style={styles.container}>
-      <View style={[styles.section, styles.sectionTop]}>
-        <View style={styles.ratingTypeContainer}>
-          <View style={styles.ratingTypeRow}>
-            {ratingTypes.map((type) => (
-              <TouchableOpacity
-                key={type}
-                style={[
-                  styles.ratingTypeButton,
-                  ratingType === type && styles.ratingTypeButtonActive,
-                ]}
-                onPress={() => onChangeRatingType(type)}
-                activeOpacity={0.9}
-              >
-                <Text
-                  style={[
-                    styles.ratingTypeText,
-                    ratingType === type && styles.ratingTypeTextActive,
-                  ]}
-                >
-                  {type.charAt(0).toUpperCase() + type.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+      {/* 1. Rating Type Segmented Control */}
+      <View style={styles.segmentContainer}>
+        {ratingTypes.map((type) => {
+          const isActive = ratingType === type;
+          return (
+            <TouchableOpacity
+              key={type}
+              style={[styles.segmentTab, isActive && styles.segmentTabActive]}
+              onPress={() => onChangeRatingType(type)}
+              activeOpacity={0.8}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isActive }}
+              accessibilityLabel={`${type} rating mode`}
+            >
+              <Text style={[styles.segmentText, isActive && styles.segmentTextActive]}>
+                {type.charAt(0).toUpperCase() + type.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
-      <View style={styles.topCards}>
-        <View style={styles.topCard}>
-          <Text style={styles.topCardLabel}>Rating change</Text>
-          <View style={styles.topCardValueRow}>
-            <Ionicons
-              name={displayChange > 0 ? 'arrow-up' : displayChange < 0 ? 'arrow-down' : 'remove'}
-              size={18}
-              color={displayIsPositive ? '#059669' : displayIsNegative ? '#b91c1c' : '#9ca3af'}
-            />
-            <Text
+      {/* 2. Live Rating & Monthly Progress Card */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>♞ Rating Progress (Estimate)</Text>
+          <View style={styles.badgePeach}>
+            <Text style={styles.badgePeachText}>Current Month</Text>
+          </View>
+        </View>
+
+        <View style={styles.statsRow}>
+          <View style={styles.statCol}>
+            <Text style={styles.statLabel}>ESTIMATED LIVE RATING</Text>
+            <Text style={styles.heroNumber}>{liveRating}</Text>
+            <Text style={styles.statSubtext}>Base: {playerRating}</Text>
+          </View>
+
+          <View style={[styles.statCol, styles.statColRight]}>
+            <Text style={styles.statLabel}>MONTH CHANGE</Text>
+            <View
               style={[
-                styles.topCardValue,
-                displayIsPositive
-                  ? styles.positive
-                  : displayIsNegative
-                    ? styles.negative
-                    : null,
+                styles.changeBadge,
+                currentMonthChange > 0
+                  ? styles.changeBadgePositive
+                  : currentMonthChange < 0
+                    ? styles.changeBadgeNegative
+                    : styles.changeBadgeZero,
               ]}
             >
-              {displayChange > 0 ? '+' : ''}
-              {displayChange}
-            </Text>
-          </View>
-          <Text style={styles.topCardSubtext}>
-            {showingEntryChange
-              ? `New rating: ${playerRating + (currentChange ?? 0)}`
-              : 'Total change this month'}
-          </Text>
-        </View>
-
-        <View style={styles.liveCard}>
-          <View style={styles.liveCardAccent} />
-          <View style={styles.liveCardContent}>
-            <Text style={styles.liveCardLabel}>Live rating</Text>
-            <Text style={[styles.liveCardValue, { color: liveColor }]}>{liveRating}</Text>
-            <Text style={[styles.liveCardChange, { color: liveColor }]}>
-              {currentMonthChange > 0 ? '+' : currentMonthChange === 0 ? '+' : ''}
-              {currentMonthChange}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.thisMonthHeaderRow}>
-          <Text style={styles.label}>This month</Text>
-          <Text style={styles.thisMonthCounts}>
-            Wins: {wdl.wins}  Losses: {wdl.losses}
-          </Text>
-        </View>
-        <WinDrawLossBar wins={wdl.wins} draws={wdl.draws} losses={wdl.losses} showLegend={false} />
-      </View>
-
-      <View style={[styles.section, styles.inlineRow]}>
-        <View style={styles.inlineCol}>
-          <Text style={styles.label}>Your rating</Text>
-          <TextInput
-            style={styles.input}
-            value={String(playerRating)}
-            keyboardType="numeric"
-            onChangeText={(text) => {
-              const n = Number(text.replace(/[^0-9]/g, ''));
-              setPlayerRating(Number.isNaN(n) ? 0 : n);
-              setPlayerRatingManuallyChanged(true);
-            }}
-          />
-        </View>
-        <View style={styles.inlineCol}>
-          <Text style={styles.label}>K-factor</Text>
-          <TextInput
-            style={styles.input}
-            value={String(kFactor)}
-            keyboardType="numeric"
-            onChangeText={(text) => {
-              const n = Number(text.replace(/[^0-9]/g, ''));
-              setKFactor(Number.isNaN(n) ? getDefaultK(ratingType) : n);
-            }}
-          />
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.label}>Opponent</Text>
-        <FideSearchInput
-          value={opponentName}
-          onChange={setOpponentName}
-          onSelect={handleSelectOpponent}
-          placeholder="Search FIDE players or type name..."
-        />
-        <Text style={[styles.label, styles.subLabel]}>Opponent rating</Text>
-        <TextInput
-          style={styles.input}
-          value={String(opponentRating)}
-          keyboardType="numeric"
-          onChangeText={(text) => {
-            const n = Number(text.replace(/[^0-9]/g, ''));
-            setOpponentRating(Number.isNaN(n) ? 0 : n);
-          }}
-        />
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.resultContainer}>
-          <View style={styles.resultRow}>
-            {(['win', 'draw', 'loss'] as GameResult[]).map((res) => (
-              <TouchableOpacity
-                key={res}
+              <Ionicons
+                name={
+                  currentMonthChange > 0
+                    ? 'arrow-up'
+                    : currentMonthChange < 0
+                      ? 'arrow-down'
+                      : 'remove'
+                }
+                size={16}
+                color={
+                  currentMonthChange > 0
+                    ? colors.positiveText
+                    : currentMonthChange < 0
+                      ? colors.negativeText
+                      : colors.textSecondary
+                }
+              />
+              <Text
                 style={[
-                  styles.resultButton,
-                  gameResult === res && res === 'win' && styles.resultButtonWinActive,
-                  gameResult === res && res === 'draw' && styles.resultButtonDrawActive,
-                  gameResult === res && res === 'loss' && styles.resultButtonLossActive,
+                  styles.changeBadgeText,
+                  currentMonthChange > 0
+                    ? styles.changeTextPositive
+                    : currentMonthChange < 0
+                      ? styles.changeTextNegative
+                      : styles.changeTextZero,
                 ]}
-                onPress={() => setGameResult(res)}
-                activeOpacity={0.9}
               >
+                {currentMonthChange > 0 ? '+' : ''}
+                {currentMonthChange}
+              </Text>
+            </View>
+            <Text style={styles.statSubtext}>
+              {currentMonthResults.length} {currentMonthResults.length === 1 ? 'game' : 'games'} played
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.wdlSection}>
+          <View style={styles.wdlHeader}>
+            <Text style={styles.statLabel}>RECORD</Text>
+            <Text style={styles.wdlCounts}>
+              W: {wdl.wins}  ·  D: {wdl.draws}  ·  L: {wdl.losses}
+            </Text>
+          </View>
+          <WinDrawLossBar wins={wdl.wins} draws={wdl.draws} losses={wdl.losses} showLegend={false} />
+        </View>
+      </View>
+
+      {/* 3. Grouped Player & Opponent Details Card */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>♟ Player & Opponent</Text>
+        </View>
+
+        <View style={styles.fieldGrid}>
+          <View style={styles.fieldCol}>
+            <Text style={styles.inputLabel}>Your rating</Text>
+            <TextInput
+              style={styles.textInput}
+              value={String(playerRating)}
+              keyboardType="numeric"
+              placeholder="1500"
+              placeholderTextColor={colors.textMuted}
+              onChangeText={(text) => {
+                const n = Number(text.replace(/[^0-9]/g, ''));
+                setPlayerRating(Number.isNaN(n) ? 0 : n);
+                setPlayerRatingManuallyChanged(true);
+              }}
+              accessibilityLabel="Your rating"
+            />
+          </View>
+
+          <View style={styles.fieldCol}>
+            <Text style={styles.inputLabel}>K-factor</Text>
+            <TextInput
+              style={styles.textInput}
+              value={String(kFactor)}
+              keyboardType="numeric"
+              placeholder="20"
+              placeholderTextColor={colors.textMuted}
+              onChangeText={(text) => {
+                const n = Number(text.replace(/[^0-9]/g, ''));
+                setKFactor(Number.isNaN(n) ? getDefaultK(ratingType) : n);
+              }}
+              accessibilityLabel="K-factor"
+            />
+          </View>
+        </View>
+
+        <View style={styles.formSpacing}>
+          <Text style={styles.inputLabel}>Opponent</Text>
+          <FideSearchInput
+            value={opponentName}
+            onChange={setOpponentName}
+            onSelect={handleSelectOpponent}
+            placeholder="Search FIDE players or type name..."
+          />
+        </View>
+
+        <View style={styles.formSpacing}>
+          <Text style={styles.inputLabel}>Opponent rating</Text>
+          <TextInput
+            style={styles.textInput}
+            value={String(opponentRating)}
+            keyboardType="numeric"
+            placeholder="1400"
+            placeholderTextColor={colors.textMuted}
+            onChangeText={(text) => {
+              const n = Number(text.replace(/[^0-9]/g, ''));
+              setOpponentRating(Number.isNaN(n) ? 0 : n);
+            }}
+            accessibilityLabel="Opponent rating"
+          />
+        </View>
+      </View>
+
+      {/* 4. Grouped Game Details Card */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>⚔ Match Details</Text>
+        </View>
+
+        <View style={styles.formSpacing}>
+          <Text style={styles.inputLabel}>Result</Text>
+          <View style={styles.resultRow}>
+            {(['win', 'draw', 'loss'] as GameResult[]).map((res) => {
+              const isWin = res === 'win';
+              const isDraw = res === 'draw';
+              const isLoss = res === 'loss';
+              const isSelected = gameResult === res;
+              return (
+                <TouchableOpacity
+                  key={res}
+                  style={[
+                    styles.resultButton,
+                    isSelected && isWin && styles.resultButtonWinActive,
+                    isSelected && isDraw && styles.resultButtonDrawActive,
+                    isSelected && isLoss && styles.resultButtonLossActive,
+                  ]}
+                  onPress={() => setGameResult(res)}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isSelected }}
+                  accessibilityLabel={`Game result ${res}`}
+                >
+                  <Text
+                    style={[
+                      styles.resultButtonText,
+                      isSelected && isWin && styles.resultTextWinActive,
+                      isSelected && isDraw && styles.resultTextDrawActive,
+                      isSelected && isLoss && styles.resultTextLossActive,
+                    ]}
+                  >
+                    {res === 'win' ? 'Win 1-0' : res === 'draw' ? 'Draw ½-½' : 'Loss 0-1'}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={styles.fieldGrid}>
+          <View style={styles.fieldCol}>
+            <Text style={styles.inputLabel}>Game date</Text>
+            <TextInput
+              style={styles.textInput}
+              value={date}
+              autoCapitalize="none"
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={colors.textMuted}
+              onChangeText={(value) => {
+                setDate(value);
+                if (!monthManuallyChanged) {
+                  try {
+                    setRatingMonth(getRatingMonthFromDate(value));
+                  } catch {
+                    /* Keep last valid default while typing */
+                  }
+                }
+              }}
+              accessibilityLabel="Game date in YYYY-MM-DD format"
+            />
+          </View>
+
+          <View style={styles.fieldCol}>
+            <Text style={styles.inputLabel}>Rating month</Text>
+            <TextInput
+              style={styles.textInput}
+              value={ratingMonth}
+              autoCapitalize="none"
+              placeholder="YYYY-MM"
+              placeholderTextColor={colors.textMuted}
+              onChangeText={(value) => {
+                setMonthManuallyChanged(true);
+                setRatingMonth(value);
+              }}
+              accessibilityLabel="Rating month in YYYY-MM format"
+            />
+          </View>
+        </View>
+      </View>
+
+      {/* 5. Prominent Calculated Estimate & Action Section */}
+      <View style={[styles.card, styles.estimateCard]}>
+        <View style={styles.estimateHeader}>
+          <Text style={styles.estimateTitle}>Calculated Estimate</Text>
+          <Text style={styles.estimateNotice}>Unofficial FIDE Projection</Text>
+        </View>
+
+        <View style={styles.estimateValueContainer}>
+          {showingEntryChange ? (
+            <View style={styles.estimateRow}>
+              <View
+                style={[
+                  styles.changeBadgeLarge,
+                  (currentChange ?? 0) > 0
+                    ? styles.changeBadgePositive
+                    : (currentChange ?? 0) < 0
+                      ? styles.changeBadgeNegative
+                      : styles.changeBadgeZero,
+                ]}
+              >
+                <Ionicons
+                  name={
+                    (currentChange ?? 0) > 0
+                      ? 'arrow-up'
+                      : (currentChange ?? 0) < 0
+                        ? 'arrow-down'
+                        : 'remove'
+                  }
+                  size={20}
+                  color={
+                    (currentChange ?? 0) > 0
+                      ? colors.positiveText
+                      : (currentChange ?? 0) < 0
+                        ? colors.negativeText
+                        : colors.textSecondary
+                  }
+                />
                 <Text
                   style={[
-                    styles.resultText,
-                    gameResult === res && styles.resultTextActive,
+                    styles.estimateNumber,
+                    (currentChange ?? 0) > 0
+                      ? styles.changeTextPositive
+                      : (currentChange ?? 0) < 0
+                        ? styles.changeTextNegative
+                        : styles.changeTextZero,
                   ]}
                 >
-                  {res === 'win' ? 'Win' : res === 'draw' ? 'Draw' : 'Loss'}
+                  {(currentChange ?? 0) > 0 ? '+' : ''}
+                  {currentChange}
                 </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+              </View>
+
+              <View style={styles.estimateSubDetails}>
+                <Text style={styles.estimateNewRating}>
+                  New Estimated Rating:{' '}
+                  <Text style={styles.estimateHighlight}>
+                    {Math.round((playerRating + (currentChange ?? 0)) * 10) / 10}
+                  </Text>
+                </Text>
+                <Text style={styles.estimateSubMeta}>
+                  Opponent: {opponentName || 'Opponent'} ({opponentRating})
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <Text style={styles.estimatePlaceholder}>
+              Tap <Text style={styles.boldText}>Calculate</Text> to preview rating change projection.
+            </Text>
+          )}
         </View>
-      </View>
 
-      <View style={styles.section}>
-        <Text style={styles.label}>Game date (YYYY-MM-DD)</Text>
-        <TextInput style={styles.input} value={date} autoCapitalize="none" onChangeText={(value) => {
-          setDate(value);
-          if (!monthManuallyChanged) {
-            try { setRatingMonth(getRatingMonthFromDate(value)); } catch { /* Keep last valid default while typing. */ }
-          }
-        }} />
-        <Text style={[styles.label, styles.subLabel]}>Rating month (YYYY-MM)</Text>
-        <TextInput style={styles.input} value={ratingMonth} autoCapitalize="none" onChangeText={(value) => {
-          setMonthManuallyChanged(true);
-          setRatingMonth(value);
-        }} />
-      </View>
+        {!isFormValid && (
+          <View style={styles.validationBanner}>
+            <Ionicons name="information-circle-outline" size={18} color={colors.negativeText} />
+            <Text style={styles.validationText}>
+              Enter ratings between 100 and 3500, a game date (YYYY-MM-DD), and rating month (YYYY-MM).
+            </Text>
+          </View>
+        )}
 
-      {!isFormValid && (
-        <Text style={styles.validationText}>
-          Enter ratings between 100 and 3500, a game date and a rating month (YYYY-MM).
-        </Text>
-      )}
+        <View style={styles.actionsRow}>
+          <TouchableOpacity
+            style={[styles.primaryButton, !isFormValid && styles.buttonDisabled]}
+            onPress={handleCalculate}
+            disabled={!isFormValid}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Calculate rating change estimate"
+          >
+            <Ionicons name="calculator-outline" size={20} color={colors.primaryText} />
+            <Text style={styles.primaryButtonText}>Calculate</Text>
+          </TouchableOpacity>
 
-      <View style={styles.actionsRow}>
-        <TouchableOpacity
-          style={[styles.primaryButton, !isFormValid && styles.buttonDisabled]}
-          onPress={handleCalculate}
-          disabled={!isFormValid}
-        >
-          <Text style={styles.primaryButtonText}>Calculate</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.secondaryButton, !isFormValid && styles.buttonDisabled]}
-          onPress={handleTrackGame}
-          disabled={saving || !isFormValid}
-        >
-          <Text style={styles.secondaryButtonText}>Track Game</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.gamesHeaderRow}>
-          <Text style={styles.label}>This month games ({currentMonthResults.length})</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('History')}>
-            <Text style={styles.viewAllText}>View all</Text>
+          <TouchableOpacity
+            style={[
+              styles.secondaryButton,
+              (!isFormValid || saving) && styles.buttonDisabled,
+            ]}
+            onPress={handleTrackGame}
+            disabled={saving || !isFormValid}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Track game to rating history"
+          >
+            <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+            <Text style={styles.secondaryButtonText}>
+              {saving ? 'Saving…' : 'Track Game'}
+            </Text>
           </TouchableOpacity>
         </View>
+      </View>
+
+      {/* 6. This Month's Games List Card */}
+      <View style={styles.card}>
+        <View style={styles.gamesHeaderRow}>
+          <Text style={styles.cardTitle}>
+            ♜ This Month's Games ({currentMonthResults.length})
+          </Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('History')}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            style={styles.viewAllButton}
+            accessibilityRole="button"
+            accessibilityLabel="View all games in history"
+          >
+            <Text style={styles.viewAllText}>View All</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
+
         {currentMonthResults.length === 0 ? (
-          <Text style={styles.emptyText}>No games tracked yet.</Text>
+          <View style={styles.emptyContainer}>
+            <Ionicons name="flag-outline" size={32} color={colors.textMuted} />
+            <Text style={styles.emptyText}>No games tracked for this month yet.</Text>
+            <Text style={styles.emptySubtext}>
+              Calculate and tap "Track Game" above to start logging.
+            </Text>
+          </View>
         ) : (
-          <>
+          <View style={styles.gamesList}>
             {currentMonthResults
               .slice()
               .reverse()
               .slice(0, 5)
               .map((r) => {
-                const fullIndex = r.id ? results.findIndex((x) => x.id === r.id) : results.indexOf(r);
+                const fullIndex = r.id
+                  ? results.findIndex((x) => x.id === r.id)
+                  : results.indexOf(r);
                 const canDelete = removeResult != null && fullIndex !== -1;
+                const isPositive = r.ratingChange > 0;
+                const isNegative = r.ratingChange < 0;
+
                 return (
-                  <View key={r.id} style={[
-                    styles.gameRow,
-                    r.result === 'win' && styles.gameRowWin,
-                    r.result === 'draw' && styles.gameRowDraw,
-                    r.result === 'loss' && styles.gameRowLoss,
-                  ]}>
+                  <View key={r.id} style={styles.gameRow}>
                     <TouchableOpacity
                       style={styles.gameRowTouchable}
                       activeOpacity={0.7}
                       onPress={() => updateResult && setEditingGame(r)}
                       disabled={!updateResult}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Game vs ${r.opponentName || 'Opponent'}`}
                     >
                       <View style={styles.gameAvatar}>
-                        <Ionicons name="person-circle-outline" size={24} color="#6b7280" />
+                        <Ionicons name="person" size={16} color={colors.primary} />
                       </View>
                       <View style={styles.gameMain}>
-                        <Text style={styles.gameOpponent}>
+                        <Text style={styles.gameOpponent} numberOfLines={1}>
                           {r.opponentName || 'Opponent'} ({r.opponentRating})
                         </Text>
                         <Text style={styles.gameMeta}>
-                          {r.date} • {r.result.toUpperCase()}
+                          {r.date} · {r.result.toUpperCase()} · K={r.kFactor}
                         </Text>
                       </View>
-                      <Text
+
+                      <View
                         style={[
-                          styles.gameChange,
-                          r.ratingChange > 0
-                            ? styles.gameChangePositive
-                            : r.ratingChange < 0
-                            ? styles.gameChangeNegative
-                            : null,
+                          styles.gameChangeBadge,
+                          isPositive
+                            ? styles.changeBadgePositive
+                            : isNegative
+                              ? styles.changeBadgeNegative
+                              : styles.changeBadgeZero,
                         ]}
                       >
-                        {r.ratingChange > 0 ? '+' : ''}
-                        {r.ratingChange}
-                      </Text>
+                        <Text
+                          style={[
+                            styles.gameChangeText,
+                            isPositive
+                              ? styles.changeTextPositive
+                              : isNegative
+                                ? styles.changeTextNegative
+                                : styles.changeTextZero,
+                          ]}
+                        >
+                          {isPositive ? '+' : ''}
+                          {r.ratingChange}
+                        </Text>
+                      </View>
+
                       {updateResult ? (
-                        <Ionicons name="chevron-forward" size={16} color="#9ca3af" style={{ marginLeft: 8 }} />
+                        <Ionicons
+                          name="chevron-forward"
+                          size={16}
+                          color={colors.textMuted}
+                          style={styles.chevronIcon}
+                        />
                       ) : null}
                     </TouchableOpacity>
+
                     {canDelete ? (
                       <TouchableOpacity
-                        hitSlop={12}
+                        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                         onPress={() => {
                           Alert.alert(
                             'Delete game',
@@ -486,52 +699,87 @@ export default function FideCalculatorMobile({
                                 style: 'destructive',
                                 onPress: async () => {
                                   try {
-                                    const index = r.id ? latestResults.current.findIndex((item) => item.id === r.id) : latestResults.current.indexOf(r);
-                                    if (index < 0) throw new Error('Game no longer exists.');
-                                    if (getResultRatingMonth(latestResults.current[index]) !== getRatingMonthFromDate(new Date())) throw new Error('Only current rating-month games can be deleted.');
+                                    const index = r.id
+                                      ? latestResults.current.findIndex(
+                                          (item) => item.id === r.id,
+                                        )
+                                      : latestResults.current.indexOf(r);
+                                    if (index < 0)
+                                      throw new Error('Game no longer exists.');
+                                    if (
+                                      getResultRatingMonth(
+                                        latestResults.current[index],
+                                      ) !== getRatingMonthFromDate(new Date())
+                                    )
+                                      throw new Error(
+                                        'Only current rating-month games can be deleted.',
+                                      );
                                     await removeResult(index);
                                   } catch (error) {
-                                    Alert.alert('Unable to delete game', error instanceof Error ? error.message : 'Please try again.');
+                                    Alert.alert(
+                                      'Unable to delete game',
+                                      error instanceof Error
+                                        ? error.message
+                                        : 'Please try again.',
+                                    );
                                   }
                                 },
                               },
-                            ]
+                            ],
                           );
                         }}
                         style={styles.deleteButton}
+                        accessibilityRole="button"
+                        accessibilityLabel="Delete game"
                       >
-                        <Ionicons name="trash-outline" size={20} color="#dc2626" />
+                        <Ionicons name="trash-outline" size={18} color={colors.negativeText} />
                       </TouchableOpacity>
                     ) : null}
                   </View>
                 );
               })}
-            <Text style={styles.summaryText}>
-              This month total: {currentMonthChange > 0 ? '+' : ''}
-              {currentMonthChange}
-            </Text>
-          </>
+
+            <View style={styles.summaryFooter}>
+              <Text style={styles.summaryFooterText}>
+                Month Net Change:{' '}
+                <Text style={styles.summaryFooterHighlight}>
+                  {currentMonthChange > 0 ? '+' : ''}
+                  {currentMonthChange}
+                </Text>
+              </Text>
+            </View>
+          </View>
         )}
       </View>
 
+      {/* Edit Game Modal */}
       {updateResult ? (
         <EditGameModal
           open={editingGame !== null}
           game={editingGame}
           onClose={() => setEditingGame(null)}
-          onDelete={removeResult ? async () => {
-            if (!editingGame) throw new Error('No game selected.');
-            const idx = editingGame.id ? latestResults.current.findIndex((r) => r.id === editingGame.id) : latestResults.current.indexOf(editingGame);
-            if (idx < 0) throw new Error('Game no longer exists.');
-            if (getResultRatingMonth(latestResults.current[idx]) !== getRatingMonthFromDate(new Date())) throw new Error('Only current rating-month games can be deleted.');
-            await removeResult(idx);
-          } : undefined}
           onSave={async (updates) => {
             if (!editingGame) return;
-            const idx = editingGame.id ? latestResults.current.findIndex((r) => r.id === editingGame.id) : latestResults.current.indexOf(editingGame);
-            if (idx < 0) throw new Error('Game no longer exists.');
-            await updateResult(idx, updates);
+            const index = editingGame.id
+              ? latestResults.current.findIndex((r) => r.id === editingGame.id)
+              : latestResults.current.indexOf(editingGame);
+            if (index < 0) return;
+            await updateResult(index, updates);
           }}
+          onDelete={
+            removeResult
+              ? async () => {
+                  if (!editingGame) return;
+                  const index = editingGame.id
+                    ? latestResults.current.findIndex(
+                        (r) => r.id === editingGame.id,
+                      )
+                    : latestResults.current.indexOf(editingGame);
+                  if (index < 0) return;
+                  await removeResult(index);
+                }
+              : undefined
+          }
         />
       ) : null}
     </View>
@@ -540,324 +788,458 @@ export default function FideCalculatorMobile({
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%',
-    marginTop: 0,
-    padding: 0,
-    backgroundColor: 'transparent',
+    gap: spacing.lg,
   },
-  topCards: {
+
+  // Rating Type Tabs
+  segmentContainer: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 0,
-  },
-  topCard: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-    borderRadius: 14,
-    padding: 12,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radii.control,
+    padding: spacing.xs,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border,
   },
-  topCardLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#6b7280',
-    textTransform: 'uppercase',
-    marginBottom: 8,
-  },
-  topCardValueRow: {
-    flexDirection: 'row',
+  segmentTab: {
+    flex: 1,
+    minHeight: touchTargets.min,
     alignItems: 'center',
-    gap: 8,
-  },
-  topCardValue: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#111827',
-  },
-  topCardSubtext: {
-    marginTop: 6,
-    fontSize: 12,
-    color: '#6b7280',
-    fontWeight: '600',
-  },
-  liveCard: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    overflow: 'hidden',
-  },
-  liveCardAccent: {
-    width: 5,
-    backgroundColor: '#2563eb',
-    borderTopRightRadius: 999,
-    borderBottomRightRadius: 999,
-    marginVertical: 8,
-  },
-  liveCardContent: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
     justifyContent: 'center',
+    borderRadius: radii.control - 2,
   },
-  liveCardLabel: {
-    fontSize: 12,
+  segmentTabActive: {
+    backgroundColor: colors.surfaceSelected,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  segmentText: {
+    ...typography.label,
+    color: colors.textSecondary,
+  },
+  segmentTextActive: {
+    ...typography.label,
+    color: colors.primary,
     fontWeight: '700',
-    color: '#6b7280',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: 6,
   },
-  liveCardValue: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#111827',
-    marginBottom: 4,
+
+  // Base Card
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    padding: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.card,
   },
-  liveCardChange: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  positive: {
-    color: '#059669',
-  },
-  negative: {
-    color: '#b91c1c',
-  },
-  section: {
-    marginTop: 12,
-  },
-  sectionTop: {
-    marginTop: 0,
-    marginBottom: 8,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 4,
-  },
-  subLabel: {
-    marginTop: 8,
-  },
-  thisMonthHeaderRow: {
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: spacing.md,
   },
-  thisMonthCounts: {
-    fontSize: 12,
-    color: '#6b7280',
-    fontWeight: '500',
+  cardTitle: {
+    ...typography.subheading,
+    color: colors.textPrimary,
   },
-  inlineRow: {
+
+  // Badges
+  badgePeach: {
+    backgroundColor: colors.peach,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.pill,
+  },
+  badgePeachText: {
+    ...typography.caption,
+    color: colors.peachText,
+    fontWeight: '700',
+  },
+
+  // Stats
+  statsRow: {
     flexDirection: 'row',
-    gap: 12,
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.sm,
   },
-  inlineCol: {
+  statCol: {
     flex: 1,
   },
-  ratingTypeContainer: {
-    backgroundColor: '#eff6ff',
-    borderRadius: 999,
-    padding: 4,
+  statColRight: {
+    alignItems: 'flex-end',
   },
-  ratingTypeRow: {
+  statLabel: {
+    ...typography.caption,
+    letterSpacing: 0.6,
+    color: colors.textSecondary,
+    fontWeight: '700',
+    marginBottom: spacing.xs,
+  },
+  heroNumber: {
+    ...typography.heroNumber,
+    color: colors.textPrimary,
+  },
+  statSubtext: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+  },
+
+  // Change Badges
+  changeBadge: {
     flexDirection: 'row',
-    gap: 8,
-  },
-  ratingTypeButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 999,
     alignItems: 'center',
-    backgroundColor: 'transparent',
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.pill,
+    gap: 2,
   },
-  ratingTypeButtonActive: {
-    backgroundColor: '#2563eb',
+  changeBadgeLarge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.control,
+    gap: spacing.xs,
   },
-  ratingTypeText: {
-    fontSize: 13,
-    color: '#4b5563',
-    fontWeight: '500',
+  changeBadgePositive: {
+    backgroundColor: colors.positiveBg,
   },
-  ratingTypeTextActive: {
-    color: '#ffffff',
+  changeBadgeNegative: {
+    backgroundColor: colors.negativeBg,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: '#111827',
-    backgroundColor: '#ffffff',
+  changeBadgeZero: {
+    backgroundColor: colors.neutralBg,
   },
-  resultContainer: {
-    backgroundColor: '#f3f4f6',
-    borderRadius: 999,
-    padding: 4,
+  changeBadgeText: {
+    fontSize: 15,
+    fontWeight: '700',
   },
+  changeTextPositive: {
+    color: colors.positiveText,
+  },
+  changeTextNegative: {
+    color: colors.negativeText,
+  },
+  changeTextZero: {
+    color: colors.textSecondary,
+  },
+
+  // WDL
+  wdlSection: {
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  wdlHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  wdlCounts: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+
+  // Form Fields
+  fieldGrid: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  fieldCol: {
+    flex: 1,
+  },
+  formSpacing: {
+    marginTop: spacing.md,
+  },
+  inputLabel: {
+    ...typography.label,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs + 2,
+  },
+  textInput: {
+    minHeight: touchTargets.min,
+    borderWidth: 1.5,
+    borderColor: colors.borderInput,
+    borderRadius: radii.control,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md - 2,
+    ...typography.body,
+    color: colors.textPrimary,
+  },
+
+  // Game Result Selector
   resultRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.sm,
   },
   resultButton: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 999,
+    minHeight: touchTargets.min,
     alignItems: 'center',
-    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    borderRadius: radii.control,
+    borderWidth: 1.5,
+    borderColor: colors.borderInput,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.xs,
   },
   resultButtonWinActive: {
-    backgroundColor: '#059669',
+    backgroundColor: colors.positiveBg,
+    borderColor: colors.positiveText,
   },
   resultButtonDrawActive: {
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.surfaceSelected,
+    borderColor: colors.primary,
   },
   resultButtonLossActive: {
-    backgroundColor: '#ef4444',
+    backgroundColor: colors.negativeBg,
+    borderColor: colors.negativeText,
   },
-  resultText: {
-    fontSize: 13,
-    color: '#4b5563',
-    fontWeight: '500',
+  resultButtonText: {
+    ...typography.label,
+    color: colors.textSecondary,
   },
-  resultTextActive: {
-    color: '#ffffff',
+  resultTextWinActive: {
+    color: colors.positiveText,
+    fontWeight: '700',
   },
-  actionsRow: {
-    marginTop: 16,
-    gap: 10,
+  resultTextDrawActive: {
+    color: colors.primary,
+    fontWeight: '700',
   },
-  primaryButton: {
-    backgroundColor: '#2563eb',
-    borderRadius: 999,
-    paddingVertical: 14,
+  resultTextLossActive: {
+    color: colors.negativeText,
+    fontWeight: '700',
+  },
+
+  // Estimate Card & Actions
+  estimateCard: {
+    backgroundColor: colors.surface,
+    borderColor: colors.primary,
+    borderWidth: 1.5,
+  },
+  estimateHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    width: '100%',
+    marginBottom: spacing.md,
   },
-  primaryButtonText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '600',
+  estimateTitle: {
+    ...typography.subheading,
+    color: colors.primary,
   },
-  secondaryButton: {
-    borderRadius: 999,
-    paddingVertical: 12,
+  estimateNotice: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  estimateValueContainer: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radii.control,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  estimateRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#ffffff',
-    width: '100%',
+    gap: spacing.md,
   },
-  secondaryButtonText: {
-    color: '#111827',
-    fontSize: 15,
-    fontWeight: '600',
+  estimateNumber: {
+    fontSize: 22,
+    fontWeight: '800',
   },
-  buttonDisabled: {
-    opacity: 0.5,
+  estimateSubDetails: {
+    flex: 1,
+  },
+  estimateNewRating: {
+    ...typography.body,
+    color: colors.textPrimary,
+  },
+  estimateHighlight: {
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  estimateSubMeta: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  estimatePlaceholder: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    paddingVertical: spacing.xs,
+  },
+  boldText: {
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  validationBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.negativeBg,
+    padding: spacing.md,
+    borderRadius: radii.control,
+    marginBottom: spacing.md,
+    gap: spacing.sm,
   },
   validationText: {
-    marginTop: 8,
-    fontSize: 12,
-    color: '#b91c1c',
+    flex: 1,
+    ...typography.caption,
+    color: colors.negativeText,
+    fontWeight: '600',
+  },
+
+  // Actions
+  actionsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  primaryButton: {
+    flex: 1,
+    minHeight: touchTargets.primaryControl,
+    backgroundColor: colors.primary,
+    borderRadius: radii.control,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs + 2,
+  },
+  primaryButtonText: {
+    ...typography.bodyBold,
+    color: colors.primaryText,
+  },
+  secondaryButton: {
+    flex: 1,
+    minHeight: touchTargets.primaryControl,
+    backgroundColor: colors.surfaceSelected,
+    borderRadius: radii.control,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs + 2,
+  },
+  secondaryButtonText: {
+    ...typography.bodyBold,
+    color: colors.primary,
+  },
+  buttonDisabled: {
+    opacity: 0.45,
+  },
+
+  // Games List
+  gamesHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 36,
+    paddingHorizontal: spacing.xs,
+    gap: 2,
+  },
+  viewAllText: {
+    ...typography.label,
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  emptyContainer: {
+    paddingVertical: spacing.xxl,
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   emptyText: {
-    fontSize: 13,
-    color: '#6b7280',
-    marginTop: 4,
+    ...typography.bodyBold,
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  gamesList: {
+    gap: spacing.sm,
   },
   gameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    minHeight: 60,
-    borderRadius: 14,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radii.control,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#ffffff',
-    marginTop: 8,
-  },
-  gameRowWin: {
-    backgroundColor: '#ecfdf3',
-    borderColor: '#bbf7d0',
-  },
-  gameRowDraw: {
-    backgroundColor: '#eff6ff',
-    borderColor: '#bfdbfe',
-  },
-  gameRowLoss: {
-    backgroundColor: '#fef2f2',
-    borderColor: '#fecaca',
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
   gameRowTouchable: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    minHeight: touchTargets.min,
+    gap: spacing.md,
   },
   gameAvatar: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#e5e7eb',
+    borderRadius: radii.pill,
+    backgroundColor: colors.surfaceSelected,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
-  },
-  deleteButton: {
-    padding: 8,
-    marginLeft: 4,
   },
   gameMain: {
     flex: 1,
-    marginRight: 8,
   },
   gameOpponent: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
+    ...typography.bodyBold,
+    color: colors.textPrimary,
   },
   gameMeta: {
-    fontSize: 12,
-    color: '#6b7280',
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
-  gameChange: {
-    fontSize: 14,
-    fontWeight: '600',
-    minWidth: 60,
-    textAlign: 'right',
+  gameChangeBadge: {
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.pill,
   },
-  gameChangePositive: {
-    color: '#059669',
+  gameChangeText: {
+    ...typography.caption,
+    fontWeight: '700',
   },
-  gameChangeNegative: {
-    color: '#b91c1c',
+  chevronIcon: {
+    marginLeft: spacing.xs,
   },
-  summaryText: {
-    marginTop: 6,
-    fontSize: 13,
-    color: '#374151',
-    fontWeight: '500',
-  },
-  gamesHeaderRow: {
-    flexDirection: 'row',
+  deleteButton: {
+    padding: spacing.sm,
+    justifyContent: 'center',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
+    minHeight: 40,
+    minWidth: 40,
   },
-  viewAllText: {
-    fontSize: 13,
-    color: '#2563eb',
-    fontWeight: '600',
+  summaryFooter: {
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    alignItems: 'flex-end',
+  },
+  summaryFooterText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+  },
+  summaryFooterHighlight: {
+    fontWeight: '700',
+    color: colors.textPrimary,
   },
 });
-

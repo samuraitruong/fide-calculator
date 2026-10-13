@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useSupabaseRatingList } from '@/hooks/useSupabaseRatingList';
 import FideCalculator from '@/components/FideCalculator';
+import { colors, spacing } from '../theme/tokens';
 
 export default function HomeScreen() {
   const storageMode = useStorageMode();
@@ -34,8 +35,10 @@ export default function HomeScreen() {
 
   return (
     <ScrollView
+      style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
     >
       <FideCalculator
         mode={storageMode}
@@ -52,11 +55,15 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.canvas,
+  },
   content: {
     flexGrow: 1,
-    paddingVertical: 20,
-    paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.screenInset,
+    paddingBottom: spacing.xxxl + spacing.xl,
     alignItems: 'stretch',
   },
 });

@@ -11,14 +11,16 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import { colors, radii, spacing, typography, touchTargets, shadows } from '../theme/tokens';
 
 interface AuthModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  onForgotPassword?: () => void;
 }
 
-export default function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
+export default function AuthModal({ open, onClose, onSuccess, onForgotPassword }: AuthModalProps) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,16 +33,16 @@ export default function AuthModal({ open, onClose, onSuccess }: AuthModalProps) 
 
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) {
-      setError('Please fill in all fields');
+      setError('Please fill in all fields.');
       return;
     }
     if (isSignUp) {
       if (!confirmPassword.trim()) {
-        setError('Please confirm your password');
+        setError('Please confirm your password.');
         return;
       }
       if (password !== confirmPassword) {
-        setError('Passwords do not match');
+        setError('Passwords do not match.');
         return;
       }
     }
@@ -49,7 +51,7 @@ export default function AuthModal({ open, onClose, onSuccess }: AuthModalProps) 
     setError('');
 
     try {
-      const { error: authError } = isSignUp 
+      const { error: authError } = isSignUp
         ? await signUp(email.trim(), password)
         : await signIn(email.trim(), password);
 
@@ -64,7 +66,7 @@ export default function AuthModal({ open, onClose, onSuccess }: AuthModalProps) 
         setError('');
       }
     } catch {
-      setError('An unexpected error occurred');
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -81,81 +83,123 @@ export default function AuthModal({ open, onClose, onSuccess }: AuthModalProps) 
     >
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
-          <ScrollView contentContainerStyle={styles.scrollContent}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Header */}
             <View style={styles.header}>
-              <Text style={styles.title}>
-                {isSignUp ? 'Create Account' : 'Sign In'}
-              </Text>
-              <TouchableOpacity onPress={onClose} style={styles.closeButton} hitSlop={12}>
-                <Ionicons name="close" size={24} color="#9ca3af" />
+              <View style={styles.headerTitleRow}>
+                <Text style={styles.headerMotif}>♟</Text>
+                <Text style={styles.title}>
+                  {isSignUp ? 'Create Account' : 'Sign In'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={onClose}
+                style={styles.closeButton}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                accessibilityRole="button"
+                accessibilityLabel="Close sign in modal"
+              >
+                <Ionicons name="close" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
 
             <View style={styles.form}>
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, error && styles.labelError]}>Email</Text>
+                <Text style={styles.label}>Email Address</Text>
                 <TextInput
                   style={[styles.input, error && styles.inputError]}
                   value={email}
-                  onChangeText={(t) => { setEmail(t); if (error) setError(''); }}
+                  onChangeText={(t) => {
+                    setEmail(t);
+                    if (error) setError('');
+                  }}
                   placeholder="Enter your email"
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={colors.textMuted}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
+                  accessibilityLabel="Email address"
                 />
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, error && styles.labelError]}>Password</Text>
+                <Text style={styles.label}>Password</Text>
                 <View style={[styles.passwordContainer, error && styles.inputError]}>
                   <TextInput
                     style={styles.passwordInput}
                     value={password}
-                    onChangeText={(t) => { setPassword(t); if (error) setError(''); }}
+                    onChangeText={(t) => {
+                      setPassword(t);
+                      if (error) setError('');
+                    }}
                     placeholder={isSignUp ? 'Create a password' : 'Enter your password'}
-                    placeholderTextColor="#9ca3af"
+                    placeholderTextColor={colors.textMuted}
                     secureTextEntry={!showPassword}
                     autoCapitalize="none"
                     autoCorrect={false}
+                    accessibilityLabel="Password"
                   />
                   <TouchableOpacity
                     onPress={() => setShowPassword(!showPassword)}
                     style={styles.eyeButton}
-                    hitSlop={8}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    accessibilityRole="button"
+                    accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
                   >
                     <Ionicons
                       name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                      size={22}
-                      color="#9ca3af"
+                      size={20}
+                      color={colors.textSecondary}
                     />
                   </TouchableOpacity>
                 </View>
               </View>
 
+              {!isSignUp && onForgotPassword ? (
+                <TouchableOpacity
+                  onPress={onForgotPassword}
+                  style={styles.forgotPasswordButton}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Forgot password"
+                >
+                  <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+                </TouchableOpacity>
+              ) : null}
+
               {isSignUp ? (
                 <View style={styles.inputGroup}>
-                  <Text style={[styles.label, error && styles.labelError]}>Confirm Password</Text>
+                  <Text style={styles.label}>Confirm Password</Text>
                   <View style={[styles.passwordContainer, error && styles.inputError]}>
                     <TextInput
                       style={styles.passwordInput}
                       value={confirmPassword}
-                      onChangeText={(t) => { setConfirmPassword(t); if (error) setError(''); }}
+                      onChangeText={(t) => {
+                        setConfirmPassword(t);
+                        if (error) setError('');
+                      }}
                       placeholder="Confirm your password"
-                      placeholderTextColor="#9ca3af"
+                      placeholderTextColor={colors.textMuted}
                       secureTextEntry={!showConfirmPassword}
                       autoCapitalize="none"
                       autoCorrect={false}
+                      accessibilityLabel="Confirm password"
                     />
                     <TouchableOpacity
                       onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                       style={styles.eyeButton}
-                      hitSlop={8}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      accessibilityRole="button"
+                      accessibilityLabel={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
                     >
                       <Ionicons
                         name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
-                        size={22}
-                        color="#9ca3af"
+                        size={20}
+                        color={colors.textSecondary}
                       />
                     </TouchableOpacity>
                   </View>
@@ -164,7 +208,7 @@ export default function AuthModal({ open, onClose, onSuccess }: AuthModalProps) 
 
               {error ? (
                 <View style={styles.errorContainer}>
-                  <Ionicons name="alert-circle" size={18} color="#dc2626" style={styles.errorIcon} />
+                  <Ionicons name="alert-circle" size={18} color={colors.negativeText} />
                   <Text style={styles.errorText}>{error}</Text>
                 </View>
               ) : null}
@@ -173,9 +217,12 @@ export default function AuthModal({ open, onClose, onSuccess }: AuthModalProps) 
                 style={[styles.submitButton, loading && styles.submitButtonDisabled]}
                 onPress={handleSubmit}
                 disabled={loading}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={isSignUp ? 'Create account' : 'Sign in'}
               >
                 {loading ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={colors.primaryText} />
                 ) : (
                   <Text style={styles.submitButtonText}>
                     {isSignUp ? 'Create Account' : 'Sign In'}
@@ -192,6 +239,8 @@ export default function AuthModal({ open, onClose, onSuccess }: AuthModalProps) 
                   setError('');
                 }}
                 style={styles.footerTouchable}
+                activeOpacity={0.8}
+                accessibilityRole="button"
               >
                 <Text style={styles.footerLabel}>
                   {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
@@ -202,17 +251,16 @@ export default function AuthModal({ open, onClose, onSuccess }: AuthModalProps) 
               </TouchableOpacity>
             </View>
 
-            {isSignUp && (
-              <>
-                <Text style={styles.termsText}>
-                  By creating an account, you agree to our terms of service and privacy policy.
-                </Text>
-                <View style={styles.branding}>
-                  <Ionicons name="trophy-outline" size={14} color="#9ca3af" />
-                  <Text style={styles.brandingText}>FIDE RATING CALCULATOR</Text>
-                </View>
-              </>
-            )}
+            {isSignUp ? (
+              <Text style={styles.termsText}>
+                By creating an account, your chess games and ratings sync securely to the cloud.
+              </Text>
+            ) : null}
+
+            <View style={styles.branding}>
+              <Text style={styles.brandingMotif}>♞</Text>
+              <Text style={styles.brandingText}>FRIENDLY CHESS CLUB</Text>
+            </View>
           </ScrollView>
         </View>
       </View>
@@ -223,153 +271,182 @@ export default function AuthModal({ open, onClose, onSuccess }: AuthModalProps) 
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing.xl,
   },
   modalContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
+    backgroundColor: colors.surface,
+    borderRadius: radii.sheet,
+    borderWidth: 1,
+    borderColor: colors.border,
     width: '100%',
     maxWidth: 400,
     maxHeight: '90%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 5,
+    ...shadows.sheet,
+    overflow: 'hidden',
   },
   scrollContent: {
-    padding: 24,
+    padding: spacing.xxl,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 28,
+    marginBottom: spacing.xl,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  headerMotif: {
+    fontSize: 22,
+    color: colors.primary,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
+    ...typography.subheading,
+    color: colors.textPrimary,
   },
   closeButton: {
-    padding: 4,
+    width: touchTargets.min,
+    height: touchTargets.min,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.pill,
   },
   form: {
-    gap: 20,
+    gap: spacing.lg,
   },
   inputGroup: {
-    gap: 8,
+    gap: spacing.xs + 2,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  labelError: {
-    color: '#dc2626',
+    ...typography.label,
+    color: colors.textSecondary,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 16,
-    color: '#111827',
-    backgroundColor: '#fff',
+    minHeight: touchTargets.min,
+    borderWidth: 1.5,
+    borderColor: colors.borderInput,
+    borderRadius: radii.control,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md - 2,
+    ...typography.body,
+    color: colors.textPrimary,
+    backgroundColor: colors.surface,
   },
   inputError: {
-    borderColor: '#dc2626',
-    borderWidth: 1.5,
+    borderColor: colors.negativeText,
   },
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 12,
-    backgroundColor: '#fff',
+    minHeight: touchTargets.min,
+    borderWidth: 1.5,
+    borderColor: colors.borderInput,
+    borderRadius: radii.control,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.md,
   },
   passwordInput: {
     flex: 1,
-    padding: 14,
-    paddingRight: 8,
-    fontSize: 16,
-    color: '#111827',
+    paddingVertical: spacing.md - 2,
+    ...typography.body,
+    color: colors.textPrimary,
   },
   eyeButton: {
-    padding: 12,
+    padding: spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  forgotPasswordButton: {
+    alignSelf: 'flex-end',
+    marginTop: -spacing.xs,
+    paddingVertical: spacing.xs,
+    minHeight: 36,
+    justifyContent: 'center',
+  },
+  forgotPasswordText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '700',
   },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fef2f2',
-    borderWidth: 1,
-    borderColor: '#fecaca',
-    borderRadius: 12,
-    padding: 14,
-  },
-  errorIcon: {
-    marginRight: 10,
+    backgroundColor: colors.negativeBg,
+    borderRadius: radii.control,
+    padding: spacing.md,
+    gap: spacing.sm,
   },
   errorText: {
     flex: 1,
-    color: '#dc2626',
-    fontSize: 14,
+    ...typography.caption,
+    color: colors.negativeText,
+    fontWeight: '700',
   },
   submitButton: {
-    backgroundColor: '#2563eb',
-    borderRadius: 12,
-    padding: 16,
+    minHeight: touchTargets.primaryControl,
+    backgroundColor: colors.primary,
+    borderRadius: radii.control,
     alignItems: 'center',
-    marginTop: 8,
+    justifyContent: 'center',
+    marginTop: spacing.xs,
   },
   submitButtonDisabled: {
     opacity: 0.5,
   },
   submitButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    ...typography.bodyBold,
+    color: colors.primaryText,
   },
   footer: {
-    marginTop: 28,
+    marginTop: spacing.xl,
     alignItems: 'center',
   },
   footerTouchable: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 40,
   },
   footerLabel: {
-    fontSize: 14,
-    color: '#6b7280',
+    ...typography.body,
+    color: colors.textSecondary,
   },
   footerLink: {
-    fontSize: 14,
-    color: '#2563eb',
-    fontWeight: '600',
+    ...typography.bodyBold,
+    color: colors.primary,
   },
   termsText: {
-    marginTop: 16,
-    fontSize: 12,
-    color: '#6b7280',
+    marginTop: spacing.md,
+    ...typography.caption,
+    color: colors.textMuted,
     textAlign: 'center',
   },
   branding: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    marginTop: 24,
+    gap: spacing.xs + 2,
+    marginTop: spacing.xl,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  brandingMotif: {
+    fontSize: 16,
+    color: colors.primary,
   },
   brandingText: {
     fontSize: 11,
-    color: '#9ca3af',
-    letterSpacing: 0.5,
-    fontWeight: '600',
+    color: colors.textSecondary,
+    letterSpacing: 0.8,
+    fontWeight: '700',
   },
 });
-

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import FideSearchInput from './FideSearchInput';
 import { FidePlayer } from '../hooks/useFideData';
+import { colors, radii, spacing, typography, touchTargets, shadows } from '../theme/tokens';
 
 interface LocalStorageModalProps {
   open: boolean;
@@ -43,7 +44,7 @@ export default function LocalStorageModal({ open, onClose, onSuccess }: LocalSto
     setTitle(player.title || '');
     setFederation(player.federation || '');
     if (player.birthYear) {
-      setBirthYear(player.birthYear);
+      setBirthYear(player.birthYear.toString());
     }
   };
 
@@ -57,16 +58,15 @@ export default function LocalStorageModal({ open, onClose, onSuccess }: LocalSto
     setError('');
 
     try {
-      // Create local profile
       const profile = {
         name: name.trim(),
         fideId: fideId.trim() || undefined,
         title: title.trim() || undefined,
         federation: federation.trim() || undefined,
-        birthYear: birthYear ? parseInt(birthYear) : undefined,
-        standardRating: 1500, // Default rating
-        rapidRating: 1500,    // Default rating
-        blitzRating: 1500,    // Default rating
+        birthYear: birthYear ? parseInt(birthYear, 10) : undefined,
+        standardRating: 1500,
+        rapidRating: 1500,
+        blitzRating: 1500,
         isLocal: true,
       };
 
@@ -90,23 +90,32 @@ export default function LocalStorageModal({ open, onClose, onSuccess }: LocalSto
     >
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
-          <ScrollView contentContainerStyle={styles.scrollContent}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
             <View style={styles.header}>
               <View style={styles.titleContainer}>
-                <Text style={styles.titleIcon}>💾</Text>
+                <Text style={styles.titleIcon}>♟</Text>
                 <Text style={styles.title}>Local Storage Mode</Text>
               </View>
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <TouchableOpacity
+                onPress={onClose}
+                style={styles.closeButton}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                accessibilityRole="button"
+                accessibilityLabel="Close local storage modal"
+              >
                 <Text style={styles.closeButtonText}>✕</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.infoBox}>
-              <Text style={styles.infoTitle}>Local Storage Benefits:</Text>
+              <Text style={styles.infoTitle}>Local Storage Benefits</Text>
               <Text style={styles.infoItem}>• Data stays on this device only</Text>
-              <Text style={styles.infoItem}>• No account required</Text>
-              <Text style={styles.infoItem}>• Works offline</Text>
-              <Text style={styles.infoItem}>• Fast and private</Text>
+              <Text style={styles.infoItem}>• No cloud account required</Text>
+              <Text style={styles.infoItem}>• Fully offline-capable</Text>
+              <Text style={styles.infoItem}>• Fast, private calculation & tracking</Text>
             </View>
 
             <View style={styles.form}>
@@ -114,12 +123,15 @@ export default function LocalStorageModal({ open, onClose, onSuccess }: LocalSto
                 <Text style={styles.label}>Player Name *</Text>
                 <FideSearchInput
                   value={name}
-                  onChange={setName}
+                  onChange={(val) => {
+                    setName(val);
+                    if (error) setError('');
+                  }}
                   onSelect={handleFidePlayerSelect}
-                  placeholder="Search for a FIDE player or enter your name"
+                  placeholder="Search for a FIDE player or enter name"
                 />
                 <Text style={styles.hint}>
-                  Search for a FIDE player to auto-fill details, or type your name manually
+                  Search for a FIDE player to auto-fill details, or type your name manually.
                 </Text>
               </View>
 
@@ -130,9 +142,10 @@ export default function LocalStorageModal({ open, onClose, onSuccess }: LocalSto
                     style={styles.input}
                     value={fideId}
                     onChangeText={setFideId}
-                    placeholder="e.g., 12345678"
-                    placeholderTextColor="#999"
+                    placeholder="e.g. 12345678"
+                    placeholderTextColor={colors.textMuted}
                     keyboardType="numeric"
+                    accessibilityLabel="FIDE ID"
                   />
                 </View>
 
@@ -142,8 +155,10 @@ export default function LocalStorageModal({ open, onClose, onSuccess }: LocalSto
                     style={styles.input}
                     value={title}
                     onChangeText={setTitle}
-                    placeholder="e.g., FM, IM, GM"
-                    placeholderTextColor="#999"
+                    placeholder="e.g. FM, IM, GM"
+                    placeholderTextColor={colors.textMuted}
+                    autoCapitalize="characters"
+                    accessibilityLabel="Chess Title"
                   />
                 </View>
               </View>
@@ -155,8 +170,10 @@ export default function LocalStorageModal({ open, onClose, onSuccess }: LocalSto
                     style={styles.input}
                     value={federation}
                     onChangeText={setFederation}
-                    placeholder="e.g., USA, ENG"
-                    placeholderTextColor="#999"
+                    placeholder="e.g. USA, ENG"
+                    placeholderTextColor={colors.textMuted}
+                    autoCapitalize="characters"
+                    accessibilityLabel="Federation"
                   />
                 </View>
 
@@ -166,15 +183,17 @@ export default function LocalStorageModal({ open, onClose, onSuccess }: LocalSto
                     style={styles.input}
                     value={birthYear}
                     onChangeText={setBirthYear}
-                    placeholder="e.g., 1990"
-                    placeholderTextColor="#999"
+                    placeholder="e.g. 1995"
+                    placeholderTextColor={colors.textMuted}
                     keyboardType="numeric"
+                    accessibilityLabel="Birth Year"
                   />
                 </View>
               </View>
 
               {error ? (
                 <View style={styles.errorContainer}>
+                  <Text style={styles.errorIcon}>⚠</Text>
                   <Text style={styles.errorText}>{error}</Text>
                 </View>
               ) : null}
@@ -183,6 +202,8 @@ export default function LocalStorageModal({ open, onClose, onSuccess }: LocalSto
                 <TouchableOpacity
                   style={styles.cancelButton}
                   onPress={onClose}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel"
                 >
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
@@ -190,14 +211,13 @@ export default function LocalStorageModal({ open, onClose, onSuccess }: LocalSto
                   style={[styles.submitButton, loading && styles.submitButtonDisabled]}
                   onPress={handleSubmit}
                   disabled={loading}
+                  accessibilityRole="button"
+                  accessibilityLabel="Create Local Profile"
                 >
                   {loading ? (
-                    <ActivityIndicator color="#fff" />
+                    <ActivityIndicator color={colors.primaryText} />
                   ) : (
-                    <>
-                      <Text style={styles.submitButtonIcon}>💾</Text>
-                      <Text style={styles.submitButtonText}>Create Local Profile</Text>
-                    </>
+                    <Text style={styles.submitButtonText}>Create Local Profile</Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -212,152 +232,163 @@ export default function LocalStorageModal({ open, onClose, onSuccess }: LocalSto
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing.xl,
   },
   modalContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.sheet,
+    borderWidth: 1,
+    borderColor: colors.border,
     width: '100%',
-    maxWidth: 600,
+    maxWidth: 520,
     maxHeight: '90%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    ...shadows.sheet,
+    overflow: 'hidden',
   },
   scrollContent: {
-    padding: 24,
+    padding: spacing.xxl,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: spacing.xl,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
   },
   titleIcon: {
-    fontSize: 24,
+    fontSize: 22,
+    color: colors.primary,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1f2937',
+    ...typography.subheading,
+    color: colors.textPrimary,
   },
   closeButton: {
-    padding: 4,
+    width: touchTargets.min,
+    height: touchTargets.min,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.pill,
   },
   closeButtonText: {
-    fontSize: 24,
-    color: '#9ca3af',
+    fontSize: 18,
+    color: colors.textSecondary,
+    fontWeight: '700',
   },
   infoBox: {
-    backgroundColor: '#f0fdf4',
+    backgroundColor: colors.surfaceSelected,
     borderWidth: 1,
-    borderColor: '#bbf7d0',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 24,
+    borderColor: colors.border,
+    borderRadius: radii.control,
+    padding: spacing.md,
+    marginBottom: spacing.xl,
   },
   infoTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#166534',
-    marginBottom: 8,
+    ...typography.label,
+    color: colors.primary,
+    marginBottom: spacing.xs,
   },
   infoItem: {
-    fontSize: 12,
-    color: '#15803d',
-    marginBottom: 4,
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginBottom: 2,
+    lineHeight: 18,
   },
   form: {
-    gap: 16,
+    gap: spacing.lg,
   },
   inputGroup: {
-    gap: 8,
+    gap: spacing.xs + 2,
   },
   halfWidth: {
     flex: 1,
   },
   row: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing.md,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
+    ...typography.label,
+    color: colors.textSecondary,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: '#1f2937',
-    backgroundColor: '#fff',
+    minHeight: touchTargets.min,
+    borderWidth: 1.5,
+    borderColor: colors.borderInput,
+    borderRadius: radii.control,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md - 2,
+    ...typography.body,
+    color: colors.textPrimary,
+    backgroundColor: colors.surface,
   },
   hint: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 4,
+    ...typography.caption,
+    color: colors.textMuted,
+    marginTop: 2,
   },
   errorContainer: {
-    backgroundColor: '#fef2f2',
-    borderWidth: 1,
-    borderColor: '#fecaca',
-    borderRadius: 8,
-    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.negativeBg,
+    borderRadius: radii.control,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  errorIcon: {
+    fontSize: 16,
+    color: colors.negativeText,
+    fontWeight: '700',
   },
   errorText: {
-    color: '#dc2626',
-    fontSize: 14,
+    flex: 1,
+    ...typography.caption,
+    color: colors.negativeText,
+    fontWeight: '700',
   },
   buttonRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.xs,
   },
   cancelButton: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: '#374151',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  submitButton: {
-    flex: 1,
-    backgroundColor: '#16a34a',
-    borderRadius: 8,
-    padding: 14,
-    flexDirection: 'row',
+    minHeight: touchTargets.primaryControl,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: radii.control,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    backgroundColor: colors.surface,
+  },
+  cancelButtonText: {
+    ...typography.bodyBold,
+    color: colors.textSecondary,
+  },
+  submitButton: {
+    flex: 1.4,
+    minHeight: touchTargets.primaryControl,
+    backgroundColor: colors.primary,
+    borderRadius: radii.control,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   submitButtonDisabled: {
     opacity: 0.5,
   },
-  submitButtonIcon: {
-    fontSize: 16,
-  },
   submitButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    ...typography.bodyBold,
+    color: colors.primaryText,
   },
 });
-

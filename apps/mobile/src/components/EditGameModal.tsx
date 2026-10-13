@@ -15,7 +15,13 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { GameResult, Result } from '@fide-calculator/shared';
-import { calculateRatingChange, getRatingMonthFromDate, getResultRatingMonth, isValidRatingMonth } from '@fide-calculator/shared';
+import {
+  calculateRatingChange,
+  getRatingMonthFromDate,
+  getResultRatingMonth,
+  isValidRatingMonth,
+} from '@fide-calculator/shared';
+import { colors, radii, spacing, typography, touchTargets, shadows } from '../theme/tokens';
 
 type Props = {
   open: boolean;
@@ -49,8 +55,16 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
 
   const isFormValid = useMemo(() => {
     if (!game) return false;
-    try { getRatingMonthFromDate(date); } catch { return false; }
-    return isValidRating(game.playerRating) && isValidRating(opponentRating) && isValidRatingMonth(ratingMonth);
+    try {
+      getRatingMonthFromDate(date);
+    } catch {
+      return false;
+    }
+    return (
+      isValidRating(game.playerRating) &&
+      isValidRating(opponentRating) &&
+      isValidRatingMonth(ratingMonth)
+    );
   }, [game, opponentRating, date, ratingMonth]);
 
   const newDelta = useMemo(() => {
@@ -94,24 +108,39 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
     }
   };
 
-  const canDelete = !!game && !!onDelete && getResultRatingMonth(game) === getRatingMonthFromDate(new Date());
+  const canDelete =
+    !!game &&
+    !!onDelete &&
+    getResultRatingMonth(game) === getRatingMonthFromDate(new Date());
+
   const handleDelete = () => {
     if (!canDelete || moving) return;
-    Alert.alert('Delete game', `Remove this game vs ${game?.opponentName || 'Opponent'}?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => {
-        if (!onDelete || moving) return;
-        setMoving(true);
-        try {
-          await onDelete();
-          onClose();
-        } catch (error) {
-          Alert.alert('Unable to delete game', error instanceof Error ? error.message : 'Please try again.');
-        } finally {
-          setMoving(false);
-        }
-      } },
-    ]);
+    Alert.alert(
+      'Delete game',
+      `Remove this game vs ${game?.opponentName || 'Opponent'}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            if (!onDelete || moving) return;
+            setMoving(true);
+            try {
+              await onDelete();
+              onClose();
+            } catch (error) {
+              Alert.alert(
+                'Unable to delete game',
+                error instanceof Error ? error.message : 'Please try again.',
+              );
+            } finally {
+              setMoving(false);
+            }
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -121,152 +150,292 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
       animationType="slide"
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable
-          style={[styles.sheet, { paddingBottom: 16 + insets.bottom }]}
-          onPress={(e) => e.stopPropagation()}
-        >
-          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Edit game</Text>
-            <TouchableOpacity onPress={onClose} hitSlop={12}>
-              <Ionicons name="close" size={26} color="#374151" />
-            </TouchableOpacity>
-          </View>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <Pressable style={styles.overlay} onPress={onClose}>
+          <Pressable
+            style={[styles.sheet, { paddingBottom: spacing.xl + insets.bottom }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.header}>
+              <View style={styles.headerTitleRow}>
+                <Text style={styles.headerMotif}>⚔</Text>
+                <Text style={styles.title}>Edit game</Text>
+              </View>
+              <TouchableOpacity
+                onPress={onClose}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={styles.closeButton}
+                accessibilityRole="button"
+                accessibilityLabel="Close edit game modal"
+              >
+                <Ionicons name="close" size={24} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
 
-          {!game ? (
-            <Text style={styles.muted}>No game selected.</Text>
-          ) : (
-            <>
-              <View style={styles.metaRow}>
-                <View style={styles.metaBox}>
-                  <Text style={styles.metaLabel}>Your rating</Text>
-                  <Text style={styles.metaValue}>{game.playerRating}</Text>
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              {!game ? (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>No game selected.</Text>
                 </View>
-                <View style={styles.metaBox}>
-                  <Text style={styles.metaLabel}>New change</Text>
-                  <Text
-                    style={[
-                      styles.metaValue,
-                      newDelta !== null && newDelta > 0
-                        ? styles.positive
-                        : newDelta !== null && newDelta < 0
-                          ? styles.negative
-                          : null,
-                    ]}
-                  >
-                    {newDelta === null ? '—' : `${newDelta > 0 ? '+' : ''}${newDelta}`}
-                  </Text>
-                </View>
-              </View>
+              ) : (
+                <>
+                  {/* Estimate Summary Card */}
+                  <View style={styles.estimateCard}>
+                    <View style={styles.estimateRow}>
+                      <View style={styles.estimateCol}>
+                        <Text style={styles.estimateLabel}>YOUR RATING</Text>
+                        <Text style={styles.estimateBaseValue}>{game.playerRating}</Text>
+                      </View>
 
-              <View style={styles.field}>
-                <Text style={styles.label}>Opponent</Text>
-                <TextInput
-                  style={styles.input}
-                  value={opponentName}
-                  onChangeText={setOpponentName}
-                  placeholder="Opponent name"
-                />
-              </View>
+                      <View style={[styles.estimateCol, styles.estimateColRight]}>
+                        <Text style={styles.estimateLabel}>PROJECTED CHANGE</Text>
+                        <View
+                          style={[
+                            styles.changeBadge,
+                            newDelta !== null && newDelta > 0
+                              ? styles.badgePositive
+                              : newDelta !== null && newDelta < 0
+                                ? styles.badgeNegative
+                                : styles.badgeZero,
+                          ]}
+                        >
+                          <Ionicons
+                            name={
+                              newDelta !== null && newDelta > 0
+                                ? 'arrow-up'
+                                : newDelta !== null && newDelta < 0
+                                  ? 'arrow-down'
+                                  : 'remove'
+                            }
+                            size={16}
+                            color={
+                              newDelta !== null && newDelta > 0
+                                ? colors.positiveText
+                                : newDelta !== null && newDelta < 0
+                                  ? colors.negativeText
+                                  : colors.textSecondary
+                            }
+                          />
+                          <Text
+                            style={[
+                              styles.changeBadgeText,
+                              newDelta !== null && newDelta > 0
+                                ? styles.textPositive
+                                : newDelta !== null && newDelta < 0
+                                  ? styles.textNegative
+                                  : styles.textZero,
+                            ]}
+                          >
+                            {newDelta === null
+                              ? '—'
+                              : `${newDelta > 0 ? '+' : ''}${newDelta}`}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
 
-              <View style={styles.field}>
-                <Text style={styles.label}>Opponent rating</Text>
-                <TextInput
-                  style={styles.input}
-                  value={String(opponentRating)}
-                  keyboardType="numeric"
-                  onChangeText={(text) => {
-                    const n = Number(text.replace(/[^0-9]/g, ''));
-                    setOpponentRating(Number.isNaN(n) ? 0 : n);
-                  }}
-                />
-              </View>
+                    <Text style={styles.estimateProjected}>
+                      New rating projection:{' '}
+                      <Text style={styles.estimateHighlight}>
+                        {newDelta !== null
+                          ? Math.round((game.playerRating + newDelta) * 10) / 10
+                          : '—'}
+                      </Text>
+                    </Text>
+                  </View>
 
-              <View style={styles.field}>
-                <Text style={styles.label}>Result</Text>
-                <View style={styles.pills}>
-                  {(['win', 'draw', 'loss'] as GameResult[]).map((r) => (
+                  {/* Group 1: Opponent & Result */}
+                  <View style={styles.groupCard}>
+                    <Text style={styles.groupHeader}>♟ Opponent & Match</Text>
+
+                    <View style={styles.fieldSpacing}>
+                      <Text style={styles.label}>Opponent</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={opponentName}
+                        onChangeText={setOpponentName}
+                        placeholder="Opponent name"
+                        placeholderTextColor={colors.textMuted}
+                      />
+                    </View>
+
+                    <View style={styles.fieldGrid}>
+                      <View style={styles.fieldCol}>
+                        <Text style={styles.label}>Opponent rating</Text>
+                        <TextInput
+                          style={styles.input}
+                          value={String(opponentRating)}
+                          keyboardType="numeric"
+                          placeholder="1400"
+                          placeholderTextColor={colors.textMuted}
+                          onChangeText={(text) => {
+                            const n = Number(text.replace(/[^0-9]/g, ''));
+                            setOpponentRating(Number.isNaN(n) ? 0 : n);
+                          }}
+                        />
+                      </View>
+
+                      <View style={styles.fieldCol}>
+                        <Text style={styles.label}>K-factor</Text>
+                        <TextInput
+                          style={styles.input}
+                          value={String(kFactor)}
+                          keyboardType="numeric"
+                          placeholder="20"
+                          placeholderTextColor={colors.textMuted}
+                          onChangeText={(text) => {
+                            const n = Number(text.replace(/[^0-9]/g, ''));
+                            setKFactor(Number.isNaN(n) ? 0 : n);
+                          }}
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.fieldSpacing}>
+                      <Text style={styles.label}>Result</Text>
+                      <View style={styles.resultRow}>
+                        {(['win', 'draw', 'loss'] as GameResult[]).map((r) => {
+                          const isSelected = r === result;
+                          const isWin = r === 'win';
+                          const isDraw = r === 'draw';
+                          const isLoss = r === 'loss';
+                          return (
+                            <TouchableOpacity
+                              key={r}
+                              style={[
+                                styles.resultPill,
+                                isSelected && isWin && styles.pillWinActive,
+                                isSelected && isDraw && styles.pillDrawActive,
+                                isSelected && isLoss && styles.pillLossActive,
+                              ]}
+                              onPress={() => setResult(r)}
+                              activeOpacity={0.8}
+                            >
+                              <Text
+                                style={[
+                                  styles.resultPillText,
+                                  isSelected && isWin && styles.textWinActive,
+                                  isSelected && isDraw && styles.textDrawActive,
+                                  isSelected && isLoss && styles.textLossActive,
+                                ]}
+                              >
+                                {r === 'win'
+                                  ? 'Win'
+                                  : r === 'draw'
+                                    ? 'Draw'
+                                    : 'Loss'}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Group 2: Date & Rating Period */}
+                  <View style={styles.groupCard}>
+                    <Text style={styles.groupHeader}>📅 Date & Period</Text>
+
+                    <View style={styles.fieldGrid}>
+                      <View style={styles.fieldCol}>
+                        <Text style={styles.label}>Date (YYYY-MM-DD)</Text>
+                        <TextInput
+                          style={styles.input}
+                          value={date}
+                          onChangeText={setDate}
+                          placeholder="YYYY-MM-DD"
+                          placeholderTextColor={colors.textMuted}
+                          autoCapitalize="none"
+                        />
+                      </View>
+
+                      <View style={styles.fieldCol}>
+                        <Text style={styles.label}>Rating month (YYYY-MM)</Text>
+                        <TextInput
+                          style={styles.input}
+                          value={ratingMonth}
+                          onChangeText={setRatingMonth}
+                          placeholder="YYYY-MM"
+                          placeholderTextColor={colors.textMuted}
+                          autoCapitalize="none"
+                        />
+                      </View>
+                    </View>
+                  </View>
+
+                  {!isFormValid ? (
+                    <View style={styles.validationBox}>
+                      <Ionicons
+                        name="information-circle-outline"
+                        size={18}
+                        color={colors.negativeText}
+                      />
+                      <Text style={styles.validationText}>
+                        Please enter valid ratings, a game date and a rating month (YYYY-MM).
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  {/* Actions Section with clear hierarchy */}
+                  <View style={styles.actionsContainer}>
+                    {/* 1. Prominent Primary Save Changes */}
                     <TouchableOpacity
-                      key={r}
-                      style={[styles.pill, r === result && styles.pillActive]}
-                      onPress={() => setResult(r)}
+                      style={[
+                        styles.primarySaveButton,
+                        (moving || !isFormValid || newDelta === null) &&
+                          styles.buttonDisabled,
+                      ]}
+                      onPress={handleSave}
+                      disabled={moving || !isFormValid || newDelta === null}
+                      activeOpacity={0.85}
                     >
-                      <Text style={[styles.pillText, r === result && styles.pillTextActive]}>
-                        {r === 'win' ? 'Win' : r === 'draw' ? 'Draw' : 'Loss'}
+                      <Text style={styles.primarySaveButtonText}>Save changes</Text>
+                    </TouchableOpacity>
+
+                    {/* 2. Secondary Move to Current Month */}
+                    <TouchableOpacity
+                      style={[
+                        styles.secondaryMoveButton,
+                        moving && styles.buttonDisabled,
+                      ]}
+                      onPress={handleMoveToCurrentMonth}
+                      disabled={moving}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={styles.secondaryMoveButtonText}>
+                        Move to Current Month
                       </Text>
                     </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
 
-              <View style={styles.field}>
-                <Text style={styles.label}>K-factor</Text>
-                <TextInput
-                  style={styles.input}
-                  value={String(kFactor)}
-                  keyboardType="numeric"
-                  onChangeText={(text) => {
-                    const n = Number(text.replace(/[^0-9]/g, ''));
-                    setKFactor(Number.isNaN(n) ? 0 : n);
-                  }}
-                />
-              </View>
-
-              <View style={styles.field}>
-                <Text style={styles.label}>Date (YYYY-MM-DD)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={date}
-                  onChangeText={setDate}
-                  placeholder="2026-03-04"
-                  autoCapitalize="none"
-                />
-              </View>
-
-              <View style={styles.field}>
-                <Text style={styles.label}>Rating month (YYYY-MM)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={ratingMonth}
-                  onChangeText={setRatingMonth}
-                  placeholder="2026-10"
-                  autoCapitalize="none"
-                />
-              </View>
-
-              {!isFormValid ? (
-                <Text style={styles.validation}>Please enter valid ratings, a game date and a rating month (YYYY-MM).</Text>
-              ) : null}
-
-
-              <TouchableOpacity
-                style={[styles.saveButton, { backgroundColor: '#e0f2fe', marginTop: 10 }]}
-                onPress={handleMoveToCurrentMonth}
-                disabled={moving}
-              >
-                <Text style={[styles.saveButtonText, { color: '#0369a1' }]}>Move to Current Month</Text>
-              </TouchableOpacity>
-
-              {canDelete ? (
-                <TouchableOpacity style={[styles.saveButton, { backgroundColor: '#b91c1c' }]} onPress={handleDelete} disabled={moving}>
-                  <Text style={styles.saveButtonText}>Delete game</Text>
-                </TouchableOpacity>
-              ) : null}
-
-              <TouchableOpacity
-                style={[styles.saveButton, (!isFormValid || newDelta === null) && styles.disabled]}
-                onPress={handleSave}
-                disabled={moving || !isFormValid || newDelta === null}
-              >
-                <Text style={styles.saveButtonText}>Save changes</Text>
-              </TouchableOpacity>
-            </>
-          )}
-          </ScrollView>
+                    {/* 3. Restrained, Separated Delete Game */}
+                    {canDelete ? (
+                      <View style={styles.deleteSection}>
+                        <TouchableOpacity
+                          style={[
+                            styles.deleteButton,
+                            moving && styles.buttonDisabled,
+                          ]}
+                          onPress={handleDelete}
+                          disabled={moving}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={styles.deleteButtonText}>Delete game</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : null}
+                  </View>
+                </>
+              )}
+            </ScrollView>
+          </Pressable>
         </Pressable>
-      </Pressable>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -275,124 +444,290 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: colors.overlay,
     justifyContent: 'flex-end',
   },
   sheet: {
-    maxHeight: '90%',
-    flexShrink: 1,
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 16,
+    maxHeight: '92%',
+    backgroundColor: colors.canvas,
+    borderTopLeftRadius: radii.sheet,
+    borderTopRightRadius: radii.sheet,
+    borderTopWidth: 1,
+    borderColor: colors.border,
+    ...shadows.sheet,
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingBottom: 10,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    marginBottom: 12,
+    borderBottomColor: colors.border,
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  headerMotif: {
+    fontSize: 20,
+    color: colors.primary,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#111827',
+    ...typography.subheading,
+    color: colors.textPrimary,
   },
-  muted: {
-    color: '#6b7280',
+  closeButton: {
+    width: touchTargets.min,
+    height: touchTargets.min,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.pill,
   },
-  metaRow: {
+  scrollContent: {
+    paddingHorizontal: spacing.screenInset,
+    paddingVertical: spacing.xl,
+    gap: spacing.lg,
+  },
+  emptyContainer: {
+    paddingVertical: spacing.xxxl,
+    alignItems: 'center',
+  },
+  emptyText: {
+    ...typography.body,
+    color: colors.textSecondary,
+  },
+
+  // Estimate Summary Card
+  estimateCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    padding: spacing.lg,
+    ...shadows.card,
+  },
+  estimateRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  metaBox: {
+  estimateCol: {
     flex: 1,
-    backgroundColor: '#f9fafb',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 14,
-    padding: 12,
   },
-  metaLabel: {
-    fontSize: 12,
+  estimateColRight: {
+    alignItems: 'flex-end',
+  },
+  estimateLabel: {
+    ...typography.caption,
     fontWeight: '700',
-    color: '#6b7280',
-    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
   },
-  metaValue: {
-    marginTop: 6,
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#111827',
+  estimateBaseValue: {
+    ...typography.subheading,
+    color: colors.textPrimary,
   },
-  positive: { color: '#059669' },
-  negative: { color: '#b91c1c' },
-  field: {
-    marginTop: 10,
+  changeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.pill,
+    gap: 2,
+  },
+  changeBadgeText: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  badgePositive: {
+    backgroundColor: colors.positiveBg,
+  },
+  badgeNegative: {
+    backgroundColor: colors.negativeBg,
+  },
+  badgeZero: {
+    backgroundColor: colors.neutralBg,
+  },
+  textPositive: {
+    color: colors.positiveText,
+  },
+  textNegative: {
+    color: colors.negativeText,
+  },
+  textZero: {
+    color: colors.textSecondary,
+  },
+  estimateProjected: {
+    ...typography.body,
+    color: colors.textSecondary,
+    marginTop: spacing.md,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  estimateHighlight: {
+    fontWeight: '700',
+    color: colors.primary,
+  },
+
+  // Grouped Cards
+  groupCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    ...shadows.card,
+  },
+  groupHeader: {
+    ...typography.subheading,
+    color: colors.primary,
+    marginBottom: spacing.xs,
+  },
+  fieldSpacing: {
+    marginTop: spacing.md,
   },
   label: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#374151',
-    marginBottom: 6,
+    ...typography.label,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs + 2,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: '#111827',
+    minHeight: touchTargets.min,
+    borderWidth: 1.5,
+    borderColor: colors.borderInput,
+    borderRadius: radii.control,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md - 2,
+    ...typography.body,
+    color: colors.textPrimary,
   },
-  pills: {
+  fieldGrid: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.md,
+    marginTop: spacing.md,
   },
-  pill: {
+  fieldCol: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
+  },
+
+  // Result Pills
+  resultRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  resultPill: {
+    flex: 1,
+    minHeight: touchTargets.min,
+    borderRadius: radii.control,
+    borderWidth: 1.5,
+    borderColor: colors.borderInput,
+    backgroundColor: colors.surface,
     alignItems: 'center',
-    backgroundColor: '#fff',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xs,
   },
-  pillActive: {
-    backgroundColor: '#0f766e',
-    borderColor: '#0f766e',
+  pillWinActive: {
+    backgroundColor: colors.positiveBg,
+    borderColor: colors.positiveText,
   },
-  pillText: {
-    fontSize: 13,
+  pillDrawActive: {
+    backgroundColor: colors.surfaceSelected,
+    borderColor: colors.primary,
+  },
+  pillLossActive: {
+    backgroundColor: colors.negativeBg,
+    borderColor: colors.negativeText,
+  },
+  resultPillText: {
+    ...typography.label,
+    color: colors.textSecondary,
+  },
+  textWinActive: {
+    color: colors.positiveText,
     fontWeight: '700',
-    color: '#4b5563',
   },
-  pillTextActive: {
-    color: '#ecfdf5',
+  textDrawActive: {
+    color: colors.primary,
+    fontWeight: '700',
   },
-  validation: {
-    marginTop: 10,
-    color: '#b91c1c',
-    fontSize: 12,
+  textLossActive: {
+    color: colors.negativeText,
+    fontWeight: '700',
+  },
+
+  // Validation
+  validationBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.negativeBg,
+    padding: spacing.md,
+    borderRadius: radii.control,
+    gap: spacing.sm,
+  },
+  validationText: {
+    flex: 1,
+    ...typography.caption,
+    color: colors.negativeText,
     fontWeight: '600',
   },
-  saveButton: {
-    marginTop: 14,
-    backgroundColor: '#2563eb',
-    borderRadius: 12,
-    paddingVertical: 14,
+
+  // Actions
+  actionsContainer: {
+    gap: spacing.md,
+    marginTop: spacing.xs,
+  },
+  primarySaveButton: {
+    minHeight: touchTargets.primaryControl,
+    backgroundColor: colors.primary,
+    borderRadius: radii.control,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  saveButtonText: {
-    color: '#fff',
-    fontWeight: '800',
-    fontSize: 16,
+  primarySaveButtonText: {
+    ...typography.bodyBold,
+    color: colors.primaryText,
   },
-  disabled: {
+  secondaryMoveButton: {
+    minHeight: touchTargets.primaryControl,
+    backgroundColor: colors.surfaceSelected,
+    borderRadius: radii.control,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryMoveButtonText: {
+    ...typography.bodyBold,
+    color: colors.primary,
+  },
+  deleteSection: {
+    marginTop: spacing.xs,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  deleteButton: {
+    minHeight: 48,
+    backgroundColor: colors.negativeBg,
+    borderRadius: radii.control,
+    borderWidth: 1,
+    borderColor: colors.negativeText,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteButtonText: {
+    ...typography.label,
+    color: colors.negativeText,
+    fontWeight: '700',
+  },
+  buttonDisabled: {
     opacity: 0.5,
   },
 });
-
