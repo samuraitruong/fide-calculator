@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -16,6 +17,7 @@ import { calculateRatingChange, getRatingMonthFromDate, getResultRatingMonth, is
 import FideSearchInput from './FideSearchInput';
 import WinDrawLossBar from './WinDrawLossBar';
 import EditGameModal from './EditGameModal';
+import DatePickerModal from './DatePickerModal';
 import { colors, radii, spacing, typography, touchTargets, shadows } from '../theme/tokens';
 
 type Mode = 'local' | 'cloud';
@@ -93,6 +95,7 @@ export default function FideCalculatorMobile({
   const [monthManuallyChanged, setMonthManuallyChanged] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingGame, setEditingGame] = useState<Result | null>(null);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   // When rating type or profile changes, reset defaults
   useEffect(() => {
@@ -437,25 +440,48 @@ export default function FideCalculatorMobile({
 
         <View style={styles.fieldGrid}>
           <View style={styles.fieldCol}>
-            <Text style={styles.inputLabel}>Game date</Text>
-            <TextInput
-              style={styles.textInput}
-              value={date}
-              autoCapitalize="none"
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={colors.textMuted}
-              onChangeText={(value) => {
-                setDate(value);
-                if (!monthManuallyChanged) {
-                  try {
-                    setRatingMonth(getRatingMonthFromDate(value));
-                  } catch {
-                    /* Keep last valid default while typing */
+            <View style={styles.labelWithActionRow}>
+              <Text style={styles.inputLabel}>Game date</Text>
+              <TouchableOpacity
+                style={styles.openPickerQuickButton}
+                onPress={() => setDatePickerOpen(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Open calendar date picker"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="calendar-outline" size={13} color={colors.primary} />
+                <Text style={styles.openPickerQuickText}>Pick</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.dateInputWrapper}>
+              <TextInput
+                style={styles.dateTextInput}
+                value={date}
+                autoCapitalize="none"
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={colors.textMuted}
+                onChangeText={(value) => {
+                  setDate(value);
+                  if (!monthManuallyChanged) {
+                    try {
+                      setRatingMonth(getRatingMonthFromDate(value));
+                    } catch {
+                      /* Keep last valid default while typing */
+                    }
                   }
-                }
-              }}
-              accessibilityLabel="Game date in YYYY-MM-DD format"
-            />
+                }}
+                accessibilityLabel="Game date in YYYY-MM-DD format"
+              />
+              <TouchableOpacity
+                style={styles.calendarIconButton}
+                onPress={() => setDatePickerOpen(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Calendar date picker"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={styles.calendarEmoji}>📅</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.fieldCol}>
@@ -788,6 +814,23 @@ export default function FideCalculatorMobile({
           }
         />
       ) : null}
+
+      {/* Date Picker Modal */}
+      <DatePickerModal
+        open={datePickerOpen}
+        value={date}
+        onClose={() => setDatePickerOpen(false)}
+        onSelect={(selected) => {
+          setDate(selected);
+          if (!monthManuallyChanged) {
+            try {
+              setRatingMonth(getRatingMonthFromDate(selected));
+            } catch {
+              /* Keep last valid default */
+            }
+          }
+        }}
+      />
     </View>
   );
 }
@@ -977,6 +1020,60 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md - 2,
     ...typography.body,
     color: colors.textPrimary,
+    ...(Platform.OS === 'web' ? ({ touchAction: 'pan-y' } as Record<string, unknown>) : {}),
+  },
+  labelWithActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xs + 2,
+    minHeight: 20,
+  },
+  openPickerQuickButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radii.pill,
+    backgroundColor: colors.surfaceSelected,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  openPickerQuickText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '700',
+    fontSize: 11,
+  },
+  dateInputWrapper: {
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  dateTextInput: {
+    minHeight: touchTargets.min,
+    borderWidth: 1.5,
+    borderColor: colors.borderInput,
+    borderRadius: radii.control,
+    backgroundColor: colors.surface,
+    paddingLeft: spacing.md,
+    paddingRight: 42,
+    paddingVertical: spacing.md - 2,
+    ...typography.body,
+    color: colors.textPrimary,
+    ...(Platform.OS === 'web' ? ({ touchAction: 'pan-y' } as Record<string, unknown>) : {}),
+  },
+  calendarIconButton: {
+    position: 'absolute',
+    right: spacing.xs,
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.pill,
+  },
+  calendarEmoji: {
+    fontSize: 16,
   },
 
   // Game Result Selector

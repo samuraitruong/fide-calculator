@@ -39,6 +39,9 @@ export default function HomeScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      nestedScrollEnabled={true}
+      scrollEventThrottle={16}
     >
       <FideCalculator
         mode={storageMode}

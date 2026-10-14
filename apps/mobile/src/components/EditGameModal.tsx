@@ -22,6 +22,7 @@ import {
   isValidRatingMonth,
 } from '@fide-calculator/shared';
 import { colors, radii, spacing, typography, touchTargets, shadows } from '../theme/tokens';
+import DatePickerModal from './DatePickerModal';
 
 type Props = {
   open: boolean;
@@ -39,6 +40,7 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
   const [date, setDate] = useState(''); // YYYY-MM-DD preferred
   const [ratingMonth, setRatingMonth] = useState('');
   const [moving, setMoving] = useState(false);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -150,15 +152,24 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
       animationType="slide"
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <Pressable style={styles.overlay} onPress={onClose}>
+      <View style={styles.overlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.keyboardView}
+        >
+          {/* Backdrop touchable to dismiss when tapping above sheet */}
           <Pressable
-            style={[styles.sheet, { paddingBottom: spacing.xl + insets.bottom }]}
-            onPress={(e) => e.stopPropagation()}
-          >
+            style={styles.backdrop}
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel="Close edit game modal"
+          />
+
+          <View style={styles.sheet}>
+            <View style={styles.sheetHandleContainer}>
+              <View style={styles.sheetHandle} />
+            </View>
+
             <View style={styles.header}>
               <View style={styles.headerTitleRow}>
                 <Text style={styles.headerMotif}>⚔</Text>
@@ -176,9 +187,14 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
             </View>
 
             <ScrollView
+              style={styles.scrollView}
               contentContainerStyle={styles.scrollContent}
               keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
+              keyboardDismissMode="on-drag"
+              showsVerticalScrollIndicator={true}
+              nestedScrollEnabled={true}
+              bounces={true}
+              scrollEventThrottle={16}
             >
               {!game ? (
                 <View style={styles.emptyContainer}>
@@ -341,20 +357,43 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
 
                   {/* Group 2: Date & Rating Period */}
                   <View style={styles.groupCard}>
-                    <Text style={styles.groupHeader}>📅 Date & Period</Text>
+                    <View style={styles.groupHeaderRow}>
+                      <Text style={styles.groupHeader}>📅 Date & Period</Text>
+                      <TouchableOpacity
+                        style={styles.openPickerQuickButton}
+                        onPress={() => setDatePickerOpen(true)}
+                        accessibilityRole="button"
+                        accessibilityLabel="Open calendar date picker"
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Ionicons name="calendar-outline" size={16} color={colors.primary} />
+                        <Text style={styles.openPickerQuickText}>Pick date</Text>
+                      </TouchableOpacity>
+                    </View>
 
                     <View style={styles.fieldGrid}>
                       <View style={styles.fieldCol}>
                         <Text style={styles.label} numberOfLines={1}>Game date</Text>
-                        <TextInput
-                          style={styles.input}
-                          value={date}
-                          onChangeText={setDate}
-                          placeholder="YYYY-MM-DD"
-                          placeholderTextColor={colors.textMuted}
-                          autoCapitalize="none"
-                          accessibilityLabel="Game date"
-                        />
+                        <View style={styles.dateInputWrapper}>
+                          <TextInput
+                            style={styles.dateInput}
+                            value={date}
+                            onChangeText={setDate}
+                            placeholder="YYYY-MM-DD"
+                            placeholderTextColor={colors.textMuted}
+                            autoCapitalize="none"
+                            accessibilityLabel="Game date"
+                          />
+                          <TouchableOpacity
+                            style={styles.calendarIconButton}
+                            onPress={() => setDatePickerOpen(true)}
+                            accessibilityRole="button"
+                            accessibilityLabel="Calendar date picker"
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          >
+                            <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+                          </TouchableOpacity>
+                        </View>
                       </View>
 
                       <View style={styles.fieldCol}>
@@ -369,6 +408,38 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
                           accessibilityLabel="Rating month"
                         />
                       </View>
+                    </View>
+
+                    {/* Quick Date Shortcuts */}
+                    <View style={styles.quickDateRow}>
+                      <TouchableOpacity
+                        style={styles.quickDateChip}
+                        onPress={() => {
+                          const now = new Date();
+                          const y = now.getFullYear();
+                          const m = String(now.getMonth() + 1).padStart(2, '0');
+                          const d = String(now.getDate()).padStart(2, '0');
+                          setDate(`${y}-${m}-${d}`);
+                        }}
+                        accessibilityRole="button"
+                      >
+                        <Text style={styles.quickDateChipText}>Today</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.quickDateChip}
+                        onPress={() => {
+                          const yest = new Date();
+                          yest.setDate(yest.getDate() - 1);
+                          const y = yest.getFullYear();
+                          const m = String(yest.getMonth() + 1).padStart(2, '0');
+                          const d = String(yest.getDate()).padStart(2, '0');
+                          setDate(`${y}-${m}-${d}`);
+                        }}
+                        accessibilityRole="button"
+                      >
+                        <Text style={styles.quickDateChipText}>Yesterday</Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
 
@@ -385,23 +456,9 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
                     </View>
                   ) : null}
 
-                  {/* Actions Section with clear hierarchy */}
-                  <View style={styles.actionsContainer}>
-                    {/* 1. Prominent Primary Save Changes */}
-                    <TouchableOpacity
-                      style={[
-                        styles.primarySaveButton,
-                        (moving || !isFormValid || newDelta === null) &&
-                          styles.buttonDisabled,
-                      ]}
-                      onPress={handleSave}
-                      disabled={moving || !isFormValid || newDelta === null}
-                      activeOpacity={0.85}
-                    >
-                      <Text style={styles.primarySaveButtonText}>Save changes</Text>
-                    </TouchableOpacity>
-
-                    {/* 2. Secondary Move to Current Month */}
+                  {/* Secondary Actions Section inside ScrollView */}
+                  <View style={styles.secondaryActionsContainer}>
+                    {/* Secondary Move to Current Month */}
                     <TouchableOpacity
                       style={[
                         styles.secondaryMoveButton,
@@ -416,7 +473,7 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
                       </Text>
                     </TouchableOpacity>
 
-                    {/* 3. Restrained, Separated Delete Game */}
+                    {/* Restrained, Separated Delete Game */}
                     {canDelete ? (
                       <View style={styles.deleteSection}>
                         <TouchableOpacity
@@ -436,9 +493,42 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
                 </>
               )}
             </ScrollView>
-          </Pressable>
-        </Pressable>
-      </KeyboardAvoidingView>
+
+            {/* Pinned Sticky Save Button Footer */}
+            {game ? (
+              <View
+                style={[
+                  styles.stickyFooter,
+                  { paddingBottom: Math.max(insets.bottom, spacing.md) },
+                ]}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.primarySaveButton,
+                    (moving || !isFormValid || newDelta === null) &&
+                      styles.buttonDisabled,
+                  ]}
+                  onPress={handleSave}
+                  disabled={moving || !isFormValid || newDelta === null}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.primarySaveButtonText}>Save changes</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+
+            {/* Date Picker Modal */}
+            <DatePickerModal
+              open={datePickerOpen}
+              value={date}
+              onClose={() => setDatePickerOpen(false)}
+              onSelect={(selected) => {
+                setDate(selected);
+              }}
+            />
+          </View>
+        </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
@@ -448,6 +538,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.overlay,
     justifyContent: 'flex-end',
+  },
+  keyboardView: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
   },
   sheet: {
     maxHeight: '92%',
@@ -488,6 +585,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radii.pill,
+  },
+  scrollView: {
+    flexGrow: 1,
+    flexShrink: 1,
   },
   scrollContent: {
     paddingHorizontal: spacing.screenInset,
@@ -610,6 +711,85 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md - 2,
     ...typography.body,
     color: colors.textPrimary,
+    ...(Platform.OS === 'web' ? ({ touchAction: 'pan-y' } as Record<string, unknown>) : {}),
+  },
+  groupHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xs,
+  },
+  openPickerQuickButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.pill,
+    backgroundColor: colors.surfaceSelected,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  openPickerQuickText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  dateInputWrapper: {
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  dateInput: {
+    minHeight: touchTargets.min,
+    borderWidth: 1.5,
+    borderColor: colors.borderInput,
+    borderRadius: radii.control,
+    backgroundColor: colors.surface,
+    paddingLeft: spacing.md,
+    paddingRight: 42,
+    paddingVertical: spacing.md - 2,
+    ...typography.body,
+    color: colors.textPrimary,
+    ...(Platform.OS === 'web' ? ({ touchAction: 'pan-y' } as Record<string, unknown>) : {}),
+  },
+  calendarIconButton: {
+    position: 'absolute',
+    right: spacing.xs,
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.pill,
+  },
+  quickDateRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  quickDateChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+    borderRadius: radii.pill,
+    backgroundColor: colors.surfaceSelected,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  quickDateChipText: {
+    ...typography.caption,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  sheetHandleContainer: {
+    alignItems: 'center',
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xs,
+    backgroundColor: colors.surface,
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: radii.pill,
+    backgroundColor: colors.border,
   },
   fieldGrid: {
     flexDirection: 'row',
@@ -682,9 +862,16 @@ const styles = StyleSheet.create({
   },
 
   // Actions
-  actionsContainer: {
+  secondaryActionsContainer: {
     gap: spacing.md,
     marginTop: spacing.xs,
+  },
+  stickyFooter: {
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingHorizontal: spacing.screenInset,
+    paddingTop: spacing.md,
   },
   primarySaveButton: {
     minHeight: touchTargets.primaryControl,
