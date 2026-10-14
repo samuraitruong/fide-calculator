@@ -13,14 +13,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { useLocalStorage } from './src/hooks/useLocalStorage';
 import { StorageModeProvider } from './src/contexts/StorageModeContext';
+import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 import AuthModal from './src/components/AuthModal';
 import LocalStorageModal from './src/components/LocalStorageModal';
 import ForgotPasswordModal from './src/components/ForgotPasswordModal';
 import MainTabs from './src/navigation/MainTabs';
-import { colors, radii, touchTargets } from './src/theme/tokens';
+import ChessInsignia from './src/components/ui/ChessInsignia';
+import TacticalButton from './src/components/ui/TacticalButton';
+import TacticalCard from './src/components/ui/TacticalCard';
 
 function AppContent() {
   const { user, loading } = useAuth();
+  const { isDark, colors } = useTheme();
   const {
     activeProfile: localActiveProfile,
     createProfile,
@@ -51,12 +55,13 @@ function AppContent() {
 
   if (loading && storageMode === null) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.canvas }]}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading...</Text>
+          <ChessInsignia piece="knight" size={32} badgeSize={64} color={colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 16 }} />
+          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Initializing Engine...</Text>
         </View>
-        <StatusBar style="auto" />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
       </View>
     );
   }
@@ -67,81 +72,101 @@ function AppContent() {
     return (
       <StorageModeProvider mode={mode}>
         <MainTabs />
-        <StatusBar style="auto" />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
       </StorageModeProvider>
     );
   }
 
   if (!user) {
     return (
-      <SafeAreaView style={styles.container} edges={['bottom']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.canvas }]} edges={['bottom', 'top']}>
         <ScrollView
           contentContainerStyle={styles.authScrollContent}
           style={styles.authScroll}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.landingDeco} />
+          {/* Tournament Header Graphic Banner */}
           <View style={styles.authContent}>
             <View style={styles.authHeader}>
-              <Text style={styles.authTitle}>
-                FIDE Rating{'\n'}Calculator
+              <View style={[styles.badgeCluster, { borderColor: colors.border, backgroundColor: colors.surfaceElevated }]}>
+                <ChessInsignia piece="knight" size={28} badgeSize={52} color={colors.primary} />
+                <View style={styles.badgeClusterText}>
+                  <Text style={[styles.kTag, { color: colors.accent }]}>[ FIDE TOURNAMENT ENGINE ]</Text>
+                  <Text style={[styles.sysVer, { color: colors.textMuted }]}>v0.1 // DGT CLOCK SPEC</Text>
+                </View>
+              </View>
+
+              <Text style={[styles.authTitle, { color: colors.textPrimary }]}>
+                FIDE RATING{'\n'}CALCULATOR
               </Text>
-              <Text style={styles.authSubtitle}>
-                Track your professional chess rating progress and manage your games with precision.
+              <Text style={[styles.authSubtitle, { color: colors.textSecondary }]}>
+                Precision Elo calculation, tournament performance rating tracking, and game logging.
               </Text>
             </View>
 
+            {/* Tactical Action Buttons */}
             <View style={styles.authButtons}>
-              <TouchableOpacity
-                style={styles.primaryButton}
+              <TacticalButton
+                title="Get Started (Local Storage)"
                 onPress={() => setShowLocalStorageModal(true)}
-              >
-                <Ionicons name="phone-portrait-outline" size={20} color="#fff" />
-                <Text style={styles.primaryButtonText}>Get Started (Local)</Text>
-                <Ionicons name="arrow-forward" size={18} color="#fff" />
-              </TouchableOpacity>
+                variant="primary"
+                size="lg"
+                icon={<Ionicons name="phone-portrait-outline" size={20} color={colors.primaryText} />}
+              />
 
-              <Text style={styles.orText}>OR</Text>
+              <View style={styles.orRow}>
+                <View style={[styles.orLine, { backgroundColor: colors.border }]} />
+                <Text style={[styles.orText, { color: colors.textMuted }]}>OR CONNECT</Text>
+                <View style={[styles.orLine, { backgroundColor: colors.border }]} />
+              </View>
 
-              <TouchableOpacity
-                style={styles.secondaryButton}
+              <TacticalButton
+                title="Sign In / Create Account"
                 onPress={() => setShowAuthModal(true)}
-              >
-                <Ionicons name="person-outline" size={20} color={colors.primary} />
-                <Text style={styles.secondaryButtonText}>Sign In / Create Account</Text>
-              </TouchableOpacity>
+                variant="secondary"
+                size="lg"
+                icon={<Ionicons name="cloud-outline" size={20} color={colors.primary} />}
+              />
 
               <TouchableOpacity
                 style={styles.forgotPasswordLink}
                 onPress={() => setShowForgotPasswordModal(true)}
               >
-                <Text style={styles.forgotPasswordLinkText}>Forgot Password?</Text>
+                <Text style={[styles.forgotPasswordLinkText, { color: colors.textSecondary }]}>
+                  Forgot Password?
+                </Text>
               </TouchableOpacity>
             </View>
 
+            {/* Storage Feature Breakdown Cards */}
             <View style={styles.storageSection}>
-              <View style={styles.storageCard}>
-                <View style={styles.storageIconCloud}>
-                  <Ionicons name="cloud-done" size={24} color="#fff" />
+              <TacticalCard variant="elevated" hasOffsetShadow={false} style={styles.storageCard}>
+                <View style={styles.storageCardInner}>
+                  <View style={[styles.storageIcon, { backgroundColor: colors.surfaceMuted, borderColor: colors.primary }]}>
+                    <Ionicons name="cloud-done-outline" size={22} color={colors.primary} />
+                  </View>
+                  <View style={styles.storageCardText}>
+                    <Text style={[styles.storageCardTitle, { color: colors.textPrimary }]}>Cloud Sync Profile</Text>
+                    <Text style={[styles.storageCardDesc, { color: colors.textSecondary }]}>
+                      Multi-device synchronization between web, tablet, and mobile.
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.storageCardText}>
-                  <Text style={styles.storageCardTitle}>Cloud Storage</Text>
-                  <Text style={styles.storageCardDesc}>
-                    Perfect for sync between your phone, tablet, and web.
-                  </Text>
+              </TacticalCard>
+
+              <TacticalCard variant="elevated" hasOffsetShadow={false} style={styles.storageCard}>
+                <View style={styles.storageCardInner}>
+                  <View style={[styles.storageIcon, { backgroundColor: colors.surfaceMuted, borderColor: colors.accent }]}>
+                    <Ionicons name="lock-closed-outline" size={22} color={colors.accent} />
+                  </View>
+                  <View style={styles.storageCardText}>
+                    <Text style={[styles.storageCardTitle, { color: colors.textPrimary }]}>Local Device Vault</Text>
+                    <Text style={[styles.storageCardDesc, { color: colors.textSecondary }]}>
+                      Zero account required. Fast, private calculation stored strictly on device.
+                    </Text>
+                  </View>
                 </View>
-              </View>
-              <View style={styles.storageCard}>
-                <View style={styles.storageIconLocal}>
-                  <Ionicons name="lock-closed" size={22} color="#fff" />
-                </View>
-                <View style={styles.storageCardText}>
-                  <Text style={styles.storageCardTitle}>Local Only</Text>
-                  <Text style={styles.storageCardDesc}>
-                    Private storage on this device only. No account needed.
-                  </Text>
-                </View>
-              </View>
+              </TacticalCard>
             </View>
           </View>
         </ScrollView>
@@ -175,7 +200,7 @@ function AppContent() {
           }}
         />
 
-        <StatusBar style="auto" />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
       </SafeAreaView>
     );
   }
@@ -188,7 +213,9 @@ export default function App() {
     <SafeAreaProvider>
       <NavigationContainer>
         <AuthProvider>
-          <AppContent />
+          <ThemeProvider>
+            <AppContent />
+          </ThemeProvider>
         </AuthProvider>
       </NavigationContainer>
     </SafeAreaProvider>
@@ -198,248 +225,129 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.canvas,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 12,
   },
   loadingText: {
-    fontSize: 16,
-    color: '#6b7280',
-  },
-  content: {
-    flexGrow: 1,
-    paddingVertical: 20,
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-    alignItems: 'stretch',
-  },
-  contentFullScreen: {
-    flexGrow: 1,
-    padding: 24,
-    paddingTop: 32,
-    paddingBottom: 40,
-    justifyContent: 'center',
-  },
-  welcomeContent: {
-    width: '100%',
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginTop: 8,
   },
   authScroll: {
     flex: 1,
   },
   authScrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 0,
-    paddingBottom: 40,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
     justifyContent: 'center',
-  },
-  landingDeco: {
-    position: 'absolute',
-    top: -140,
-    left: -100,
-    width: 420,
-    height: 340,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 320,
-    borderBottomLeftRadius: 280,
-    borderBottomRightRadius: 300,
-    backgroundColor: colors.primary,
-    opacity: 0.95,
   },
   authContent: {
     width: '100%',
   },
   authHeader: {
-    marginBottom: 32,
+    marginBottom: 28,
     alignItems: 'center',
+  },
+  badgeCluster: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    marginBottom: 20,
+    gap: 12,
+  },
+  badgeClusterText: {
+    justifyContent: 'center',
+  },
+  kTag: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  sysVer: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginTop: 2,
   },
   authTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 12,
+    fontSize: 30,
+    fontWeight: '800',
+    marginBottom: 10,
     textAlign: 'center',
-    lineHeight: 34,
+    lineHeight: 36,
+    letterSpacing: -0.5,
   },
   authSubtitle: {
-    fontSize: 15,
-    color: colors.textSecondary,
+    fontSize: 14,
     textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: 8,
-    marginTop: 64,
+    lineHeight: 20,
+    paddingHorizontal: 12,
   },
   authButtons: {
-    gap: 14,
-    marginBottom: 32,
+    gap: 12,
+    marginBottom: 28,
   },
-  primaryButton: {
-    backgroundColor: colors.primary,
-    borderRadius: radii.control,
-    minHeight: touchTargets.primaryControl,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
+  orRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
+    marginVertical: 4,
   },
-  primaryButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
+  orLine: {
+    flex: 1,
+    height: 1,
   },
   orText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  secondaryButton: {
-    backgroundColor: colors.surfaceSelected,
-    borderRadius: radii.control,
-    minHeight: touchTargets.primaryControl,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    borderWidth: 1.5,
-    borderColor: colors.primary,
-  },
-  secondaryButtonText: {
-    color: colors.primary,
-    fontSize: 16,
+    fontSize: 11,
     fontWeight: '700',
+    letterSpacing: 0.8,
+    paddingHorizontal: 12,
   },
   forgotPasswordLink: {
     alignSelf: 'center',
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
   forgotPasswordLinkText: {
-    fontSize: 14,
-    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '600',
   },
   storageSection: {
-    gap: 16,
+    gap: 12,
   },
   storageCard: {
+    padding: 0,
+  },
+  storageCardInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radii.card,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
+    padding: 12,
+    gap: 12,
   },
-  storageIconCloud: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primary,
+  storageIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 8,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
-  },
-  storageIconLocal: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.positiveText,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
   },
   storageCardText: {
     flex: 1,
   },
   storageCardTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   storageCardDesc: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    lineHeight: 18,
-  },
-  welcomeSection: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  welcomeText: {
-    fontSize: 18,
-    color: colors.textPrimary,
-    marginBottom: 16,
-  },
-  welcomeTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.textPrimary,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  welcomeSubtitle: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  createProfileButton: {
-    backgroundColor: colors.primary,
-    borderRadius: radii.control,
-    minHeight: touchTargets.primaryControl,
-    padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    marginBottom: 16,
-  },
-  createProfileButtonText: {
-    color: colors.primaryText,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  signOutButton: {
-    padding: 12,
-    alignItems: 'center',
-    minHeight: touchTargets.min,
-    justifyContent: 'center',
-  },
-  signOutButtonText: {
-    color: colors.textSecondary,
-    fontSize: 14,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.textPrimary,
-    marginBottom: 24,
-  },
-  profileInfo: {
-    marginTop: 20,
-    padding: 20,
-    backgroundColor: colors.surface,
-    borderRadius: radii.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    width: '100%',
-  },
-  profileName: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginBottom: 12,
-  },
-  modeIndicator: {
-    marginTop: 16,
-    fontSize: 14,
-    color: colors.positiveText,
-    fontWeight: '600',
+    fontSize: 12,
+    lineHeight: 16,
   },
 });

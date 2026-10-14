@@ -15,7 +15,9 @@ import { refreshFidePlayer, type UserProfile } from '@fide-calculator/shared';
 import type { LocalProfile } from '@/hooks/useLocalStorage';
 import FideSearchInput from './FideSearchInput';
 import type { FidePlayer } from '@/hooks/useFideData';
-import { colors, radii, spacing, typography, touchTargets, shadows } from '../theme/tokens';
+import { useTheme } from '../contexts/ThemeContext';
+import TacticalCard from './ui/TacticalCard';
+import ChessInsignia from './ui/ChessInsignia';
 
 type ProfileLike = {
   id?: string;
@@ -51,6 +53,7 @@ export default function EditProfileModal({
   isLocal,
   onSave,
 }: EditProfileModalProps) {
+  const { colors, radii, borderWidth, typography, touchTargets } = useTheme();
   const [name, setName] = useState('');
   const [fideId, setFideId] = useState('');
   const [standardRating, setStandardRating] = useState(1500);
@@ -165,25 +168,58 @@ export default function EditProfileModal({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.keyboardView}
         >
-          <View style={styles.modal}>
-            <View style={styles.header}>
+          <View
+            style={[
+              styles.modal,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                borderTopLeftRadius: radii.xl,
+                borderTopRightRadius: radii.xl,
+                borderWidth: borderWidth.heavy,
+              },
+            ]}
+          >
+            {/* Header */}
+            <View
+              style={[
+                styles.header,
+                {
+                  backgroundColor: colors.surfaceMuted,
+                  borderBottomColor: colors.border,
+                  borderBottomWidth: borderWidth.medium,
+                },
+              ]}
+            >
               <View style={styles.headerTitleRow}>
-                <Text style={styles.headerMotif}>♟</Text>
-                <Text style={styles.title}>Edit profile</Text>
+                <ChessInsignia piece="rook" size={18} color={colors.primary} />
+                <View>
+                  <Text style={[styles.titleTag, { color: colors.primary }]}>
+                    [ PROFILE MAINTENANCE ]
+                  </Text>
+                  <Text style={[styles.title, { color: colors.textPrimary }]}>Edit Profile</Text>
+                </View>
               </View>
               <TouchableOpacity
                 onPress={onClose}
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                style={styles.closeButton}
+                style={[
+                  styles.closeButton,
+                  {
+                    borderColor: colors.border,
+                    borderWidth: borderWidth.thin,
+                    backgroundColor: colors.surface,
+                  },
+                ]}
                 accessibilityRole="button"
                 accessibilityLabel="Close edit profile modal"
               >
-                <Text style={styles.closeText}>✕</Text>
+                <Text style={[styles.closeText, { color: colors.textPrimary }]}>✕</Text>
               </TouchableOpacity>
             </View>
 
@@ -193,24 +229,51 @@ export default function EditProfileModal({
               keyboardShouldPersistTaps="handled"
             >
               {error ? (
-                <View style={styles.errorBanner}>
-                  <Text style={styles.errorIcon}>⚠</Text>
-                  <Text style={styles.errorText}>{error}</Text>
+                <View
+                  style={[
+                    styles.errorBanner,
+                    {
+                      backgroundColor: colors.negativeBg,
+                      borderColor: colors.negative,
+                      borderWidth: borderWidth.thin,
+                      borderRadius: radii.sm,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.errorIcon, { color: colors.negativeText }]}>⚠</Text>
+                  <Text style={[styles.errorText, { color: colors.negativeText }]}>{error}</Text>
                 </View>
               ) : null}
 
-              <View style={styles.hintBox}>
-                <Text style={styles.hintIcon}>ℹ</Text>
-                <Text style={styles.hintText}>
-                  Search by name to fill from FIDE and update ratings.
+              <View
+                style={[
+                  styles.hintBox,
+                  {
+                    backgroundColor: colors.surfaceMuted,
+                    borderColor: colors.borderSubtle,
+                    borderWidth: borderWidth.thin,
+                    borderRadius: radii.sm,
+                  },
+                ]}
+              >
+                <Text style={[styles.hintIcon, { color: colors.primary }]}>ℹ</Text>
+                <Text style={[styles.hintText, { color: colors.textSecondary }]}>
+                  Search by name to fill from official FIDE database and sync active ratings.
                 </Text>
               </View>
 
+              {/* Refresh Button */}
               <TouchableOpacity
                 accessibilityRole="button"
                 accessibilityLabel="Refresh FIDE data"
                 style={[
                   styles.refreshBtn,
+                  {
+                    backgroundColor: colors.accentMuted,
+                    borderColor: colors.accent,
+                    borderWidth: borderWidth.medium,
+                    borderRadius: radii.sm,
+                  },
                   (refreshing || loading) && styles.buttonDisabled,
                 ]}
                 onPress={handleRefresh}
@@ -218,28 +281,46 @@ export default function EditProfileModal({
                 activeOpacity={0.8}
               >
                 {refreshing && (
-                  <ActivityIndicator size="small" color={colors.primary} />
+                  typeof ActivityIndicator === 'function' ? (
+                    <ActivityIndicator size="small" color={colors.accent} />
+                  ) : (
+                    <Text style={{ color: colors.accent, marginRight: 6 }}>⟳</Text>
+                  )
                 )}
-                <Text style={styles.refreshBtnText}>
+                <Text style={[styles.refreshBtnText, { color: colors.accent }]}>
                   {refreshing ? 'Refreshing FIDE data...' : 'Refresh FIDE data'}
                 </Text>
               </TouchableOpacity>
 
               {refreshStatus ? (
-                <Text accessibilityLiveRegion="polite" style={styles.refreshStatusText}>
+                <Text
+                  accessibilityLiveRegion="polite"
+                  style={[styles.refreshStatusText, { color: colors.positiveText }]}
+                >
                   {refreshStatus}
                 </Text>
               ) : null}
 
               {/* Group: Player Details */}
-              <View style={styles.groupCard}>
-                <Text style={styles.groupHeader}>Player Details</Text>
-
+              <TacticalCard
+                title="PLAYER DOSSIER"
+                badge={isLocal ? 'LOCAL STORAGE' : 'CLOUD SYNC'}
+                variant="default"
+              >
                 <View style={styles.fieldSpacing}>
-                  <Text style={styles.label}>Name *</Text>
+                  <Text style={[styles.label, { color: colors.textMuted }]}>PLAYER NAME *</Text>
                   {refreshing || loading ? (
                     <TextInput
-                      style={styles.input}
+                      style={[
+                        styles.input,
+                        {
+                          backgroundColor: colors.surfaceMuted,
+                          borderColor: colors.borderSubtle,
+                          color: colors.textPrimary,
+                          borderWidth: borderWidth.thin,
+                          borderRadius: radii.sm,
+                        },
+                      ]}
                       value={name}
                       editable={false}
                     />
@@ -254,10 +335,19 @@ export default function EditProfileModal({
                 </View>
 
                 <View style={styles.fieldSpacing}>
-                  <Text style={styles.label}>FIDE ID</Text>
+                  <Text style={[styles.label, { color: colors.textMuted }]}>FIDE ID</Text>
                   <TextInput
                     editable={!refreshing && !loading}
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                        color: colors.textPrimary,
+                        borderWidth: borderWidth.thin,
+                        borderRadius: radii.sm,
+                      },
+                    ]}
                     value={fideId}
                     onChangeText={setFideId}
                     placeholder="e.g. 12345678"
@@ -265,17 +355,29 @@ export default function EditProfileModal({
                     keyboardType="number-pad"
                   />
                 </View>
-              </View>
+              </TacticalCard>
 
               {/* Group: Ratings */}
-              <View style={styles.groupCard}>
-                <Text style={styles.groupHeader}>Ratings</Text>
-
+              <TacticalCard
+                title="OFFICIAL RATINGS"
+                badge="ELO SPEC"
+                variant="default"
+              >
                 <View style={styles.fieldSpacing}>
-                  <Text style={styles.label}>Standard rating</Text>
+                  <Text style={[styles.label, { color: colors.textMuted }]}>STANDARD RATING</Text>
                   <TextInput
                     editable={!refreshing && !loading}
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                        color: colors.textPrimary,
+                        borderWidth: borderWidth.thin,
+                        borderRadius: radii.sm,
+                        ...typography.mono,
+                      },
+                    ]}
                     value={String(standardRating)}
                     onChangeText={(t) => setNum(setStandardRating, t)}
                     keyboardType="number-pad"
@@ -285,10 +387,20 @@ export default function EditProfileModal({
                 </View>
 
                 <View style={styles.fieldSpacing}>
-                  <Text style={styles.label}>Rapid rating</Text>
+                  <Text style={[styles.label, { color: colors.textMuted }]}>RAPID RATING</Text>
                   <TextInput
                     editable={!refreshing && !loading}
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                        color: colors.textPrimary,
+                        borderWidth: borderWidth.thin,
+                        borderRadius: radii.sm,
+                        ...typography.mono,
+                      },
+                    ]}
                     value={String(rapidRating)}
                     onChangeText={(t) => setNum(setRapidRating, t)}
                     keyboardType="number-pad"
@@ -298,10 +410,20 @@ export default function EditProfileModal({
                 </View>
 
                 <View style={styles.fieldSpacing}>
-                  <Text style={styles.label}>Blitz rating</Text>
+                  <Text style={[styles.label, { color: colors.textMuted }]}>BLITZ RATING</Text>
                   <TextInput
                     editable={!refreshing && !loading}
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                        color: colors.textPrimary,
+                        borderWidth: borderWidth.thin,
+                        borderRadius: radii.sm,
+                        ...typography.mono,
+                      },
+                    ]}
                     value={String(blitzRating)}
                     onChangeText={(t) => setNum(setBlitzRating, t)}
                     keyboardType="number-pad"
@@ -309,21 +431,41 @@ export default function EditProfileModal({
                     placeholderTextColor={colors.textMuted}
                   />
                 </View>
-              </View>
+              </TacticalCard>
 
               {/* Actions */}
               <View style={styles.actions}>
                 <TouchableOpacity
-                  style={styles.cancelBtn}
+                  style={[
+                    styles.cancelBtn,
+                    {
+                      backgroundColor: colors.surfaceMuted,
+                      borderColor: colors.border,
+                      borderWidth: borderWidth.medium,
+                      borderRadius: radii.sm,
+                      minHeight: touchTargets.primaryControl,
+                    },
+                  ]}
                   onPress={onClose}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                  <Text style={[styles.cancelBtnText, { color: colors.textSecondary }]}>
+                    Cancel
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Save"
                   style={[
                     styles.submitBtn,
+                    {
+                      backgroundColor: colors.primary,
+                      borderColor: colors.border,
+                      borderWidth: borderWidth.medium,
+                      borderRadius: radii.sm,
+                      minHeight: touchTargets.primaryControl,
+                    },
                     (loading || refreshing) && styles.buttonDisabled,
                   ]}
                   onPress={handleSubmit}
@@ -331,9 +473,17 @@ export default function EditProfileModal({
                   activeOpacity={0.85}
                 >
                   {loading ? (
-                    <ActivityIndicator size="small" color={colors.primaryText} />
+                    typeof ActivityIndicator === 'function' ? (
+                      <ActivityIndicator size="small" color={colors.primaryText} />
+                    ) : (
+                      <Text style={[styles.submitBtnText, { color: colors.primaryText }]}>
+                        Saving...
+                      </Text>
+                    )
                   ) : (
-                    <Text style={styles.submitBtnText}>Save</Text>
+                    <Text style={[styles.submitBtnText, { color: colors.primaryText }]}>
+                      Save
+                    </Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -348,7 +498,6 @@ export default function EditProfileModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: colors.overlay,
     justifyContent: 'flex-end',
   },
   keyboardView: {
@@ -356,177 +505,135 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modal: {
-    maxHeight: '90%',
-    backgroundColor: colors.canvas,
-    borderTopLeftRadius: radii.sheet,
-    borderTopRightRadius: radii.sheet,
-    borderTopWidth: 1,
-    borderColor: colors.border,
-    ...shadows.sheet,
+    maxHeight: '92%',
     overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: 10,
   },
-  headerMotif: {
-    fontSize: 20,
-    color: colors.primary,
+  titleTag: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
   title: {
-    ...typography.subheading,
-    color: colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
   closeButton: {
-    width: touchTargets.min,
-    height: touchTargets.min,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.pill,
+    borderRadius: 4,
   },
   closeText: {
-    fontSize: 20,
-    color: colors.textPrimary,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '900',
   },
   errorIcon: {
-    fontSize: 16,
-    color: colors.negativeText,
+    fontSize: 14,
+    fontWeight: '900',
   },
   hintIcon: {
-    fontSize: 16,
-    color: colors.primary,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '900',
   },
   scrollContent: {
-    paddingHorizontal: spacing.screenInset,
-    paddingVertical: spacing.xl,
-    gap: spacing.lg,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 12,
   },
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.negativeBg,
-    padding: spacing.md,
-    borderRadius: radii.control,
-    gap: spacing.sm,
+    padding: 10,
+    gap: 8,
   },
   errorText: {
     flex: 1,
-    ...typography.caption,
-    color: colors.negativeText,
+    fontSize: 12,
     fontWeight: '700',
   },
   hintBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surfaceMuted,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.control,
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
   },
   hintText: {
     flex: 1,
-    ...typography.caption,
-    color: colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 16,
   },
   refreshBtn: {
     minHeight: 44,
-    backgroundColor: colors.surfaceSelected,
-    borderRadius: radii.control,
-    borderWidth: 1.5,
-    borderColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
+    gap: 8,
   },
   refreshBtnText: {
-    ...typography.label,
-    color: colors.primary,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   refreshStatusText: {
-    ...typography.caption,
-    color: colors.positiveText,
-    fontWeight: '600',
-  },
-  groupCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
-    ...shadows.card,
-  },
-  groupHeader: {
-    ...typography.subheading,
-    color: colors.primary,
-    marginBottom: spacing.xs,
+    fontSize: 12,
+    fontWeight: '700',
   },
   fieldSpacing: {
-    marginTop: spacing.md,
+    marginTop: 10,
   },
   label: {
-    ...typography.label,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs + 2,
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+    marginBottom: 6,
   },
   input: {
-    minHeight: touchTargets.min,
-    borderWidth: 1.5,
-    borderColor: colors.borderInput,
-    borderRadius: radii.control,
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md - 2,
-    ...typography.body,
-    color: colors.textPrimary,
+    minHeight: 44,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 15,
+    fontWeight: '600',
   },
   actions: {
     flexDirection: 'row',
-    gap: spacing.md,
-    marginTop: spacing.xs,
+    gap: 12,
+    marginTop: 8,
+    marginBottom: 20,
   },
   cancelBtn: {
     flex: 1,
-    minHeight: touchTargets.primaryControl,
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radii.control,
-    borderWidth: 1,
-    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cancelBtnText: {
-    ...typography.bodyBold,
-    color: colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   submitBtn: {
     flex: 2,
-    minHeight: touchTargets.primaryControl,
-    backgroundColor: colors.primary,
-    borderRadius: radii.control,
     alignItems: 'center',
     justifyContent: 'center',
   },
   submitBtnText: {
-    ...typography.bodyBold,
-    color: colors.primaryText,
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
   buttonDisabled: {
     opacity: 0.5,

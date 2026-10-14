@@ -10,7 +10,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useFideData, FidePlayer } from '../hooks/useFideData';
-import { colors, radii, spacing, typography, touchTargets, shadows } from '../theme/tokens';
+import { useTheme } from '../contexts/ThemeContext';
+import ChessInsignia from './ui/ChessInsignia';
 
 interface FideSearchInputProps {
   value: string;
@@ -23,8 +24,9 @@ export default function FideSearchInput({
   value,
   onChange,
   onSelect,
-  placeholder = "Search FIDE players...",
+  placeholder = 'Search FIDE players...',
 }: FideSearchInputProps) {
+  const { colors, radii, borderWidth, shadows } = useTheme();
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState(value);
   const [isFocused, setIsFocused] = useState(false);
@@ -73,7 +75,12 @@ export default function FideSearchInput({
       <View
         style={[
           styles.inputContainer,
-          (isFocused || showDropdown) && styles.inputContainerFocused,
+          {
+            backgroundColor: colors.surfaceElevated,
+            borderColor: isFocused || showDropdown ? colors.borderAccent : colors.borderInput,
+            borderWidth: borderWidth.default,
+            borderRadius: radii.control,
+          },
         ]}
       >
         <Ionicons
@@ -83,7 +90,12 @@ export default function FideSearchInput({
           style={styles.searchIcon}
         />
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              color: colors.textPrimary,
+            },
+          ]}
           value={searchTerm}
           onChangeText={handleInputChange}
           placeholder={placeholder}
@@ -105,50 +117,63 @@ export default function FideSearchInput({
             accessibilityLabel="Clear search text"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+            <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
           </TouchableOpacity>
         ) : null}
       </View>
 
       {showDropdown && (searchTerm || fideData.length > 0) && (
-        <View style={styles.dropdown}>
+        <View
+          style={[
+            styles.dropdown,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              borderWidth: borderWidth.default,
+              borderRadius: radii.control,
+              ...shadows.sheet,
+            },
+          ]}
+        >
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="small" color={colors.primary} />
-              <Text style={styles.loadingText}>Searching FIDE database...</Text>
+              <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+                Searching FIDE database...
+              </Text>
             </View>
           ) : fideData.length > 0 ? (
             <View style={styles.list}>
               {fideData.slice(0, 15).map((item) => (
                 <TouchableOpacity
                   key={item.fideId + item.name}
-                  style={styles.playerItem}
+                  style={[styles.playerItem, { borderBottomColor: colors.border }]}
                   onPress={() => handleSelectPlayer(item)}
                   activeOpacity={0.85}
                   accessibilityRole="button"
                   accessibilityLabel={`Select player ${item.name}`}
                 >
-                  <View style={styles.playerAvatar}>
-                    <Ionicons name="person" size={16} color={colors.primary} />
-                  </View>
+                  <ChessInsignia piece="pawn" size={14} badgeSize={28} color={colors.primary} badgeBg={colors.surfaceMuted} />
                   <View style={styles.playerInfo}>
-                    <Text style={styles.playerName} numberOfLines={1}>
+                    <Text style={[styles.playerName, { color: colors.textPrimary }]} numberOfLines={1}>
                       {item.name}
                     </Text>
-                    <Text style={styles.playerId} numberOfLines={1}>
+                    <Text style={[styles.playerId, { color: colors.textSecondary }]} numberOfLines={1}>
                       FIDE ID: {item.fideId || '—'}
                     </Text>
                   </View>
                   <View style={styles.playerRatingRight}>
-                    <Text style={styles.ratingNumber}>{getPrimaryRating(item)}</Text>
-                    <Text style={styles.ratingLabel}>RATING</Text>
+                    <Text style={[styles.ratingNumber, { color: colors.primary }]}>{getPrimaryRating(item)}</Text>
+                    <Text style={[styles.ratingLabel, { color: colors.textSecondary }]}>RATING</Text>
                   </View>
                 </TouchableOpacity>
               ))}
             </View>
           ) : searchTerm ? (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No players found matching "{searchTerm}"</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                No players found matching "{searchTerm}"
+              </Text>
             </View>
           ) : null}
         </View>
@@ -165,34 +190,21 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: touchTargets.min,
-    borderWidth: 1.5,
-    borderColor: colors.borderInput,
-    borderRadius: radii.control,
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.md,
-  },
-  inputContainerFocused: {
-    borderColor: colors.borderFocus,
-    backgroundColor: colors.surface,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 2,
+    minHeight: 48,
+    paddingHorizontal: 12,
   },
   searchIcon: {
-    marginRight: spacing.sm,
+    marginRight: 8,
   },
   input: {
     flex: 1,
-    minHeight: touchTargets.min,
-    paddingVertical: spacing.md - 2,
-    ...typography.body,
-    color: colors.textPrimary,
+    minHeight: 48,
+    paddingVertical: 10,
+    fontSize: 14,
+    fontWeight: '600',
   },
   clearButton: {
-    padding: spacing.xs,
+    padding: 4,
     justifyContent: 'center',
     alignItems: 'center',
     minWidth: 32,
@@ -203,12 +215,7 @@ const styles = StyleSheet.create({
     top: '100%',
     left: 0,
     right: 0,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.control,
-    marginTop: spacing.xs + 2,
-    ...shadows.sheet,
+    marginTop: 6,
     zIndex: 1000,
     overflow: 'hidden',
   },
@@ -218,66 +225,56 @@ const styles = StyleSheet.create({
   playerItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: touchTargets.min,
-    paddingVertical: spacing.md - 2,
-    paddingHorizontal: spacing.md,
+    minHeight: 48,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    gap: spacing.md,
-  },
-  playerAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surfaceSelected,
-    alignItems: 'center',
-    justifyContent: 'center',
+    gap: 10,
   },
   playerInfo: {
     flex: 1,
   },
   playerName: {
-    ...typography.bodyBold,
-    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '700',
   },
   playerId: {
     marginTop: 2,
-    ...typography.caption,
-    color: colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '600',
   },
   playerRatingRight: {
     alignItems: 'flex-end',
-    minWidth: 60,
+    minWidth: 55,
   },
   ratingNumber: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.primary,
+    fontSize: 15,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
   },
   ratingLabel: {
     marginTop: 2,
-    fontSize: 10,
+    fontSize: 9,
     letterSpacing: 0.6,
-    color: colors.textSecondary,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.lg,
-    gap: spacing.sm,
+    padding: 16,
+    gap: 8,
   },
   loadingText: {
-    ...typography.caption,
-    color: colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '600',
   },
   emptyContainer: {
-    padding: spacing.lg,
+    padding: 16,
     alignItems: 'center',
   },
   emptyText: {
-    ...typography.caption,
-    color: colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

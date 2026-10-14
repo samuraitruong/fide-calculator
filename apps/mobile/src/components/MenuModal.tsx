@@ -12,11 +12,13 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useMenu } from '@/contexts/MenuContext';
+import { useTheme } from '../contexts/ThemeContext';
 import ProfileMenuContent from '@/components/ProfileMenuContent';
-import { colors, radii, spacing, typography, touchTargets, shadows } from '../theme/tokens';
+import ChessInsignia from './ui/ChessInsignia';
 
 export default function MenuModal() {
   const { open, closeMenu } = useMenu();
+  const { colors, radii, spacing, touchTargets, shadows, borderWidth } = useTheme();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(1)).current;
 
@@ -41,12 +43,18 @@ export default function MenuModal() {
       animationType="fade"
       onRequestClose={closeMenu}
     >
-      <Pressable style={styles.overlay} onPress={closeMenu}>
+      <Pressable style={[styles.overlay, { backgroundColor: colors.overlay }]} onPress={closeMenu}>
         <Animated.View
           style={[
             styles.drawer,
             {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              borderLeftWidth: borderWidth.default,
+              borderTopLeftRadius: radii.sheet,
+              borderBottomLeftRadius: radii.sheet,
               paddingTop: insets.top + spacing.sm,
+              ...shadows.drawer,
               transform: [
                 {
                   translateX: slideAnim.interpolate({
@@ -59,19 +67,27 @@ export default function MenuModal() {
           ]}
         >
           <Pressable onPress={(e) => e.stopPropagation()} style={styles.drawerContent}>
-            <View style={styles.header}>
+            <View style={[styles.header, { backgroundColor: colors.surfaceElevated, borderBottomColor: colors.border }]}>
               <View style={styles.headerTitleRow}>
-                <Text style={styles.headerMotif}>♟</Text>
-                <Text style={styles.title}>Account & Profiles</Text>
+                <ChessInsignia piece="knight" size={16} badgeSize={28} color={colors.primary} />
+                <Text style={[styles.title, { color: colors.textPrimary }]}>ACCOUNT & SETTINGS</Text>
               </View>
               <TouchableOpacity
                 onPress={closeMenu}
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                style={styles.closeButton}
+                style={[
+                  styles.closeButton,
+                  {
+                    width: touchTargets.min,
+                    height: touchTargets.min,
+                    backgroundColor: colors.surfaceMuted,
+                    borderColor: colors.border,
+                  },
+                ]}
                 accessibilityRole="button"
                 accessibilityLabel="Close profile menu"
               >
-                <Ionicons name="close" size={24} color={colors.textPrimary} />
+                <Ionicons name="close" size={20} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
             <ProfileMenuContent />
@@ -87,17 +103,10 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    backgroundColor: colors.overlay,
   },
   drawer: {
     width: '85%',
     maxWidth: 360,
-    backgroundColor: colors.canvas,
-    borderTopLeftRadius: radii.sheet,
-    borderBottomLeftRadius: radii.sheet,
-    borderLeftWidth: 1,
-    borderColor: colors.border,
-    ...shadows.drawer,
     overflow: 'hidden',
   },
   drawerContent: {
@@ -107,30 +116,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: colors.surface,
   },
   headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-  },
-  headerMotif: {
-    fontSize: 20,
-    color: colors.primary,
+    gap: 8,
   },
   title: {
-    ...typography.subheading,
-    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   closeButton: {
-    width: touchTargets.min,
-    height: touchTargets.min,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.pill,
+    borderRadius: 8,
+    borderWidth: 1,
   },
 });

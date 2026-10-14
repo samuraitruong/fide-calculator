@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
-import { colors, radii, spacing, typography, touchTargets, shadows } from '../theme/tokens';
+import { useTheme } from '../contexts/ThemeContext';
+import ChessInsignia from './ui/ChessInsignia';
 
 interface AuthModalProps {
   open: boolean;
@@ -21,6 +22,7 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ open, onClose, onSuccess, onForgotPassword }: AuthModalProps) {
+  const { colors, radii, borderWidth, touchTargets } = useTheme();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -72,6 +74,8 @@ export default function AuthModal({ open, onClose, onSuccess, onForgotPassword }
     }
   };
 
+  const hasIonicons = typeof Ionicons === 'function';
+
   if (!open) return null;
 
   return (
@@ -81,43 +85,89 @@ export default function AuthModal({ open, onClose, onSuccess, onForgotPassword }
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
+      <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
+        <View
+          style={[
+            styles.modalContainer,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              borderWidth: borderWidth.heavy,
+              borderRadius: radii.xl,
+            },
+          ]}
+        >
           <ScrollView
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
             {/* Header */}
-            <View style={styles.header}>
+            <View
+              style={[
+                styles.header,
+                {
+                  borderBottomColor: colors.border,
+                  borderBottomWidth: borderWidth.medium,
+                },
+              ]}
+            >
               <View style={styles.headerTitleRow}>
-                <Text style={styles.headerMotif}>♟</Text>
-                <Text style={styles.title}>
-                  {isSignUp ? 'Create Account' : 'Sign In'}
-                </Text>
+                <ChessInsignia piece="knight" size={18} color={colors.primary} />
+                <View>
+                  <Text style={[styles.headerTag, { color: colors.primary }]}>
+                    [ ACCESS AUTHENTICATION ]
+                  </Text>
+                  <Text style={[styles.title, { color: colors.textPrimary }]}>
+                    {isSignUp ? 'Create Account' : 'Sign In'}
+                  </Text>
+                </View>
               </View>
               <TouchableOpacity
                 onPress={onClose}
-                style={styles.closeButton}
+                style={[
+                  styles.closeButton,
+                  {
+                    backgroundColor: colors.surfaceMuted,
+                    borderColor: colors.border,
+                    borderWidth: borderWidth.thin,
+                    borderRadius: radii.sm,
+                  },
+                ]}
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 accessibilityRole="button"
                 accessibilityLabel="Close sign in modal"
               >
-                <Ionicons name="close" size={24} color={colors.textPrimary} />
+                {hasIonicons ? (
+                  <Ionicons name="close" size={20} color={colors.textPrimary} />
+                ) : (
+                  <Text style={[styles.closeIconText, { color: colors.textPrimary }]}>✕</Text>
+                )}
               </TouchableOpacity>
             </View>
 
             <View style={styles.form}>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Email Address</Text>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  EMAIL IDENTIFIER
+                </Text>
                 <TextInput
-                  style={[styles.input, error && styles.inputError]}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.surfaceElevated,
+                      borderColor: error ? colors.negative : colors.border,
+                      borderWidth: borderWidth.thin,
+                      borderRadius: radii.sm,
+                      color: colors.textPrimary,
+                    },
+                  ]}
                   value={email}
                   onChangeText={(t) => {
                     setEmail(t);
                     if (error) setError('');
                   }}
-                  placeholder="Enter your email"
+                  placeholder="player@fide.org"
                   placeholderTextColor={colors.textMuted}
                   keyboardType="email-address"
                   autoCapitalize="none"
@@ -127,16 +177,28 @@ export default function AuthModal({ open, onClose, onSuccess, onForgotPassword }
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Password</Text>
-                <View style={[styles.passwordContainer, error && styles.inputError]}>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  ACCESS PASSWORD
+                </Text>
+                <View
+                  style={[
+                    styles.passwordContainer,
+                    {
+                      backgroundColor: colors.surfaceElevated,
+                      borderColor: error ? colors.negative : colors.border,
+                      borderWidth: borderWidth.thin,
+                      borderRadius: radii.sm,
+                    },
+                  ]}
+                >
                   <TextInput
-                    style={styles.passwordInput}
+                    style={[styles.passwordInput, { color: colors.textPrimary }]}
                     value={password}
                     onChangeText={(t) => {
                       setPassword(t);
                       if (error) setError('');
                     }}
-                    placeholder={isSignUp ? 'Create a password' : 'Enter your password'}
+                    placeholder={isSignUp ? 'Create strong password' : 'Enter access key'}
                     placeholderTextColor={colors.textMuted}
                     secureTextEntry={!showPassword}
                     autoCapitalize="none"
@@ -150,11 +212,17 @@ export default function AuthModal({ open, onClose, onSuccess, onForgotPassword }
                     accessibilityRole="button"
                     accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
                   >
-                    <Ionicons
-                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                      size={20}
-                      color={colors.textSecondary}
-                    />
+                    {hasIonicons ? (
+                      <Ionicons
+                        name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                        size={20}
+                        color={colors.textSecondary}
+                      />
+                    ) : (
+                      <Text style={{ fontSize: 14, color: colors.textSecondary }}>
+                        {showPassword ? 'Hide' : 'Show'}
+                      </Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>
@@ -167,22 +235,36 @@ export default function AuthModal({ open, onClose, onSuccess, onForgotPassword }
                   accessibilityRole="button"
                   accessibilityLabel="Forgot password"
                 >
-                  <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+                  <Text style={[styles.forgotPasswordText, { color: colors.primary }]}>
+                    Reset forgotten credentials →
+                  </Text>
                 </TouchableOpacity>
               ) : null}
 
               {isSignUp ? (
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Confirm Password</Text>
-                  <View style={[styles.passwordContainer, error && styles.inputError]}>
+                  <Text style={[styles.label, { color: colors.textMuted }]}>
+                    CONFIRM PASSWORD
+                  </Text>
+                  <View
+                    style={[
+                      styles.passwordContainer,
+                      {
+                        backgroundColor: colors.surfaceElevated,
+                        borderColor: error ? colors.negative : colors.border,
+                        borderWidth: borderWidth.thin,
+                        borderRadius: radii.sm,
+                      },
+                    ]}
+                  >
                     <TextInput
-                      style={styles.passwordInput}
+                      style={[styles.passwordInput, { color: colors.textPrimary }]}
                       value={confirmPassword}
                       onChangeText={(t) => {
                         setConfirmPassword(t);
                         if (error) setError('');
                       }}
-                      placeholder="Confirm your password"
+                      placeholder="Repeat password"
                       placeholderTextColor={colors.textMuted}
                       secureTextEntry={!showConfirmPassword}
                       autoCapitalize="none"
@@ -196,25 +278,51 @@ export default function AuthModal({ open, onClose, onSuccess, onForgotPassword }
                       accessibilityRole="button"
                       accessibilityLabel={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
                     >
-                      <Ionicons
-                        name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
-                        size={20}
-                        color={colors.textSecondary}
-                      />
+                      {hasIonicons ? (
+                        <Ionicons
+                          name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                          size={20}
+                          color={colors.textSecondary}
+                        />
+                      ) : (
+                        <Text style={{ fontSize: 14, color: colors.textSecondary }}>
+                          {showConfirmPassword ? 'Hide' : 'Show'}
+                        </Text>
+                      )}
                     </TouchableOpacity>
                   </View>
                 </View>
               ) : null}
 
               {error ? (
-                <View style={styles.errorContainer}>
-                  <Ionicons name="alert-circle" size={18} color={colors.negativeText} />
-                  <Text style={styles.errorText}>{error}</Text>
+                <View
+                  style={[
+                    styles.errorContainer,
+                    {
+                      backgroundColor: colors.negativeBg,
+                      borderColor: colors.negative,
+                      borderWidth: borderWidth.thin,
+                      borderRadius: radii.sm,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.errorIcon, { color: colors.negativeText }]}>⚠</Text>
+                  <Text style={[styles.errorText, { color: colors.negativeText }]}>{error}</Text>
                 </View>
               ) : null}
 
               <TouchableOpacity
-                style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+                style={[
+                  styles.submitButton,
+                  {
+                    backgroundColor: colors.primary,
+                    borderColor: colors.border,
+                    borderWidth: borderWidth.medium,
+                    borderRadius: radii.sm,
+                    minHeight: touchTargets.primaryControl,
+                  },
+                  loading && styles.submitButtonDisabled,
+                ]}
                 onPress={handleSubmit}
                 disabled={loading}
                 activeOpacity={0.85}
@@ -222,10 +330,16 @@ export default function AuthModal({ open, onClose, onSuccess, onForgotPassword }
                 accessibilityLabel={isSignUp ? 'Create account' : 'Sign in'}
               >
                 {loading ? (
-                  <ActivityIndicator color={colors.primaryText} />
+                  typeof ActivityIndicator === 'function' ? (
+                    <ActivityIndicator color={colors.primaryText} />
+                  ) : (
+                    <Text style={[styles.submitButtonText, { color: colors.primaryText }]}>
+                      Processing...
+                    </Text>
+                  )
                 ) : (
-                  <Text style={styles.submitButtonText}>
-                    {isSignUp ? 'Create Account' : 'Sign In'}
+                  <Text style={[styles.submitButtonText, { color: colors.primaryText }]}>
+                    {isSignUp ? '[ CREATE ACCOUNT ]' : '[ SIGN IN ]'}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -242,24 +356,34 @@ export default function AuthModal({ open, onClose, onSuccess, onForgotPassword }
                 activeOpacity={0.8}
                 accessibilityRole="button"
               >
-                <Text style={styles.footerLabel}>
-                  {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
+                <Text style={[styles.footerLabel, { color: colors.textSecondary }]}>
+                  {isSignUp ? 'Already registered? ' : "Need an account? "}
                 </Text>
-                <Text style={styles.footerLink}>
-                  {isSignUp ? 'Sign in' : 'Sign up'}
+                <Text style={[styles.footerLink, { color: colors.primary }]}>
+                  {isSignUp ? 'Sign in' : 'Create profile'}
                 </Text>
               </TouchableOpacity>
             </View>
 
             {isSignUp ? (
-              <Text style={styles.termsText}>
-                By creating an account, your chess games and ratings sync securely to the cloud.
+              <Text style={[styles.termsText, { color: colors.textMuted }]}>
+                By creating an account, your chess games and ratings sync securely to cloud telemetry storage.
               </Text>
             ) : null}
 
-            <View style={styles.branding}>
-              <Text style={styles.brandingMotif}>♞</Text>
-              <Text style={styles.brandingText}>FRIENDLY CHESS CLUB</Text>
+            <View
+              style={[
+                styles.branding,
+                {
+                  borderTopColor: colors.borderSubtle,
+                  borderTopWidth: borderWidth.thin,
+                },
+              ]}
+            >
+              <Text style={[styles.brandingMotif, { color: colors.primary }]}>♞</Text>
+              <Text style={[styles.brandingText, { color: colors.textMuted }]}>
+                PRECISION CHESS ENGINE
+              </Text>
             </View>
           </ScrollView>
         </View>
@@ -271,182 +395,161 @@ export default function AuthModal({ open, onClose, onSuccess, onForgotPassword }
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing.xl,
+    padding: 16,
   },
   modalContainer: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.sheet,
-    borderWidth: 1,
-    borderColor: colors.border,
     width: '100%',
-    maxWidth: 400,
+    maxWidth: 420,
     maxHeight: '90%',
-    ...shadows.sheet,
     overflow: 'hidden',
   },
   scrollContent: {
-    padding: spacing.xxl,
+    padding: 20,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xl,
-    paddingBottom: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    marginBottom: 20,
+    paddingBottom: 12,
   },
   headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: 10,
   },
-  headerMotif: {
-    fontSize: 22,
-    color: colors.primary,
+  headerTag: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
   title: {
-    ...typography.subheading,
-    color: colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
   closeButton: {
-    width: touchTargets.min,
-    height: touchTargets.min,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.pill,
+  },
+  closeIconText: {
+    fontSize: 16,
+    fontWeight: '900',
   },
   form: {
-    gap: spacing.lg,
+    gap: 14,
   },
   inputGroup: {
-    gap: spacing.xs + 2,
+    gap: 6,
   },
   label: {
-    ...typography.label,
-    color: colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.8,
   },
   input: {
-    minHeight: touchTargets.min,
-    borderWidth: 1.5,
-    borderColor: colors.borderInput,
-    borderRadius: radii.control,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md - 2,
-    ...typography.body,
-    color: colors.textPrimary,
-    backgroundColor: colors.surface,
-  },
-  inputError: {
-    borderColor: colors.negativeText,
+    minHeight: 46,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    fontWeight: '600',
   },
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: touchTargets.min,
-    borderWidth: 1.5,
-    borderColor: colors.borderInput,
-    borderRadius: radii.control,
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.md,
+    minHeight: 46,
   },
   passwordInput: {
     flex: 1,
-    paddingVertical: spacing.md - 2,
-    ...typography.body,
-    color: colors.textPrimary,
+    minHeight: 46,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    fontWeight: '600',
   },
   eyeButton: {
-    padding: spacing.sm,
-    alignItems: 'center',
+    paddingHorizontal: 12,
+    height: '100%',
     justifyContent: 'center',
+    alignItems: 'center',
   },
   forgotPasswordButton: {
-    alignSelf: 'flex-end',
-    marginTop: -spacing.xs,
-    paddingVertical: spacing.xs,
-    minHeight: 36,
-    justifyContent: 'center',
+    alignSelf: 'flex-start',
+    marginTop: -4,
   },
   forgotPasswordText: {
-    ...typography.caption,
-    color: colors.primary,
+    fontSize: 12,
     fontWeight: '700',
   },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.negativeBg,
-    borderRadius: radii.control,
-    padding: spacing.md,
-    gap: spacing.sm,
+    padding: 10,
+    gap: 8,
+  },
+  errorIcon: {
+    fontSize: 14,
+    fontWeight: '900',
   },
   errorText: {
     flex: 1,
-    ...typography.caption,
-    color: colors.negativeText,
+    fontSize: 12,
     fontWeight: '700',
   },
   submitButton: {
-    minHeight: touchTargets.primaryControl,
-    backgroundColor: colors.primary,
-    borderRadius: radii.control,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: spacing.xs,
+    marginTop: 6,
   },
   submitButtonDisabled: {
     opacity: 0.5,
   },
   submitButtonText: {
-    ...typography.bodyBold,
-    color: colors.primaryText,
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
   footer: {
-    marginTop: spacing.xl,
+    marginTop: 18,
     alignItems: 'center',
   },
   footerTouchable: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 40,
   },
   footerLabel: {
-    ...typography.body,
-    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '600',
   },
   footerLink: {
-    ...typography.bodyBold,
-    color: colors.primary,
+    fontSize: 13,
+    fontWeight: '800',
+    textDecorationLine: 'underline',
   },
   termsText: {
-    marginTop: spacing.md,
-    ...typography.caption,
-    color: colors.textMuted,
+    fontSize: 11,
     textAlign: 'center',
+    marginTop: 12,
+    lineHeight: 16,
   },
   branding: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs + 2,
-    marginTop: spacing.xl,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    gap: 6,
+    marginTop: 20,
+    paddingTop: 12,
   },
   brandingMotif: {
     fontSize: 16,
-    color: colors.primary,
   },
   brandingText: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    letterSpacing: 0.8,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1.5,
   },
 });

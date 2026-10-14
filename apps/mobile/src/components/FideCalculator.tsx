@@ -14,11 +14,16 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { MainTabsParamList } from '../types/navigation';
 import type { GameResult, RatingType, Result, FidePlayer } from '@fide-calculator/shared';
 import { calculateRatingChange, getRatingMonthFromDate, getResultRatingMonth, isValidRatingMonth } from '@fide-calculator/shared';
+import { useTheme } from '../contexts/ThemeContext';
 import FideSearchInput from './FideSearchInput';
 import WinDrawLossBar from './WinDrawLossBar';
 import EditGameModal from './EditGameModal';
 import DatePickerModal from './DatePickerModal';
-import { colors, radii, spacing, typography, touchTargets, shadows } from '../theme/tokens';
+import StatHeroCard from './ui/StatHeroCard';
+import TacticalCard from './ui/TacticalCard';
+import TacticalButton from './ui/TacticalButton';
+import WinDrawLossSelector from './ui/WinDrawLossSelector';
+import ChessInsignia from './ui/ChessInsignia';
 
 type Mode = 'local' | 'cloud';
 
@@ -62,7 +67,6 @@ function getPlayerRatingForType(player: FidePlayer, type: RatingType): string {
 }
 
 const getDefaultK = (type: RatingType) => (type === 'standard' ? 40 : 20);
-
 const isValidRating = (rating: number) => rating >= 100 && rating <= 3500;
 
 export default function FideCalculatorMobile({
@@ -74,9 +78,11 @@ export default function FideCalculatorMobile({
   updateResult,
   removeResult,
 }: FideCalculatorProps) {
+  const { colors, radii, borderWidth, touchTargets } = useTheme();
   const navigation = useNavigation<BottomTabNavigationProp<MainTabsParamList>>();
   const latestResults = useRef(results);
   latestResults.current = results;
+
   const [playerRating, setPlayerRating] = useState<number>(
     profile ? getProfileRatingForType(profile, ratingType) : 1500,
   );
@@ -153,7 +159,7 @@ export default function FideCalculatorMobile({
     isDateValid &&
     isValidRatingMonth(ratingMonth);
 
-  // After user calculates once, keep the entry's rating change live-updated
+  // Keep calculation updated once calculated
   useEffect(() => {
     if (!hasCalculated) return;
     if (!isFormValid) {
@@ -218,124 +224,103 @@ export default function FideCalculatorMobile({
   };
 
   const ratingTypes: RatingType[] = ['standard', 'rapid', 'blitz'];
-
-  const liveRating = useMemo(() => {
-    return Math.round(playerRating + currentMonthChange);
-  }, [playerRating, currentMonthChange]);
-
+  const liveRating = Math.round(playerRating + currentMonthChange);
   const showingEntryChange = hasCalculated && currentChange !== null;
 
   return (
     <View style={styles.container}>
       {/* 1. Rating Type Segmented Control */}
-      <View style={styles.segmentContainer}>
+      <View
+        style={[
+          styles.segmentContainer,
+          {
+            backgroundColor: colors.surfaceElevated,
+            borderColor: colors.border,
+            borderWidth: borderWidth.default,
+            borderRadius: radii.control,
+          },
+        ]}
+      >
         {ratingTypes.map((type) => {
           const isActive = ratingType === type;
           return (
             <TouchableOpacity
               key={type}
-              style={[styles.segmentTab, isActive && styles.segmentTabActive]}
+              style={[
+                styles.segmentTab,
+                {
+                  minHeight: touchTargets.min - 6,
+                  borderRadius: radii.control - 2,
+                  backgroundColor: isActive ? colors.surface : 'transparent',
+                  borderColor: isActive ? colors.borderAccent : 'transparent',
+                  borderWidth: isActive ? 1.5 : 0,
+                },
+              ]}
               onPress={() => onChangeRatingType(type)}
               activeOpacity={0.8}
               accessibilityRole="tab"
               accessibilityState={{ selected: isActive }}
               accessibilityLabel={`${type} rating mode`}
             >
-              <Text style={[styles.segmentText, isActive && styles.segmentTextActive]}>
-                {type.charAt(0).toUpperCase() + type.slice(1)}
+              <Text
+                style={[
+                  styles.segmentText,
+                  {
+                    color: isActive ? colors.primary : colors.textSecondary,
+                    fontWeight: isActive ? '800' : '600',
+                  },
+                ]}
+              >
+                {type.toUpperCase()}
               </Text>
             </TouchableOpacity>
           );
         })}
       </View>
 
-      {/* 2. Live Rating & Monthly Progress Card */}
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>♞ Rating Progress</Text>
-          <View style={styles.badgePeach}>
-            <Text style={styles.badgePeachText}>Current Month</Text>
+      {/* 2. DGT Tournament Clock Readout Hero Card */}
+      <StatHeroCard
+        currentRating={playerRating}
+        projectedRating={liveRating}
+        delta={currentMonthChange}
+        gamesCount={currentMonthResults.length}
+        kFactor={kFactor}
+        ratingType={ratingType}
+      />
+
+      {/* 3. Monthly Record WDL Summary */}
+      <TacticalCard variant="elevated" hasOffsetShadow={false} style={styles.recordCard}>
+        <View style={styles.recordHeader}>
+          <Text style={[styles.cardTitleText, { color: colors.textPrimary }]}>
+            MONTHLY RECORD ({currentMonthResults.length} GAMES)
+          </Text>
+          <View style={[styles.kBadge, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
+            <Text style={[styles.kBadgeText, { color: colors.accent }]}>FIDE RATED</Text>
           </View>
         </View>
+        <WinDrawLossBar wins={wdl.wins} draws={wdl.draws} losses={wdl.losses} showLegend={true} />
+      </TacticalCard>
 
-        <View style={styles.statsRow}>
-          <View style={styles.statCol}>
-            <Text style={styles.statLabel}>ESTIMATED LIVE RATING</Text>
-            <Text style={styles.heroNumber}>{liveRating}</Text>
-            <Text style={styles.statSubtext}>Base: {playerRating}</Text>
-          </View>
-
-          <View style={[styles.statCol, styles.statColRight]}>
-            <Text style={styles.statLabel}>MONTH CHANGE</Text>
-            <View
-              style={[
-                styles.changeBadge,
-                currentMonthChange > 0
-                  ? styles.changeBadgePositive
-                  : currentMonthChange < 0
-                    ? styles.changeBadgeNegative
-                    : styles.changeBadgeZero,
-              ]}
-            >
-              <Ionicons
-                name={
-                  currentMonthChange > 0
-                    ? 'arrow-up'
-                    : currentMonthChange < 0
-                      ? 'arrow-down'
-                      : 'remove'
-                }
-                size={16}
-                color={
-                  currentMonthChange > 0
-                    ? colors.positiveText
-                    : currentMonthChange < 0
-                      ? colors.negativeText
-                      : colors.textSecondary
-                }
-              />
-              <Text
-                style={[
-                  styles.changeBadgeText,
-                  currentMonthChange > 0
-                    ? styles.changeTextPositive
-                    : currentMonthChange < 0
-                      ? styles.changeTextNegative
-                      : styles.changeTextZero,
-                ]}
-              >
-                {currentMonthChange > 0 ? '+' : ''}
-                {currentMonthChange}
-              </Text>
-            </View>
-            <Text style={styles.statSubtext}>
-              {currentMonthResults.length} {currentMonthResults.length === 1 ? 'game' : 'games'} played
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.wdlSection}>
-          <View style={styles.wdlHeader}>
-            <Text style={styles.statLabel}>RECORD</Text>
-            <Text style={styles.wdlCounts}>
-              W: {wdl.wins}  ·  D: {wdl.draws}  ·  L: {wdl.losses}
-            </Text>
-          </View>
-          <WinDrawLossBar wins={wdl.wins} draws={wdl.draws} losses={wdl.losses} showLegend={false} />
-        </View>
-      </View>
-
-      {/* 3. Grouped Player & Opponent Details Card */}
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>♟ Player & Opponent</Text>
-        </View>
-
+      {/* 4. Player & Opponent Console Card */}
+      <TacticalCard
+        variant="default"
+        hasOffsetShadow={true}
+        cornerAccents={true}
+        tag="PLAYER & OPPONENT SETUP"
+      >
         <View style={styles.fieldGrid}>
           <View style={styles.fieldCol}>
-            <Text style={styles.inputLabel}>Your rating</Text>
+            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>YOUR RATING</Text>
             <TextInput
-              style={styles.textInput}
+              style={[
+                styles.textInput,
+                {
+                  backgroundColor: colors.surfaceElevated,
+                  borderColor: colors.borderInput,
+                  color: colors.textPrimary,
+                  borderRadius: radii.control,
+                },
+              ]}
               value={String(playerRating)}
               keyboardType="numeric"
               placeholder="1500"
@@ -350,9 +335,17 @@ export default function FideCalculatorMobile({
           </View>
 
           <View style={styles.fieldCol}>
-            <Text style={styles.inputLabel}>K-factor</Text>
+            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>K-FACTOR</Text>
             <TextInput
-              style={styles.textInput}
+              style={[
+                styles.textInput,
+                {
+                  backgroundColor: colors.surfaceElevated,
+                  borderColor: colors.borderInput,
+                  color: colors.textPrimary,
+                  borderRadius: radii.control,
+                },
+              ]}
               value={String(kFactor)}
               keyboardType="numeric"
               placeholder="20"
@@ -367,19 +360,27 @@ export default function FideCalculatorMobile({
         </View>
 
         <View style={styles.formSpacing}>
-          <Text style={styles.inputLabel}>Opponent</Text>
+          <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>OPPONENT FIDE SEARCH</Text>
           <FideSearchInput
             value={opponentName}
             onChange={setOpponentName}
             onSelect={handleSelectOpponent}
-            placeholder="Search FIDE players or type name..."
+            placeholder="Search FIDE players or enter opponent name..."
           />
         </View>
 
         <View style={styles.formSpacing}>
-          <Text style={styles.inputLabel}>Opponent rating</Text>
+          <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>OPPONENT RATING</Text>
           <TextInput
-            style={styles.textInput}
+            style={[
+              styles.textInput,
+              {
+                backgroundColor: colors.surfaceElevated,
+                borderColor: colors.borderInput,
+                color: colors.textPrimary,
+                borderRadius: radii.control,
+              },
+            ]}
             value={String(opponentRating)}
             keyboardType="numeric"
             placeholder="1400"
@@ -391,71 +392,52 @@ export default function FideCalculatorMobile({
             accessibilityLabel="Opponent rating"
           />
         </View>
-      </View>
+      </TacticalCard>
 
-      {/* 4. Grouped Game Details Card */}
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>⚔ Match Details</Text>
+      {/* 5. Match Outcome & Game Date Card */}
+      <TacticalCard
+        variant="default"
+        hasOffsetShadow={true}
+        cornerAccents={true}
+        tag="MATCH OUTCOME & DATE"
+      >
+        <View style={styles.formSpacingTop}>
+          <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>RESULT SELECTION</Text>
+          <WinDrawLossSelector
+            value={gameResult}
+            onChange={(_score, type) => setGameResult(type)}
+          />
         </View>
 
-        <View style={styles.formSpacing}>
-          <Text style={styles.inputLabel}>Result</Text>
-          <View style={styles.resultRow}>
-            {(['win', 'draw', 'loss'] as GameResult[]).map((res) => {
-              const isWin = res === 'win';
-              const isDraw = res === 'draw';
-              const isLoss = res === 'loss';
-              const isSelected = gameResult === res;
-              return (
-                <TouchableOpacity
-                  key={res}
-                  style={[
-                    styles.resultButton,
-                    isSelected && isWin && styles.resultButtonWinActive,
-                    isSelected && isDraw && styles.resultButtonDrawActive,
-                    isSelected && isLoss && styles.resultButtonLossActive,
-                  ]}
-                  onPress={() => setGameResult(res)}
-                  activeOpacity={0.8}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: isSelected }}
-                  accessibilityLabel={`Game result ${res}`}
-                >
-                  <Text
-                    style={[
-                      styles.resultButtonText,
-                      isSelected && isWin && styles.resultTextWinActive,
-                      isSelected && isDraw && styles.resultTextDrawActive,
-                      isSelected && isLoss && styles.resultTextLossActive,
-                    ]}
-                  >
-                    {res === 'win' ? 'Win 1-0' : res === 'draw' ? 'Draw ½-½' : 'Loss 0-1'}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        <View style={styles.fieldGrid}>
+        <View style={[styles.fieldGrid, styles.formSpacing]}>
           <View style={styles.fieldCol}>
             <View style={styles.labelWithActionRow}>
-              <Text style={styles.inputLabel}>Game date</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>GAME DATE</Text>
               <TouchableOpacity
-                style={styles.openPickerQuickButton}
+                style={[
+                  styles.openPickerQuickButton,
+                  { backgroundColor: colors.surfaceMuted, borderColor: colors.border },
+                ]}
                 onPress={() => setDatePickerOpen(true)}
                 accessibilityRole="button"
                 accessibilityLabel="Open calendar date picker"
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Ionicons name="calendar-outline" size={13} color={colors.primary} />
-                <Text style={styles.openPickerQuickText}>Pick</Text>
+                <Text style={[styles.openPickerQuickText, { color: colors.primary }]}>Pick</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.dateInputWrapper}>
               <TextInput
-                style={styles.dateTextInput}
+                style={[
+                  styles.dateTextInput,
+                  {
+                    backgroundColor: colors.surfaceElevated,
+                    borderColor: colors.borderInput,
+                    color: colors.textPrimary,
+                    borderRadius: radii.control,
+                  },
+                ]}
                 value={date}
                 autoCapitalize="none"
                 placeholder="YYYY-MM-DD"
@@ -485,9 +467,17 @@ export default function FideCalculatorMobile({
           </View>
 
           <View style={styles.fieldCol}>
-            <Text style={styles.inputLabel}>Rating month</Text>
+            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>RATING MONTH</Text>
             <TextInput
-              style={styles.textInput}
+              style={[
+                styles.textInput,
+                {
+                  backgroundColor: colors.surfaceElevated,
+                  borderColor: colors.borderInput,
+                  color: colors.textPrimary,
+                  borderRadius: radii.control,
+                },
+              ]}
               value={ratingMonth}
               autoCapitalize="none"
               placeholder="YYYY-MM"
@@ -500,52 +490,46 @@ export default function FideCalculatorMobile({
             />
           </View>
         </View>
-      </View>
+      </TacticalCard>
 
-      {/* 5. Prominent Calculated Estimate & Action Section */}
-      <View style={[styles.card, styles.estimateCard]}>
+      {/* 6. Calculated Estimate Display Card */}
+      <TacticalCard
+        variant="elevated"
+        hasOffsetShadow={false}
+        style={{ borderColor: colors.borderAccent, borderWidth: borderWidth.heavy }}
+      >
         <View style={styles.estimateHeader}>
-          <Text style={styles.estimateTitle}>Calculated Estimate</Text>
+          <Text style={[styles.estimateTitle, { color: colors.primary }]}>CALCULATED ESTIMATE</Text>
+          {showingEntryChange && (
+            <View style={[styles.kBadge, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
+              <Text style={[styles.kBadgeText, { color: colors.textSecondary }]}>LIVE PREVIEW</Text>
+            </View>
+          )}
         </View>
 
-        <View style={styles.estimateValueContainer}>
+        <View style={[styles.estimateValueContainer, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
           {showingEntryChange ? (
             <View style={styles.estimateRow}>
               <View
                 style={[
                   styles.changeBadgeLarge,
-                  (currentChange ?? 0) > 0
-                    ? styles.changeBadgePositive
-                    : (currentChange ?? 0) < 0
-                      ? styles.changeBadgeNegative
-                      : styles.changeBadgeZero,
+                  {
+                    backgroundColor: (currentChange ?? 0) > 0 ? colors.winBg : (currentChange ?? 0) < 0 ? colors.lossBg : colors.surfaceElevated,
+                    borderColor: (currentChange ?? 0) > 0 ? colors.win : (currentChange ?? 0) < 0 ? colors.loss : colors.border,
+                  },
                 ]}
               >
                 <Ionicons
-                  name={
-                    (currentChange ?? 0) > 0
-                      ? 'arrow-up'
-                      : (currentChange ?? 0) < 0
-                        ? 'arrow-down'
-                        : 'remove'
-                  }
+                  name={(currentChange ?? 0) > 0 ? 'arrow-up' : (currentChange ?? 0) < 0 ? 'arrow-down' : 'remove'}
                   size={20}
-                  color={
-                    (currentChange ?? 0) > 0
-                      ? colors.positiveText
-                      : (currentChange ?? 0) < 0
-                        ? colors.negativeText
-                        : colors.textSecondary
-                  }
+                  color={(currentChange ?? 0) > 0 ? colors.win : (currentChange ?? 0) < 0 ? colors.loss : colors.textSecondary}
                 />
                 <Text
                   style={[
                     styles.estimateNumber,
-                    (currentChange ?? 0) > 0
-                      ? styles.changeTextPositive
-                      : (currentChange ?? 0) < 0
-                        ? styles.changeTextNegative
-                        : styles.changeTextZero,
+                    {
+                      color: (currentChange ?? 0) > 0 ? colors.win : (currentChange ?? 0) < 0 ? colors.loss : colors.textSecondary,
+                    },
                   ]}
                 >
                   {(currentChange ?? 0) > 0 ? '+' : ''}
@@ -554,71 +538,67 @@ export default function FideCalculatorMobile({
               </View>
 
               <View style={styles.estimateSubDetails}>
-                <Text style={styles.estimateNewRating}>
-                  New Estimated Rating:{' '}
-                  <Text style={styles.estimateHighlight}>
+                <Text style={[styles.estimateNewRating, { color: colors.textPrimary }]}>
+                  Projected Rating:{' '}
+                  <Text style={[styles.estimateHighlight, { color: colors.primary }]}>
                     {Math.round((playerRating + (currentChange ?? 0)) * 10) / 10}
                   </Text>
                 </Text>
-                <Text style={styles.estimateSubMeta}>
+                <Text style={[styles.estimateSubMeta, { color: colors.textSecondary }]}>
                   Opponent: {opponentName || 'Opponent'} ({opponentRating})
                 </Text>
               </View>
             </View>
           ) : (
-            <Text style={styles.estimatePlaceholder}>
-              Tap <Text style={styles.boldText}>Calculate</Text> to preview rating change projection.
+            <Text style={[styles.estimatePlaceholder, { color: colors.textSecondary }]}>
+              Tap <Text style={{ color: colors.primary, fontWeight: '700' }}>Calculate</Text> to preview rating change.
             </Text>
           )}
         </View>
 
         {!isFormValid && (
-          <View style={styles.validationBanner}>
-            <Ionicons name="information-circle-outline" size={18} color={colors.negativeText} />
-            <Text style={styles.validationText}>
-              Enter ratings between 100 and 3500, a game date (YYYY-MM-DD), and rating month (YYYY-MM).
+          <View style={[styles.validationBanner, { backgroundColor: colors.lossBg, borderColor: colors.loss }]}>
+            <Ionicons name="information-circle-outline" size={18} color={colors.loss} />
+            <Text style={[styles.validationText, { color: colors.loss }]}>
+              Enter ratings between 100-3500, a game date (YYYY-MM-DD), and rating month (YYYY-MM).
             </Text>
           </View>
         )}
 
         <View style={styles.actionsRow}>
-          <TouchableOpacity
-            style={[styles.primaryButton, !isFormValid && styles.buttonDisabled]}
+          <TacticalButton
+            title="Calculate"
             onPress={handleCalculate}
             disabled={!isFormValid}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel="Calculate rating change estimate"
-          >
-            <Ionicons name="calculator-outline" size={20} color={colors.primaryText} />
-            <Text style={styles.primaryButtonText}>Calculate</Text>
-          </TouchableOpacity>
+            variant="accent"
+            size="lg"
+            style={{ flex: 1 }}
+            icon={<Ionicons name="calculator-outline" size={18} color={colors.accentText} />}
+          />
 
-          <TouchableOpacity
-            style={[
-              styles.secondaryButton,
-              (!isFormValid || saving) && styles.buttonDisabled,
-            ]}
+          <TacticalButton
+            title={saving ? 'Tracking…' : 'Track Game'}
             onPress={handleTrackGame}
             disabled={saving || !isFormValid}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel="Track game to rating history"
-          >
-            <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
-            <Text style={styles.secondaryButtonText}>
-              {saving ? 'Saving…' : 'Track Game'}
-            </Text>
-          </TouchableOpacity>
+            loading={saving}
+            variant="primary"
+            size="lg"
+            style={{ flex: 1 }}
+            icon={<Ionicons name="add-circle-outline" size={18} color={colors.primaryText} />}
+          />
         </View>
-      </View>
+      </TacticalCard>
 
-      {/* 6. This Month's Games List Card */}
-      <View style={styles.card}>
+      {/* 7. Tournament Games List Card */}
+      <TacticalCard variant="default" hasOffsetShadow={true}>
         <View style={styles.gamesHeaderRow}>
-          <Text style={styles.cardTitle}>
-            ♜ This Month's Games ({currentMonthResults.length})
-          </Text>
+          <View style={styles.gamesHeaderLeft}>
+            <ChessInsignia piece="rook" size={16} badgeSize={28} color={colors.primary} />
+            <Text style={[styles.cardTitleText, { color: colors.textPrimary }]}>
+              THIS MONTH'S GAMES ({currentMonthResults.length})
+            </Text>
+          </View>
+
           <TouchableOpacity
             onPress={() => navigation.navigate('History')}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
@@ -626,17 +606,17 @@ export default function FideCalculatorMobile({
             accessibilityRole="button"
             accessibilityLabel="View all games in history"
           >
-            <Text style={styles.viewAllText}>View All</Text>
-            <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+            <Text style={[styles.viewAllText, { color: colors.primary }]}>VIEW ALL</Text>
+            <Ionicons name="chevron-forward" size={15} color={colors.primary} />
           </TouchableOpacity>
         </View>
 
         {currentMonthResults.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="flag-outline" size={32} color={colors.textMuted} />
-            <Text style={styles.emptyText}>No games tracked for this month yet.</Text>
-            <Text style={styles.emptySubtext}>
-              Calculate and tap "Track Game" above to start logging.
+            <ChessInsignia piece="pawn" size={24} badgeSize={48} color={colors.textMuted} />
+            <Text style={[styles.emptyText, { color: colors.textPrimary }]}>No games tracked for this month yet.</Text>
+            <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
+              Calculate and tap "Track Game" above to log tournament matches.
             </Text>
           </View>
         ) : (
@@ -645,16 +625,27 @@ export default function FideCalculatorMobile({
               .slice()
               .reverse()
               .slice(0, 5)
-              .map((r) => {
+              .map((r, index) => {
                 const fullIndex = r.id
                   ? results.findIndex((x) => x.id === r.id)
                   : results.indexOf(r);
                 const canDelete = removeResult != null && fullIndex !== -1;
                 const isPositive = r.ratingChange > 0;
                 const isNegative = r.ratingChange < 0;
+                const roundNum = currentMonthResults.length - index;
 
                 return (
-                  <View key={r.id} style={styles.gameRow}>
+                  <View
+                    key={r.id}
+                    style={[
+                      styles.gameRow,
+                      {
+                        backgroundColor: colors.surfaceElevated,
+                        borderColor: colors.border,
+                        borderRadius: radii.card,
+                      },
+                    ]}
+                  >
                     <TouchableOpacity
                       style={styles.gameRowTouchable}
                       activeOpacity={0.7}
@@ -663,19 +654,19 @@ export default function FideCalculatorMobile({
                       accessibilityRole="button"
                       accessibilityLabel={`Game vs ${r.opponentName || 'Opponent'}`}
                     >
-                      {/* Full-width Opponent Name Row without truncation */}
+                      {/* Opponent Row */}
                       <View style={styles.gameOpponentRow}>
-                        <View style={styles.gameAvatar}>
-                          <Ionicons name="person" size={14} color={colors.primary} />
+                        <View style={[styles.roundBadge, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
+                          <Text style={[styles.roundBadgeText, { color: colors.accent }]}>#{roundNum}</Text>
                         </View>
-                        <Text style={styles.gameOpponent}>
+                        <Text style={[styles.gameOpponent, { color: colors.textPrimary }]} numberOfLines={1}>
                           {r.opponentName || 'Opponent'} ({r.opponentRating})
                         </Text>
                       </View>
 
-                      {/* Subrow: Game metadata + Rating Change Badge + Chevron */}
+                      {/* Meta Row: Date, Result, K, and Delta */}
                       <View style={styles.gameMetaRow}>
-                        <Text style={styles.gameMeta}>
+                        <Text style={[styles.gameMeta, { color: colors.textSecondary }]}>
                           {r.date} · {r.result.toUpperCase()} · K={r.kFactor}
                         </Text>
 
@@ -683,21 +674,18 @@ export default function FideCalculatorMobile({
                           <View
                             style={[
                               styles.gameChangeBadge,
-                              isPositive
-                                ? styles.changeBadgePositive
-                                : isNegative
-                                  ? styles.changeBadgeNegative
-                                  : styles.changeBadgeZero,
+                              {
+                                backgroundColor: isPositive ? colors.winBg : isNegative ? colors.lossBg : colors.surfaceMuted,
+                                borderColor: isPositive ? colors.win : isNegative ? colors.loss : colors.border,
+                              },
                             ]}
                           >
                             <Text
                               style={[
                                 styles.gameChangeText,
-                                isPositive
-                                  ? styles.changeTextPositive
-                                  : isNegative
-                                    ? styles.changeTextNegative
-                                    : styles.changeTextZero,
+                                {
+                                  color: isPositive ? colors.win : isNegative ? colors.loss : colors.textSecondary,
+                                },
                               ]}
                             >
                               {isPositive ? '+' : ''}
@@ -731,22 +719,22 @@ export default function FideCalculatorMobile({
                                 style: 'destructive',
                                 onPress: async () => {
                                   try {
-                                    const index = r.id
+                                    const delIndex = r.id
                                       ? latestResults.current.findIndex(
                                         (item) => item.id === r.id,
                                       )
                                       : latestResults.current.indexOf(r);
-                                    if (index < 0)
+                                    if (delIndex < 0)
                                       throw new Error('Game no longer exists.');
                                     if (
                                       getResultRatingMonth(
-                                        latestResults.current[index],
+                                        latestResults.current[delIndex],
                                       ) !== getRatingMonthFromDate(new Date())
                                     )
                                       throw new Error(
                                         'Only current rating-month games can be deleted.',
                                       );
-                                    await removeResult(index);
+                                    await removeResult(delIndex);
                                   } catch (error) {
                                     Alert.alert(
                                       'Unable to delete game',
@@ -760,29 +748,36 @@ export default function FideCalculatorMobile({
                             ],
                           );
                         }}
-                        style={styles.deleteButton}
+                        style={[styles.deleteButton, { borderLeftColor: colors.border }]}
                         accessibilityRole="button"
                         accessibilityLabel="Delete game"
                       >
-                        <Ionicons name="trash-outline" size={18} color={colors.negativeText} />
+                        <Ionicons name="trash-outline" size={17} color={colors.loss} />
                       </TouchableOpacity>
                     ) : null}
                   </View>
                 );
               })}
 
-            <View style={styles.summaryFooter}>
-              <Text style={styles.summaryFooterText}>
+            <View style={[styles.summaryFooter, { borderTopColor: colors.border }]}>
+              <Text style={[styles.summaryFooterText, { color: colors.textSecondary }]}>
                 Month Net Change:{' '}
-                <Text style={styles.summaryFooterHighlight}>
+                <Text
+                  style={[
+                    styles.summaryFooterHighlight,
+                    {
+                      color: currentMonthChange > 0 ? colors.win : currentMonthChange < 0 ? colors.loss : colors.textPrimary,
+                    },
+                  ]}
+                >
                   {currentMonthChange > 0 ? '+' : ''}
-                  {currentMonthChange}
+                  {currentMonthChange} pts
                 </Text>
               </Text>
             </View>
           </View>
         )}
-      </View>
+      </TacticalCard>
 
       {/* Edit Game Modal */}
       {updateResult ? (
@@ -837,479 +832,271 @@ export default function FideCalculatorMobile({
 
 const styles = StyleSheet.create({
   container: {
-    gap: spacing.lg,
+    gap: 16,
   },
-
-  // Rating Type Tabs
   segmentContainer: {
     flexDirection: 'row',
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radii.control,
-    padding: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.border,
+    padding: 3,
   },
   segmentTab: {
     flex: 1,
-    minHeight: touchTargets.min,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.control - 2,
-  },
-  segmentTabActive: {
-    backgroundColor: colors.surfaceSelected,
-    borderWidth: 1,
-    borderColor: colors.primary,
   },
   segmentText: {
-    ...typography.label,
-    color: colors.textSecondary,
-  },
-  segmentTextActive: {
-    ...typography.label,
-    color: colors.primary,
-    fontWeight: '700',
-  },
-
-  // Base Card
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.card,
-    padding: spacing.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...shadows.card,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.md,
-  },
-  cardTitle: {
-    ...typography.subheading,
-    color: colors.textPrimary,
-  },
-
-  // Badges
-  badgePeach: {
-    backgroundColor: colors.peach,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.pill,
-  },
-  badgePeachText: {
-    ...typography.caption,
-    color: colors.peachText,
-    fontWeight: '700',
-  },
-
-  // Stats
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
-  },
-  statCol: {
-    flex: 1,
-  },
-  statColRight: {
-    alignItems: 'flex-end',
-  },
-  statLabel: {
-    ...typography.caption,
+    fontSize: 12,
     letterSpacing: 0.6,
-    color: colors.textSecondary,
-    fontWeight: '700',
-    marginBottom: spacing.xs,
   },
-  heroNumber: {
-    ...typography.heroNumber,
-    color: colors.textPrimary,
+  recordCard: {
+    padding: 12,
   },
-  statSubtext: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
-  },
-
-  // Change Badges
-  changeBadge: {
+  recordHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.pill,
-    gap: 2,
-  },
-  changeBadgeLarge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.control,
-    gap: spacing.xs,
-  },
-  changeBadgePositive: {
-    backgroundColor: colors.positiveBg,
-  },
-  changeBadgeNegative: {
-    backgroundColor: colors.negativeBg,
-  },
-  changeBadgeZero: {
-    backgroundColor: colors.neutralBg,
-  },
-  changeBadgeText: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  changeTextPositive: {
-    color: colors.positiveText,
-  },
-  changeTextNegative: {
-    color: colors.negativeText,
-  },
-  changeTextZero: {
-    color: colors.textSecondary,
-  },
-
-  // WDL
-  wdlSection: {
-    marginTop: spacing.md,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  wdlHeader: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: 8,
   },
-  wdlCounts: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontWeight: '600',
+  cardTitleText: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.6,
   },
-
-  // Form Fields
+  kBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+  },
+  kBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
   fieldGrid: {
     flexDirection: 'row',
-    gap: spacing.md,
+    gap: 12,
   },
   fieldCol: {
     flex: 1,
   },
   formSpacing: {
-    marginTop: spacing.md,
+    marginTop: 12,
+  },
+  formSpacingTop: {
+    marginTop: 4,
   },
   inputLabel: {
-    ...typography.label,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs + 2,
-    minHeight: 20,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    marginBottom: 6,
+    minHeight: 18,
   },
   textInput: {
-    minHeight: touchTargets.min,
+    minHeight: 48,
     borderWidth: 1.5,
-    borderColor: colors.borderInput,
-    borderRadius: radii.control,
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md - 2,
-    ...typography.body,
-    color: colors.textPrimary,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
     ...(Platform.OS === 'web' ? ({ touchAction: 'pan-y' } as Record<string, unknown>) : {}),
   },
   labelWithActionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.xs + 2,
-    minHeight: 20,
+    marginBottom: 6,
+    minHeight: 18,
   },
   openPickerQuickButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surfaceSelected,
+    borderRadius: 4,
     borderWidth: 1,
-    borderColor: colors.border,
   },
   openPickerQuickText: {
-    ...typography.caption,
-    color: colors.primary,
     fontWeight: '700',
-    fontSize: 11,
+    fontSize: 10,
   },
   dateInputWrapper: {
     position: 'relative',
     justifyContent: 'center',
   },
   dateTextInput: {
-    minHeight: touchTargets.min,
+    minHeight: 48,
     borderWidth: 1.5,
-    borderColor: colors.borderInput,
-    borderRadius: radii.control,
-    backgroundColor: colors.surface,
-    paddingLeft: spacing.md,
-    paddingRight: 42,
-    paddingVertical: spacing.md - 2,
-    ...typography.body,
-    color: colors.textPrimary,
+    paddingLeft: 12,
+    paddingRight: 40,
+    paddingVertical: 10,
+    fontSize: 15,
+    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
     ...(Platform.OS === 'web' ? ({ touchAction: 'pan-y' } as Record<string, unknown>) : {}),
   },
   calendarIconButton: {
     position: 'absolute',
-    right: spacing.xs,
-    width: 36,
-    height: 36,
+    right: 8,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.pill,
   },
   calendarEmoji: {
     fontSize: 16,
-  },
-
-  // Game Result Selector
-  resultRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  resultButton: {
-    flex: 1,
-    minHeight: touchTargets.min,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radii.control,
-    borderWidth: 1.5,
-    borderColor: colors.borderInput,
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.xs,
-  },
-  resultButtonWinActive: {
-    backgroundColor: colors.positiveBg,
-    borderColor: colors.positiveText,
-  },
-  resultButtonDrawActive: {
-    backgroundColor: colors.surfaceSelected,
-    borderColor: colors.primary,
-  },
-  resultButtonLossActive: {
-    backgroundColor: colors.negativeBg,
-    borderColor: colors.negativeText,
-  },
-  resultButtonText: {
-    ...typography.label,
-    color: colors.textSecondary,
-  },
-  resultTextWinActive: {
-    color: colors.positiveText,
-    fontWeight: '700',
-  },
-  resultTextDrawActive: {
-    color: colors.primary,
-    fontWeight: '700',
-  },
-  resultTextLossActive: {
-    color: colors.negativeText,
-    fontWeight: '700',
-  },
-
-  // Estimate Card & Actions
-  estimateCard: {
-    backgroundColor: colors.surface,
-    borderColor: colors.primary,
-    borderWidth: 1.5,
   },
   estimateHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: 12,
   },
   estimateTitle: {
-    ...typography.subheading,
-    color: colors.primary,
-  },
-  estimateNotice: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontStyle: 'italic',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.6,
   },
   estimateValueContainer: {
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radii.control,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 14,
+    borderWidth: 1,
   },
   estimateRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: 12,
+  },
+  changeBadgeLarge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    gap: 4,
   },
   estimateNumber: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
+    fontVariant: ['tabular-nums'],
   },
   estimateSubDetails: {
     flex: 1,
   },
   estimateNewRating: {
-    ...typography.body,
-    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '600',
   },
   estimateHighlight: {
-    fontWeight: '700',
-    color: colors.primary,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
   },
   estimateSubMeta: {
-    ...typography.caption,
-    color: colors.textSecondary,
+    fontSize: 12,
     marginTop: 2,
   },
   estimatePlaceholder: {
-    ...typography.body,
-    color: colors.textSecondary,
+    fontSize: 13,
     textAlign: 'center',
-    paddingVertical: spacing.xs,
-  },
-  boldText: {
-    fontWeight: '700',
-    color: colors.primary,
+    paddingVertical: 6,
   },
   validationBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.negativeBg,
-    padding: spacing.md,
-    borderRadius: radii.control,
-    marginBottom: spacing.md,
-    gap: spacing.sm,
+    padding: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    marginBottom: 12,
+    gap: 8,
   },
   validationText: {
     flex: 1,
-    ...typography.caption,
-    color: colors.negativeText,
+    fontSize: 12,
     fontWeight: '600',
+    lineHeight: 16,
   },
-
-  // Actions
   actionsRow: {
     flexDirection: 'row',
-    gap: spacing.md,
+    gap: 12,
   },
-  primaryButton: {
-    flex: 1,
-    minHeight: touchTargets.primaryControl,
-    backgroundColor: colors.primary,
-    borderRadius: radii.control,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs + 2,
-  },
-  primaryButtonText: {
-    ...typography.bodyBold,
-    color: colors.primaryText,
-  },
-  secondaryButton: {
-    flex: 1,
-    minHeight: touchTargets.primaryControl,
-    backgroundColor: colors.surfaceSelected,
-    borderRadius: radii.control,
-    borderWidth: 1.5,
-    borderColor: colors.primary,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs + 2,
-  },
-  secondaryButtonText: {
-    ...typography.bodyBold,
-    color: colors.primary,
-  },
-  buttonDisabled: {
-    opacity: 0.45,
-  },
-
-  // Games List
   gamesHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: 12,
+  },
+  gamesHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   viewAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 36,
-    paddingHorizontal: spacing.xs,
+    minHeight: 32,
+    paddingHorizontal: 4,
     gap: 2,
   },
   viewAllText: {
-    ...typography.label,
-    color: colors.primary,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   emptyContainer: {
-    paddingVertical: spacing.xxl,
+    paddingVertical: 24,
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: 8,
   },
   emptyText: {
-    ...typography.bodyBold,
-    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '700',
     textAlign: 'center',
   },
   emptySubtext: {
-    ...typography.caption,
-    color: colors.textSecondary,
+    fontSize: 12,
     textAlign: 'center',
   },
   gamesList: {
-    gap: spacing.sm,
+    gap: 8,
   },
   gameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radii.card,
     borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md - 2,
-    gap: spacing.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
   },
   gameRowTouchable: {
     flex: 1,
     flexDirection: 'column',
-    gap: spacing.xs + 2,
+    gap: 6,
   },
   gameOpponentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: 8,
     width: '100%',
   },
-  gameAvatar: {
-    width: 26,
-    height: 26,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surfaceSelected,
-    alignItems: 'center',
-    justifyContent: 'center',
+  roundBadge: {
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+    borderWidth: 1,
+  },
+  roundBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
   },
   gameOpponent: {
-    ...typography.bodyBold,
-    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '700',
     flex: 1,
-    flexWrap: 'wrap',
   },
   gameMetaRow: {
     flexDirection: 'row',
@@ -1318,51 +1105,51 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   gameMeta: {
-    ...typography.caption,
-    color: colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '600',
     flexShrink: 1,
-    marginRight: spacing.sm,
+    marginRight: 8,
   },
   gameBadgeAndChevron: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: 6,
   },
   gameChangeBadge: {
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs - 2,
-    borderRadius: radii.pill,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
   },
   gameChangeText: {
-    ...typography.caption,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
   },
   chevronIcon: {
     marginLeft: 2,
   },
   deleteButton: {
-    padding: spacing.sm,
+    padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
     minHeight: 44,
     minWidth: 40,
     borderLeftWidth: 1,
-    borderLeftColor: colors.border,
-    paddingLeft: spacing.sm,
+    marginLeft: 4,
   },
   summaryFooter: {
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
+    marginTop: 8,
+    paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
     alignItems: 'flex-end',
   },
   summaryFooterText: {
-    ...typography.caption,
-    color: colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '600',
   },
   summaryFooterHighlight: {
-    fontWeight: '700',
-    color: colors.textPrimary,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
   },
 });

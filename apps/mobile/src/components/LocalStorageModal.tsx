@@ -11,7 +11,9 @@ import {
 } from 'react-native';
 import FideSearchInput from './FideSearchInput';
 import { FidePlayer } from '../hooks/useFideData';
-import { colors, radii, spacing, typography, touchTargets, shadows } from '../theme/tokens';
+import { useTheme } from '../contexts/ThemeContext';
+import TacticalCard from './ui/TacticalCard';
+import ChessInsignia from './ui/ChessInsignia';
 
 interface LocalStorageModalProps {
   open: boolean;
@@ -30,6 +32,7 @@ interface LocalStorageModalProps {
 }
 
 export default function LocalStorageModal({ open, onClose, onSuccess }: LocalStorageModalProps) {
+  const { colors, radii, borderWidth, typography, touchTargets } = useTheme();
   const [name, setName] = useState('');
   const [fideId, setFideId] = useState('');
   const [title, setTitle] = useState('');
@@ -88,39 +91,88 @@ export default function LocalStorageModal({ open, onClose, onSuccess }: LocalSto
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
+      <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
+        <View
+          style={[
+            styles.modalContainer,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              borderWidth: borderWidth.heavy,
+              borderRadius: radii.xl,
+            },
+          ]}
+        >
           <ScrollView
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            <View style={styles.header}>
+            {/* Header */}
+            <View
+              style={[
+                styles.header,
+                {
+                  borderBottomColor: colors.border,
+                  borderBottomWidth: borderWidth.medium,
+                },
+              ]}
+            >
               <View style={styles.titleContainer}>
-                <Text style={styles.titleIcon}>♟</Text>
-                <Text style={styles.title}>Local Storage Mode</Text>
+                <ChessInsignia piece="rook" size={18} color={colors.accent} />
+                <View>
+                  <Text style={[styles.headerTag, { color: colors.accent }]}>
+                    [ AIR-GAPPED // LOCAL DEVICE ]
+                  </Text>
+                  <Text style={[styles.title, { color: colors.textPrimary }]}>
+                    Local Storage Mode
+                  </Text>
+                </View>
               </View>
               <TouchableOpacity
                 onPress={onClose}
-                style={styles.closeButton}
+                style={[
+                  styles.closeButton,
+                  {
+                    backgroundColor: colors.surfaceMuted,
+                    borderColor: colors.border,
+                    borderWidth: borderWidth.thin,
+                    borderRadius: radii.sm,
+                  },
+                ]}
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 accessibilityRole="button"
                 accessibilityLabel="Close local storage modal"
               >
-                <Text style={styles.closeButtonText}>✕</Text>
+                <Text style={[styles.closeButtonText, { color: colors.textPrimary }]}>✕</Text>
               </TouchableOpacity>
             </View>
 
-            <View style={styles.infoBox}>
-              <Text style={styles.infoTitle}>Local Storage Benefits</Text>
-              <Text style={styles.infoItem}>• Data stays on this device only</Text>
-              <Text style={styles.infoItem}>• No cloud account required</Text>
-              <Text style={styles.infoItem}>• Fully offline-capable</Text>
-              <Text style={styles.infoItem}>• Fast, private calculation & tracking</Text>
-            </View>
+            {/* Tactical Info Box */}
+            <TacticalCard
+              title="OFFLINE ADVANTAGES"
+              badge="PRIVATE"
+              variant="accent"
+              style={{ marginBottom: 16 }}
+            >
+              <Text style={[styles.infoItem, { color: colors.textPrimary }]}>
+                • Data stored exclusively on this physical device
+              </Text>
+              <Text style={[styles.infoItem, { color: colors.textPrimary }]}>
+                • Zero account or network sign-in required
+              </Text>
+              <Text style={[styles.infoItem, { color: colors.textPrimary }]}>
+                • Instant offline calculation and match tracking
+              </Text>
+              <Text style={[styles.infoItem, { color: colors.textPrimary }]}>
+                • Full privacy and air-gapped tournament reliability
+              </Text>
+            </TacticalCard>
 
             <View style={styles.form}>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Player Name *</Text>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  PLAYER NAME *
+                </Text>
                 <FideSearchInput
                   value={name}
                   onChange={(val) => {
@@ -130,16 +182,28 @@ export default function LocalStorageModal({ open, onClose, onSuccess }: LocalSto
                   onSelect={handleFidePlayerSelect}
                   placeholder="Search for a FIDE player or enter name"
                 />
-                <Text style={styles.hint}>
+                <Text style={[styles.hint, { color: colors.textSecondary }]}>
                   Search for a FIDE player to auto-fill details, or type your name manually.
                 </Text>
               </View>
 
               <View style={styles.row}>
                 <View style={[styles.inputGroup, styles.halfWidth]}>
-                  <Text style={styles.label}>FIDE ID (optional)</Text>
+                  <Text style={[styles.label, { color: colors.textMuted }]}>
+                    FIDE ID (OPTIONAL)
+                  </Text>
                   <TextInput
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: colors.surfaceElevated,
+                        borderColor: colors.border,
+                        borderWidth: borderWidth.thin,
+                        borderRadius: radii.sm,
+                        color: colors.textPrimary,
+                        ...typography.mono,
+                      },
+                    ]}
                     value={fideId}
                     onChangeText={setFideId}
                     placeholder="e.g. 12345678"
@@ -150,9 +214,20 @@ export default function LocalStorageModal({ open, onClose, onSuccess }: LocalSto
                 </View>
 
                 <View style={[styles.inputGroup, styles.halfWidth]}>
-                  <Text style={styles.label}>Title (optional)</Text>
+                  <Text style={[styles.label, { color: colors.textMuted }]}>
+                    TITLE (OPTIONAL)
+                  </Text>
                   <TextInput
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: colors.surfaceElevated,
+                        borderColor: colors.border,
+                        borderWidth: borderWidth.thin,
+                        borderRadius: radii.sm,
+                        color: colors.textPrimary,
+                      },
+                    ]}
                     value={title}
                     onChangeText={setTitle}
                     placeholder="e.g. FM, IM, GM"
@@ -165,9 +240,20 @@ export default function LocalStorageModal({ open, onClose, onSuccess }: LocalSto
 
               <View style={styles.row}>
                 <View style={[styles.inputGroup, styles.halfWidth]}>
-                  <Text style={styles.label}>Federation (optional)</Text>
+                  <Text style={[styles.label, { color: colors.textMuted }]}>
+                    FEDERATION
+                  </Text>
                   <TextInput
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: colors.surfaceElevated,
+                        borderColor: colors.border,
+                        borderWidth: borderWidth.thin,
+                        borderRadius: radii.sm,
+                        color: colors.textPrimary,
+                      },
+                    ]}
                     value={federation}
                     onChangeText={setFederation}
                     placeholder="e.g. USA, ENG"
@@ -178,9 +264,21 @@ export default function LocalStorageModal({ open, onClose, onSuccess }: LocalSto
                 </View>
 
                 <View style={[styles.inputGroup, styles.halfWidth]}>
-                  <Text style={styles.label}>Birth Year (optional)</Text>
+                  <Text style={[styles.label, { color: colors.textMuted }]}>
+                    BIRTH YEAR
+                  </Text>
                   <TextInput
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: colors.surfaceElevated,
+                        borderColor: colors.border,
+                        borderWidth: borderWidth.thin,
+                        borderRadius: radii.sm,
+                        color: colors.textPrimary,
+                        ...typography.mono,
+                      },
+                    ]}
                     value={birthYear}
                     onChangeText={setBirthYear}
                     placeholder="e.g. 1995"
@@ -192,32 +290,72 @@ export default function LocalStorageModal({ open, onClose, onSuccess }: LocalSto
               </View>
 
               {error ? (
-                <View style={styles.errorContainer}>
-                  <Text style={styles.errorIcon}>⚠</Text>
-                  <Text style={styles.errorText}>{error}</Text>
+                <View
+                  style={[
+                    styles.errorContainer,
+                    {
+                      backgroundColor: colors.negativeBg,
+                      borderColor: colors.negative,
+                      borderWidth: borderWidth.thin,
+                      borderRadius: radii.sm,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.errorIcon, { color: colors.negativeText }]}>⚠</Text>
+                  <Text style={[styles.errorText, { color: colors.negativeText }]}>{error}</Text>
                 </View>
               ) : null}
 
               <View style={styles.buttonRow}>
                 <TouchableOpacity
-                  style={styles.cancelButton}
+                  style={[
+                    styles.cancelButton,
+                    {
+                      backgroundColor: colors.surfaceMuted,
+                      borderColor: colors.border,
+                      borderWidth: borderWidth.medium,
+                      borderRadius: radii.sm,
+                      minHeight: touchTargets.primaryControl,
+                    },
+                  ]}
                   onPress={onClose}
                   accessibilityRole="button"
                   accessibilityLabel="Cancel"
                 >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                  <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>
+                    Cancel
+                  </Text>
                 </TouchableOpacity>
+
                 <TouchableOpacity
-                  style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+                  style={[
+                    styles.submitButton,
+                    {
+                      backgroundColor: colors.primary,
+                      borderColor: colors.border,
+                      borderWidth: borderWidth.medium,
+                      borderRadius: radii.sm,
+                      minHeight: touchTargets.primaryControl,
+                    },
+                    loading && styles.submitButtonDisabled,
+                  ]}
                   onPress={handleSubmit}
                   disabled={loading}
                   accessibilityRole="button"
                   accessibilityLabel="Create Local Profile"
                 >
                   {loading ? (
-                    <ActivityIndicator color={colors.primaryText} />
+                    typeof ActivityIndicator === 'function' ? (
+                      <ActivityIndicator color={colors.primaryText} />
+                    ) : (
+                      <Text style={[styles.submitButtonText, { color: colors.primaryText }]}>
+                        Creating...
+                      </Text>
+                    )
                   ) : (
-                    <Text style={styles.submitButtonText}>Create Local Profile</Text>
+                    <Text style={[styles.submitButtonText, { color: colors.primaryText }]}>
+                      Create Local Profile
+                    </Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -232,155 +370,117 @@ export default function LocalStorageModal({ open, onClose, onSuccess }: LocalSto
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing.xl,
+    padding: 16,
   },
   modalContainer: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.sheet,
-    borderWidth: 1,
-    borderColor: colors.border,
     width: '100%',
-    maxWidth: 520,
+    maxWidth: 480,
     maxHeight: '90%',
-    ...shadows.sheet,
     overflow: 'hidden',
   },
   scrollContent: {
-    padding: spacing.xxl,
+    padding: 20,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xl,
-    paddingBottom: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    marginBottom: 16,
+    paddingBottom: 12,
   },
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: 10,
   },
-  titleIcon: {
-    fontSize: 22,
-    color: colors.primary,
+  headerTag: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
   title: {
-    ...typography.subheading,
-    color: colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
   closeButton: {
-    width: touchTargets.min,
-    height: touchTargets.min,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.pill,
   },
   closeButtonText: {
-    fontSize: 18,
-    color: colors.textSecondary,
-    fontWeight: '700',
-  },
-  infoBox: {
-    backgroundColor: colors.surfaceSelected,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.control,
-    padding: spacing.md,
-    marginBottom: spacing.xl,
-  },
-  infoTitle: {
-    ...typography.label,
-    color: colors.primary,
-    marginBottom: spacing.xs,
+    fontSize: 16,
+    fontWeight: '900',
   },
   infoItem: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginBottom: 2,
+    fontSize: 12,
     lineHeight: 18,
+    fontWeight: '600',
   },
   form: {
-    gap: spacing.lg,
+    gap: 12,
   },
   inputGroup: {
-    gap: spacing.xs + 2,
+    gap: 6,
+  },
+  label: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+  hint: {
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  row: {
+    flexDirection: 'row',
+    gap: 10,
   },
   halfWidth: {
     flex: 1,
   },
-  row: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  label: {
-    ...typography.label,
-    color: colors.textSecondary,
-  },
   input: {
-    minHeight: touchTargets.min,
-    borderWidth: 1.5,
-    borderColor: colors.borderInput,
-    borderRadius: radii.control,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md - 2,
-    ...typography.body,
-    color: colors.textPrimary,
-    backgroundColor: colors.surface,
-  },
-  hint: {
-    ...typography.caption,
-    color: colors.textMuted,
-    marginTop: 2,
+    minHeight: 46,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    fontWeight: '600',
   },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.negativeBg,
-    borderRadius: radii.control,
-    padding: spacing.md,
-    gap: spacing.sm,
+    padding: 10,
+    gap: 8,
   },
   errorIcon: {
-    fontSize: 16,
-    color: colors.negativeText,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '900',
   },
   errorText: {
     flex: 1,
-    ...typography.caption,
-    color: colors.negativeText,
+    fontSize: 12,
     fontWeight: '700',
   },
   buttonRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginTop: spacing.xs,
+    gap: 10,
+    marginTop: 8,
   },
   cancelButton: {
     flex: 1,
-    minHeight: touchTargets.primaryControl,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: radii.control,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surface,
   },
   cancelButtonText: {
-    ...typography.bodyBold,
-    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   submitButton: {
-    flex: 1.4,
-    minHeight: touchTargets.primaryControl,
-    backgroundColor: colors.primary,
-    borderRadius: radii.control,
+    flex: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -388,7 +488,8 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   submitButtonText: {
-    ...typography.bodyBold,
-    color: colors.primaryText,
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
 });

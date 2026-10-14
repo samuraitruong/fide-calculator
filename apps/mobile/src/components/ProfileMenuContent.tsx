@@ -6,13 +6,18 @@ import { useStorageMode } from '@/contexts/StorageModeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import type { LocalProfile } from '@/hooks/useLocalStorage';
+import { useTheme } from '../contexts/ThemeContext';
 import ChangePasswordModal from './ChangePasswordModal';
 import CreateProfileModal from './CreateProfileModal';
 import EditProfileModal from './EditProfileModal';
-import { colors, radii, spacing, typography, touchTargets, shadows } from '../theme/tokens';
+import TacticalCard from './ui/TacticalCard';
+import TacticalButton from './ui/TacticalButton';
+import ThemeToggle from './ui/ThemeToggle';
+import ChessInsignia from './ui/ChessInsignia';
 
 export default function ProfileMenuContent() {
   const storageMode = useStorageMode();
+  const { colors } = useTheme();
   const {
     user,
     profiles: cloudProfiles,
@@ -84,70 +89,76 @@ export default function ProfileMenuContent() {
   return (
     <>
       <ScrollView
-        style={styles.container}
+        style={[styles.container, { backgroundColor: colors.surface }]}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
         {/* User Identity Header */}
         <View style={styles.profileHeader}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
+          <View style={[styles.avatar, { backgroundColor: colors.surfaceElevated, borderColor: colors.primary }]}>
+            <Text style={[styles.avatarText, { color: colors.primary }]}>{initials}</Text>
           </View>
           <View style={styles.profileHeaderText}>
-            <Text style={styles.profileTitle} numberOfLines={1}>
+            <Text style={[styles.profileTitle, { color: colors.textPrimary }]} numberOfLines={1}>
               {displayName}
             </Text>
-            <View style={styles.modeBadge}>
-              <Text style={styles.modeBadgeText}>
-                {isLocal ? '📱 Local Storage Mode' : email || '☁ Cloud Account'}
+            <View style={[styles.modeBadge, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
+              <Text style={[styles.modeBadgeText, { color: colors.accent }]}>
+                {isLocal ? '📱 LOCAL STORAGE' : email ? `☁ ${email}` : '☁ CLOUD ACCOUNT'}
               </Text>
             </View>
           </View>
         </View>
 
+        {/* Theme Mode Selector Section */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>INTERFACE THEME</Text>
+          <ThemeToggle compact={false} />
+        </View>
+
         {/* Active Profile Summary Card */}
         {activeProfile ? (
-          <View style={styles.activeCard}>
+          <TacticalCard variant="elevated" hasOffsetShadow={false} style={styles.activeCard}>
             <View style={styles.activeCardHeader}>
-              <View style={styles.activeBadge}>
-                <Ionicons name="checkmark-circle" size={14} color={colors.primary} />
-                <Text style={styles.activeBadgeText}>ACTIVE PROFILE</Text>
+              <View style={[styles.activeBadge, { backgroundColor: colors.winBg, borderColor: colors.win }]}>
+                <Ionicons name="checkmark-circle" size={13} color={colors.win} />
+                <Text style={[styles.activeBadgeText, { color: colors.win }]}>ACTIVE PROFILE</Text>
               </View>
 
               <TouchableOpacity
-                style={styles.editIconButton}
+                style={[styles.editIconButton, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}
                 onPress={() => setShowEditProfile(true)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 accessibilityRole="button"
                 accessibilityLabel="Edit active profile details"
               >
-                <Ionicons name="pencil-outline" size={18} color={colors.primary} />
+                <Ionicons name="pencil-sharp" size={15} color={colors.primary} />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.activeName}>{activeProfile.name}</Text>
+            <Text style={[styles.activeName, { color: colors.textPrimary }]}>{activeProfile.name}</Text>
             <View style={styles.ratingsRow}>
-              <View style={styles.ratingChip}>
-                <Text style={styles.ratingChipLabel}>STD</Text>
-                <Text style={styles.ratingChipVal}>{activeProfile.standardRating}</Text>
+              <View style={[styles.ratingChip, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
+                <Text style={[styles.ratingChipLabel, { color: colors.textSecondary }]}>STD</Text>
+                <Text style={[styles.ratingChipVal, { color: colors.textPrimary }]}>{activeProfile.standardRating}</Text>
               </View>
-              <View style={styles.ratingChip}>
-                <Text style={styles.ratingChipLabel}>RAPID</Text>
-                <Text style={styles.ratingChipVal}>{activeProfile.rapidRating}</Text>
+              <View style={[styles.ratingChip, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
+                <Text style={[styles.ratingChipLabel, { color: colors.textSecondary }]}>RAPID</Text>
+                <Text style={[styles.ratingChipVal, { color: colors.textPrimary }]}>{activeProfile.rapidRating}</Text>
               </View>
-              <View style={styles.ratingChip}>
-                <Text style={styles.ratingChipLabel}>BLITZ</Text>
-                <Text style={styles.ratingChipVal}>{activeProfile.blitzRating}</Text>
+              <View style={[styles.ratingChip, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
+                <Text style={[styles.ratingChipLabel, { color: colors.textSecondary }]}>BLITZ</Text>
+                <Text style={[styles.ratingChipVal, { color: colors.textPrimary }]}>{activeProfile.blitzRating}</Text>
               </View>
             </View>
-          </View>
+          </TacticalCard>
         ) : null}
 
         {/* Switch Profiles List */}
         {profiles && profiles.length > 0 ? (
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>SWITCH PROFILES</Text>
-            <View style={styles.profileList}>
+            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>PROFILES ({profiles.length})</Text>
+            <View style={[styles.profileList, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
               {profiles.map((p) => {
                 const isActive = activeProfile?.id === p.id;
                 return (
@@ -155,7 +166,8 @@ export default function ProfileMenuContent() {
                     key={p.id}
                     style={[
                       styles.profileRow,
-                      isActive && styles.profileRowActive,
+                      { borderBottomColor: colors.border },
+                      isActive && { backgroundColor: colors.surfaceSelected },
                     ]}
                     onPress={() => handleSwitchProfile(p)}
                     activeOpacity={0.7}
@@ -163,23 +175,25 @@ export default function ProfileMenuContent() {
                     accessibilityState={{ selected: isActive }}
                     accessibilityLabel={`Switch to ${p.name}`}
                   >
-                    <Ionicons
-                      name={isActive ? 'person-circle' : 'person-circle-outline'}
-                      size={22}
+                    <ChessInsignia
+                      piece="knight"
+                      size={14}
+                      badgeSize={26}
                       color={isActive ? colors.primary : colors.textSecondary}
+                      badgeBg={colors.surfaceMuted}
                     />
                     <Text
                       style={[
-                        styles.profileName,
-                        isActive && styles.profileNameActive,
+                        styles.profileRowName,
+                        { color: isActive ? colors.primary : colors.textPrimary, fontWeight: isActive ? '800' : '600' },
                       ]}
                       numberOfLines={1}
                     >
                       {p.name}
                     </Text>
                     {isActive ? (
-                      <View style={styles.activeDot}>
-                        <Text style={styles.activeDotText}>Active</Text>
+                      <View style={[styles.activeDot, { backgroundColor: colors.winBg, borderColor: colors.win }]}>
+                        <Text style={[styles.activeDotText, { color: colors.win }]}>ACTIVE</Text>
                       </View>
                     ) : null}
                   </TouchableOpacity>
@@ -190,55 +204,41 @@ export default function ProfileMenuContent() {
         ) : null}
 
         {/* Secondary Action: Create Profile */}
-        <TouchableOpacity
-          style={styles.createButton}
+        <TacticalButton
+          title="Create New Profile"
           onPress={() => setShowCreateProfile(true)}
-          activeOpacity={0.85}
-          accessibilityRole="button"
-          accessibilityLabel="Create a new profile"
-        >
-          <Ionicons name="person-add-outline" size={18} color={colors.primary} />
-          <Text style={styles.createButtonText}>Create New Profile</Text>
-        </TouchableOpacity>
+          variant="primary"
+          icon={<Ionicons name="person-add" size={16} color={colors.primaryText} />}
+        />
 
         {/* Quieter Secondary Actions */}
         <View style={styles.quieterActions}>
           {!isLocal ? (
-            <TouchableOpacity
-              style={styles.quietButton}
+            <TacticalButton
+              title="Change Password"
               onPress={() => setShowChangePassword(true)}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-              accessibilityLabel="Change password"
-            >
-              <Ionicons name="key-outline" size={16} color={colors.textSecondary} />
-              <Text style={styles.quietButtonText}>Change Password</Text>
-            </TouchableOpacity>
+              variant="secondary"
+              size="sm"
+              icon={<Ionicons name="key-outline" size={15} color={colors.textSecondary} />}
+            />
           ) : null}
 
-          <TouchableOpacity
-            style={[styles.quietButton, styles.signOutButton]}
+          <TacticalButton
+            title={isLocal ? 'Switch to Cloud Sync' : 'Sign Out'}
             onPress={handleSignOut}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel={isLocal ? 'Switch to cloud mode' : 'Sign out'}
-          >
-            <Ionicons
-              name={isLocal ? 'cloud-upload-outline' : 'log-out-outline'}
-              size={16}
-              color={colors.negativeText}
-            />
-            <Text style={styles.signOutButtonText}>
-              {isLocal ? 'Switch to Cloud Sign In' : 'Sign Out'}
-            </Text>
-          </TouchableOpacity>
+            variant="danger"
+            size="sm"
+            icon={<Ionicons name={isLocal ? 'cloud-upload-outline' : 'log-out-outline'} size={15} color={colors.loss} />}
+          />
         </View>
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerBrand}>♟ Friendly Chess Club</Text>
-          <Text style={styles.footerSubtext}>
-            FIDE Rating Tracker & Game Calculator
+          <Text style={[styles.footerBrand, { color: colors.textSecondary }]}>
+            ♞ FIDE CALCULATOR // DGT SPEC
+          </Text>
+          <Text style={[styles.footerSubtext, { color: colors.textMuted }]}>
+            Tournament Rating Engine & Performance Tracking
           </Text>
         </View>
       </ScrollView>
@@ -277,234 +277,164 @@ export default function ProfileMenuContent() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.canvas,
   },
   content: {
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.xxxl + spacing.xl,
-    gap: spacing.lg,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    paddingBottom: 40,
+    gap: 16,
   },
-
-  // Profile Header
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: 12,
   },
   avatar: {
-    width: 54,
-    height: 54,
-    borderRadius: radii.pill,
-    backgroundColor: colors.primary,
-    borderWidth: 2,
-    borderColor: colors.surfaceSelected,
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.primaryText,
+    fontSize: 18,
+    fontWeight: '800',
   },
   profileHeaderText: {
     flex: 1,
   },
   profileTitle: {
-    ...typography.subheading,
-    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: -0.2,
   },
   modeBadge: {
-    marginTop: spacing.xs,
+    marginTop: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    alignSelf: 'flex-start',
   },
   modeBadgeText: {
-    ...typography.caption,
-    color: colors.textSecondary,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
-
-  // Active Profile Card
   activeCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.card,
-    borderWidth: 1.5,
-    borderColor: colors.primary,
-    padding: spacing.lg,
-    ...shadows.card,
+    padding: 14,
   },
   activeCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: 6,
   },
   activeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surfaceSelected,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: radii.pill,
+    borderRadius: 4,
+    borderWidth: 1,
     gap: 4,
   },
   activeBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.primary,
+    fontSize: 10,
+    fontWeight: '800',
     letterSpacing: 0.6,
   },
   editIconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surfaceSelected,
+    width: 32,
+    height: 32,
+    borderRadius: 6,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   activeName: {
-    ...typography.subheading,
-    color: colors.textPrimary,
-    marginTop: spacing.xs,
+    fontSize: 16,
+    fontWeight: '800',
+    marginTop: 4,
   },
   ratingsRow: {
     flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.md,
+    gap: 8,
+    marginTop: 12,
   },
   ratingChip: {
     flex: 1,
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radii.sm,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
+    borderRadius: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
   },
   ratingChipLabel: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 9,
+    fontWeight: '800',
     letterSpacing: 0.6,
-    color: colors.textSecondary,
   },
   ratingChipVal: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '800',
     marginTop: 2,
+    fontVariant: ['tabular-nums'],
   },
-
-  // Section
   section: {
-    gap: spacing.xs,
+    gap: 6,
   },
   sectionLabel: {
-    ...typography.caption,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
     letterSpacing: 0.8,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
   },
   profileList: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.control,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: colors.border,
     overflow: 'hidden',
   },
   profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: touchTargets.min,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    minHeight: 46,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    gap: spacing.sm,
+    gap: 10,
   },
-  profileRowActive: {
-    backgroundColor: colors.surfaceSelected,
-  },
-  profileName: {
+  profileRowName: {
     flex: 1,
-    ...typography.body,
-    color: colors.textPrimary,
-  },
-  profileNameActive: {
-    fontWeight: '700',
-    color: colors.primary,
+    fontSize: 13,
   },
   activeDot: {
-    backgroundColor: colors.positiveBg,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: radii.pill,
+    borderRadius: 4,
+    borderWidth: 1,
   },
   activeDotText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.positiveText,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
-
-  // Buttons
-  createButton: {
-    minHeight: touchTargets.primaryControl,
-    backgroundColor: colors.surfaceSelected,
-    borderRadius: radii.control,
-    borderWidth: 1.5,
-    borderColor: colors.primary,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-  },
-  createButtonText: {
-    ...typography.bodyBold,
-    color: colors.primary,
-  },
-
-  // Quieter Actions
   quieterActions: {
-    gap: spacing.sm,
-    marginTop: spacing.xs,
+    gap: 8,
+    marginTop: 4,
   },
-  quietButton: {
-    minHeight: 44,
-    backgroundColor: colors.surface,
-    borderRadius: radii.control,
-    borderWidth: 1,
-    borderColor: colors.border,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-  },
-  quietButtonText: {
-    ...typography.label,
-    color: colors.textSecondary,
-  },
-  signOutButton: {
-    borderColor: colors.negativeBg,
-    backgroundColor: colors.negativeBg,
-  },
-  signOutButtonText: {
-    ...typography.label,
-    color: colors.negativeText,
-    fontWeight: '700',
-  },
-
-  // Footer
   footer: {
-    marginTop: spacing.md,
+    marginTop: 12,
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: 4,
   },
   footerBrand: {
-    ...typography.label,
-    color: colors.textSecondary,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.6,
   },
   footerSubtext: {
-    ...typography.caption,
-    color: colors.textMuted,
+    fontSize: 10,
+    fontWeight: '600',
   },
 });

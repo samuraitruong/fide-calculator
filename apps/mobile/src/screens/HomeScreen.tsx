@@ -5,11 +5,12 @@ import { useStorageMode } from '@/contexts/StorageModeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useSupabaseRatingList } from '@/hooks/useSupabaseRatingList';
+import { useTheme } from '../contexts/ThemeContext';
 import FideCalculator from '@/components/FideCalculator';
-import { colors, spacing } from '../theme/tokens';
 
 export default function HomeScreen() {
   const storageMode = useStorageMode();
+  const { colors, spacing } = useTheme();
   const { activeProfile } = useAuth();
   const {
     activeProfile: localActiveProfile,
@@ -35,8 +36,15 @@ export default function HomeScreen() {
 
   return (
     <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
+      style={[styles.container, { backgroundColor: colors.canvas }]}
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingVertical: spacing.lg,
+          paddingHorizontal: spacing.screenInset,
+          paddingBottom: spacing.xxxl + spacing.xl,
+        },
+      ]}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
@@ -60,13 +68,9 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.canvas,
   },
   content: {
     flexGrow: 1,
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing.screenInset,
-    paddingBottom: spacing.xxxl + spacing.xl,
     alignItems: 'stretch',
   },
 });

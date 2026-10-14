@@ -11,7 +11,8 @@ import {
   Platform,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
-import { colors, radii, spacing, typography, touchTargets, shadows } from '../theme/tokens';
+import { useTheme } from '../contexts/ThemeContext';
+import ChessInsignia from './ui/ChessInsignia';
 
 interface ChangePasswordModalProps {
   open: boolean;
@@ -19,6 +20,7 @@ interface ChangePasswordModalProps {
 }
 
 export default function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps) {
+  const { colors, radii, borderWidth, touchTargets } = useTheme();
   const { updatePassword } = useAuth();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -67,48 +69,110 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
       animationType="fade"
       onRequestClose={handleClose}
     >
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.keyboardView}
         >
-          <View style={styles.modalContainer}>
+          <View
+            style={[
+              styles.modalContainer,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                borderWidth: borderWidth.heavy,
+                borderRadius: radii.xl,
+              },
+            ]}
+          >
             {/* Header */}
-            <View style={styles.header}>
+            <View
+              style={[
+                styles.header,
+                {
+                  borderBottomColor: colors.border,
+                  borderBottomWidth: borderWidth.medium,
+                },
+              ]}
+            >
               <View style={styles.headerTitleRow}>
-                <Text style={styles.headerMotif}>♟</Text>
-                <Text style={styles.title}>Change Password</Text>
+                <ChessInsignia piece="knight" size={18} color={colors.primary} />
+                <View>
+                  <Text style={[styles.headerTag, { color: colors.primary }]}>
+                    [ CIPHER UPDATE ]
+                  </Text>
+                  <Text style={[styles.title, { color: colors.textPrimary }]}>Change Password</Text>
+                </View>
               </View>
               <TouchableOpacity
                 onPress={handleClose}
-                style={styles.closeButton}
+                style={[
+                  styles.closeButton,
+                  {
+                    backgroundColor: colors.surfaceMuted,
+                    borderColor: colors.border,
+                    borderWidth: borderWidth.thin,
+                    borderRadius: radii.sm,
+                  },
+                ]}
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 accessibilityRole="button"
                 accessibilityLabel="Close change password modal"
               >
-                <Text style={styles.closeButtonText}>✕</Text>
+                <Text style={[styles.closeButtonText, { color: colors.textPrimary }]}>✕</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.content}>
               {error ? (
-                <View style={styles.errorContainer}>
-                  <Text style={styles.errorIcon}>⚠</Text>
-                  <Text style={styles.errorText}>{error}</Text>
+                <View
+                  style={[
+                    styles.errorContainer,
+                    {
+                      backgroundColor: colors.negativeBg,
+                      borderColor: colors.negative,
+                      borderWidth: borderWidth.thin,
+                      borderRadius: radii.sm,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.errorIcon, { color: colors.negativeText }]}>⚠</Text>
+                  <Text style={[styles.errorText, { color: colors.negativeText }]}>{error}</Text>
                 </View>
               ) : null}
 
               {success ? (
-                <View style={styles.successContainer}>
-                  <Text style={styles.successIcon}>✓</Text>
-                  <Text style={styles.successText}>{success}</Text>
+                <View
+                  style={[
+                    styles.successContainer,
+                    {
+                      backgroundColor: colors.positiveBg,
+                      borderColor: colors.positive,
+                      borderWidth: borderWidth.thin,
+                      borderRadius: radii.sm,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.successIcon, { color: colors.positiveText }]}>✓</Text>
+                  <Text style={[styles.successText, { color: colors.positiveText }]}>{success}</Text>
                 </View>
               ) : null}
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>New Password</Text>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  NEW PASSWORD
+                </Text>
                 <TextInput
-                  style={[styles.input, Boolean(error) && styles.inputError]}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.surfaceElevated,
+                      borderColor: error ? colors.negative : colors.border,
+                      borderWidth: borderWidth.thin,
+                      borderRadius: radii.sm,
+                      color: colors.textPrimary,
+                    },
+                  ]}
                   value={newPassword}
                   onChangeText={(val) => {
                     setNewPassword(val);
@@ -124,9 +188,20 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Confirm Password</Text>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  CONFIRM NEW PASSWORD
+                </Text>
                 <TextInput
-                  style={[styles.input, Boolean(error) && styles.inputError]}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.surfaceElevated,
+                      borderColor: error ? colors.negative : colors.border,
+                      borderWidth: borderWidth.thin,
+                      borderRadius: radii.sm,
+                      color: colors.textPrimary,
+                    },
+                  ]}
                   value={confirmPassword}
                   onChangeText={(val) => {
                     setConfirmPassword(val);
@@ -143,31 +218,50 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
 
               <View style={styles.buttonRow}>
                 <TouchableOpacity
-                  style={styles.cancelButton}
+                  style={[
+                    styles.cancelButton,
+                    {
+                      backgroundColor: colors.surfaceMuted,
+                      borderColor: colors.border,
+                      borderWidth: borderWidth.medium,
+                      borderRadius: radii.sm,
+                      minHeight: touchTargets.primaryControl,
+                    },
+                  ]}
                   onPress={handleClose}
                   accessibilityRole="button"
                   accessibilityLabel="Cancel"
                 >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                  <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>Cancel</Text>
                 </TouchableOpacity>
+
                 <TouchableOpacity
-                  style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+                  style={[
+                    styles.submitButton,
+                    {
+                      backgroundColor: colors.primary,
+                      borderColor: colors.border,
+                      borderWidth: borderWidth.medium,
+                      borderRadius: radii.sm,
+                      minHeight: touchTargets.primaryControl,
+                    },
+                    loading && styles.submitButtonDisabled,
+                  ]}
                   onPress={handleSubmit}
                   disabled={loading}
                   accessibilityRole="button"
-                  accessibilityLabel="Update Password"
+                  accessibilityLabel="Update password"
                 >
                   {loading ? (
-                    <ActivityIndicator color={colors.primaryText} />
+                    typeof ActivityIndicator === 'function' ? (
+                      <ActivityIndicator color={colors.primaryText} />
+                    ) : (
+                      <Text style={[styles.submitButtonText, { color: colors.primaryText }]}>Updating...</Text>
+                    )
                   ) : (
-                    <Text style={styles.submitButtonText}>Update Password</Text>
+                    <Text style={[styles.submitButtonText, { color: colors.primaryText }]}>Update Password</Text>
                   )}
                 </TouchableOpacity>
-              </View>
-
-              <View style={styles.branding}>
-                <Text style={styles.brandingMotif}>♞</Text>
-                <Text style={styles.brandingText}>FRIENDLY CHESS CLUB</Text>
               </View>
             </View>
           </View>
@@ -180,148 +274,116 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing.xl,
+    padding: 16,
   },
   keyboardView: {
     width: '100%',
-    maxWidth: 420,
     alignItems: 'center',
   },
   modalContainer: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.sheet,
-    borderWidth: 1,
-    borderColor: colors.border,
     width: '100%',
-    ...shadows.sheet,
+    maxWidth: 420,
     overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.xxl,
-    paddingTop: spacing.xxl,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    padding: 16,
   },
   headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: 10,
   },
-  headerMotif: {
-    fontSize: 22,
-    color: colors.primary,
+  headerTag: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
   title: {
-    ...typography.subheading,
-    color: colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
   closeButton: {
-    width: touchTargets.min,
-    height: touchTargets.min,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.pill,
   },
   closeButtonText: {
-    fontSize: 18,
-    color: colors.textSecondary,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '900',
   },
   content: {
-    padding: spacing.xxl,
-    gap: spacing.lg,
-  },
-  inputGroup: {
-    gap: spacing.xs + 2,
-  },
-  label: {
-    ...typography.label,
-    color: colors.textSecondary,
-  },
-  input: {
-    minHeight: touchTargets.min,
-    borderWidth: 1.5,
-    borderColor: colors.borderInput,
-    borderRadius: radii.control,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md - 2,
-    ...typography.body,
-    color: colors.textPrimary,
-    backgroundColor: colors.surface,
-  },
-  inputError: {
-    borderColor: colors.negativeText,
+    padding: 20,
+    gap: 14,
   },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.negativeBg,
-    borderRadius: radii.control,
-    padding: spacing.md,
-    gap: spacing.sm,
+    padding: 10,
+    gap: 8,
   },
   errorIcon: {
-    fontSize: 16,
-    color: colors.negativeText,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '900',
   },
   errorText: {
     flex: 1,
-    ...typography.caption,
-    color: colors.negativeText,
+    fontSize: 12,
     fontWeight: '700',
   },
   successContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.positiveBg,
-    borderRadius: radii.control,
-    padding: spacing.md,
-    gap: spacing.sm,
+    padding: 10,
+    gap: 8,
   },
   successIcon: {
-    fontSize: 16,
-    color: colors.positiveText,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '900',
   },
   successText: {
     flex: 1,
-    ...typography.caption,
-    color: colors.positiveText,
+    fontSize: 12,
     fontWeight: '700',
+  },
+  inputGroup: {
+    gap: 6,
+  },
+  label: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+  input: {
+    minHeight: 46,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    fontWeight: '600',
   },
   buttonRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginTop: spacing.xs,
+    gap: 10,
+    marginTop: 6,
   },
   cancelButton: {
     flex: 1,
-    minHeight: touchTargets.primaryControl,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: radii.control,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surface,
   },
   cancelButtonText: {
-    ...typography.bodyBold,
-    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   submitButton: {
-    flex: 1.4,
-    minHeight: touchTargets.primaryControl,
-    backgroundColor: colors.primary,
-    borderRadius: radii.control,
+    flex: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -329,27 +391,8 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   submitButtonText: {
-    ...typography.bodyBold,
-    color: colors.primaryText,
-  },
-  branding: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs + 2,
-    marginTop: spacing.sm,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  brandingMotif: {
-    fontSize: 16,
-    color: colors.primary,
-  },
-  brandingText: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    letterSpacing: 0.8,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
 });

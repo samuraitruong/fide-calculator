@@ -23,18 +23,22 @@ import { getResultRatingMonth, getRatingMonthFromDate } from '@fide-calculator/s
 import { useStorageMode } from '@/contexts/StorageModeContext';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useSupabaseRatingList } from '@/hooks/useSupabaseRatingList';
+import { useTheme } from '../contexts/ThemeContext';
 import EditGameModal from '@/components/EditGameModal';
 import { generatePdfBase64, type BackupData } from '@/util/pdfGenerator';
-import { colors, radii, spacing, typography, touchTargets, shadows } from '../theme/tokens';
+import TacticalCard from '@/components/ui/TacticalCard';
+import TacticalButton from '@/components/ui/TacticalButton';
+import ChessInsignia from '@/components/ui/ChessInsignia';
 
 const RATING_TYPES: { key: RatingType; label: string }[] = [
-  { key: 'standard', label: 'Standard' },
-  { key: 'rapid', label: 'Rapid' },
-  { key: 'blitz', label: 'Blitz' },
+  { key: 'standard', label: 'STANDARD' },
+  { key: 'rapid', label: 'RAPID' },
+  { key: 'blitz', label: 'BLITZ' },
 ];
 
 export default function HistoryScreen() {
   const storageMode = useStorageMode();
+  const { colors, radii, borderWidth, touchTargets, shadows } = useTheme();
   const [ratingType, setRatingType] = useState<RatingType>('standard');
   const [expandedByMonthKey, setExpandedByMonthKey] = useState<Record<string, boolean>>({});
   const [editingGame, setEditingGame] = useState<Result | null>(null);
@@ -62,6 +66,30 @@ export default function HistoryScreen() {
     ? generateMonthlyData(ratingType)
     : cloudMonthlyData;
   const loading = !isLocal && cloudLoading;
+
+  const typeResults = useMemo(
+    () => results.filter((r) => r.ratingType === ratingType),
+    [results, ratingType],
+  );
+
+  // Career telemetry stats
+  const careerStats = useMemo(() => {
+    let peak = 0;
+    let current = 0;
+    if (typeResults.length > 0) {
+      current = typeResults[0]?.playerRating || 1500;
+      for (const r of typeResults) {
+        if (r.playerRating > peak) peak = r.playerRating;
+        const projected = r.playerRating + r.ratingChange;
+        if (projected > peak) peak = projected;
+      }
+    }
+    return {
+      totalGames: typeResults.length,
+      peakRating: Math.round(peak || current || 1500),
+      currentRating: Math.round(current || 1500),
+    };
+  }, [typeResults]);
 
   const expandedDefaultMonthKey = useMemo(() => monthlyData[0]?.monthKey ?? null, [monthlyData]);
   const isExpanded = (monthKey: string) =>
@@ -182,42 +210,102 @@ export default function HistoryScreen() {
 
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Loading rating history…</Text>
+      <View style={[styles.centered, { backgroundColor: colors.canvas }]}>
+        <ChessInsignia piece="rook" size={32} badgeSize={64} color={colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 16 }} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading Tournament History…</Text>
       </View>
     );
   }
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.canvas }]}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      {/* Header */}
+      {/* Header Banner */}
       <View style={styles.header}>
-        <Text style={styles.title}>♜ Game History</Text>
-        <Text style={styles.subtitle}>
-          Browse your monthly performance records and export FIDE reports.
+        <View style={styles.headerTitleRow}>
+          <ChessInsignia piece="rook" size={18} badgeSize={32} color={colors.primary} />
+          <Text style={[styles.title, { color: colors.textPrimary }]}>TOURNAMENT HISTORY</Text>
+        </View>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          Career game logs, monthly rating shift timelines, and PDF export reports.
         </Text>
       </View>
 
+      {/* Career Telemetry Stats Banner */}
+      <View
+        style={[
+          styles.careerCard,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            borderWidth: borderWidth.default,
+            borderRadius: radii.card,
+            ...shadows.tactileOffset,
+          },
+        ]}
+      >
+        <View style={styles.careerStatCol}>
+          <Text style={[styles.careerLabel, { color: colors.textSecondary }]}>CAREER PEAK</Text>
+          <Text style={[styles.careerVal, { color: colors.accent }]}>{careerStats.peakRating}</Text>
+        </View>
+        <View style={[styles.careerDivider, { backgroundColor: colors.border }]} />
+        <View style={styles.careerStatCol}>
+          <Text style={[styles.careerLabel, { color: colors.textSecondary }]}>TOTAL LOGGED</Text>
+          <Text style={[styles.careerVal, { color: colors.textPrimary }]}>{careerStats.totalGames}</Text>
+        </View>
+        <View style={[styles.careerDivider, { backgroundColor: colors.border }]} />
+        <View style={styles.careerStatCol}>
+          <Text style={[styles.careerLabel, { color: colors.textSecondary }]}>MODE</Text>
+          <Text style={[styles.careerVal, { color: colors.primary }]}>{ratingType.toUpperCase()}</Text>
+        </View>
+      </View>
+
       {/* Segmented Control */}
-      <View style={styles.tabs}>
+      <View
+        style={[
+          styles.tabs,
+          {
+            backgroundColor: colors.surfaceElevated,
+            borderColor: colors.border,
+            borderWidth: borderWidth.default,
+            borderRadius: radii.control,
+          },
+        ]}
+      >
         {RATING_TYPES.map(({ key, label }) => {
           const isActive = ratingType === key;
           return (
             <TouchableOpacity
               key={key}
-              style={[styles.tab, isActive && styles.tabActive]}
+              style={[
+                styles.tab,
+                {
+                  minHeight: touchTargets.min - 6,
+                  borderRadius: radii.control - 2,
+                  backgroundColor: isActive ? colors.surface : 'transparent',
+                  borderColor: isActive ? colors.borderAccent : 'transparent',
+                  borderWidth: isActive ? 1.5 : 0,
+                },
+              ]}
               onPress={() => setRatingType(key)}
               activeOpacity={0.8}
               accessibilityRole="tab"
               accessibilityState={{ selected: isActive }}
               accessibilityLabel={`${label} history`}
             >
-              <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+              <Text
+                style={[
+                  styles.tabText,
+                  {
+                    color: isActive ? colors.primary : colors.textSecondary,
+                    fontWeight: isActive ? '800' : '600',
+                  },
+                ]}
+              >
                 {label}
               </Text>
             </TouchableOpacity>
@@ -227,13 +315,13 @@ export default function HistoryScreen() {
 
       {/* Monthly Cards List */}
       {monthlyData.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <Ionicons name="flag-outline" size={36} color={colors.textMuted} />
-          <Text style={styles.emptyText}>No games recorded yet</Text>
-          <Text style={styles.emptyHint}>
-            Track your matches in the Calculator tab to view monthly rating breakdowns.
+        <TacticalCard variant="elevated" hasOffsetShadow={false} style={styles.emptyCard}>
+          <ChessInsignia piece="knight" size={32} badgeSize={56} color={colors.textMuted} />
+          <Text style={[styles.emptyText, { color: colors.textPrimary }]}>No Matches Logged</Text>
+          <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>
+            Log your rated tournament games in the Calculator tab to generate monthly breakdown timelines.
           </Text>
-        </View>
+        </TacticalCard>
       ) : (
         <View style={styles.list}>
           {monthlyData.map((month) => {
@@ -242,10 +330,16 @@ export default function HistoryScreen() {
             const isNegative = month.totalChange < 0;
 
             return (
-              <View key={month.monthKey} style={styles.monthCard}>
+              <TacticalCard
+                key={month.monthKey}
+                variant="default"
+                hasOffsetShadow={true}
+                contentStyle={{ padding: 0 }}
+                style={styles.monthCard}
+              >
                 {/* Header (Accordion Toggle) */}
                 <TouchableOpacity
-                  style={styles.monthHeader}
+                  style={[styles.monthHeader, { backgroundColor: colors.surface }]}
                   onPress={() => toggleMonth(month.monthKey)}
                   activeOpacity={0.8}
                   accessibilityRole="button"
@@ -253,56 +347,46 @@ export default function HistoryScreen() {
                 >
                   <View style={styles.monthTitleRow}>
                     <View style={styles.monthTitleLeft}>
-                      <Text style={styles.monthTitle}>{month.month}</Text>
+                      <View style={styles.monthBadgeTitleWrap}>
+                        <Text style={[styles.monthTitle, { color: colors.textPrimary }]}>{month.month.toUpperCase()}</Text>
+                        <View style={[styles.gamesCountChip, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
+                          <Text style={[styles.gamesLabel, { color: colors.textSecondary }]}>
+                            {month.gameCount} {month.gameCount === 1 ? 'GAME' : 'GAMES'}
+                          </Text>
+                        </View>
+                      </View>
+
                       <View style={styles.monthMetaRow}>
-                        <Text style={styles.gamesLabel}>
-                          {month.gameCount} {month.gameCount === 1 ? 'GAME' : 'GAMES'}
-                        </Text>
                         <View
                           style={[
                             styles.totalChangeBadge,
-                            isPositive
-                              ? styles.badgePositive
-                              : isNegative
-                                ? styles.badgeNegative
-                                : styles.badgeZero,
+                            {
+                              backgroundColor: isPositive ? colors.winBg : isNegative ? colors.lossBg : colors.surfaceMuted,
+                              borderColor: isPositive ? colors.win : isNegative ? colors.loss : colors.border,
+                            },
                           ]}
                         >
                           <Ionicons
-                            name={
-                              isPositive
-                                ? 'arrow-up'
-                                : isNegative
-                                  ? 'arrow-down'
-                                  : 'remove'
-                            }
+                            name={isPositive ? 'arrow-up' : isNegative ? 'arrow-down' : 'remove'}
                             size={12}
-                            color={
-                              isPositive
-                                ? colors.positiveText
-                                : isNegative
-                                  ? colors.negativeText
-                                  : colors.textSecondary
-                            }
+                            color={isPositive ? colors.win : isNegative ? colors.loss : colors.textSecondary}
                           />
                           <Text
                             style={[
                               styles.totalChangeBadgeText,
-                              isPositive
-                                ? styles.textPositive
-                                : isNegative
-                                  ? styles.textNegative
-                                  : styles.textZero,
+                              {
+                                color: isPositive ? colors.win : isNegative ? colors.loss : colors.textSecondary,
+                              },
                             ]}
                           >
                             {month.totalChange >= 0 ? '+' : ''}
-                            {month.totalChange}
+                            {month.totalChange} pts
                           </Text>
                         </View>
                       </View>
                     </View>
 
-                    {/* Right side: Separate PDF export button + Accordion Chevron */}
+                    {/* Right side: PDF quick action + Chevron */}
                     <View style={styles.monthHeaderActions}>
                       <TouchableOpacity
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -310,7 +394,7 @@ export default function HistoryScreen() {
                           ev.stopPropagation();
                           handleDownloadPdf(month);
                         }}
-                        style={styles.pdfIconButton}
+                        style={[styles.pdfIconButton, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}
                         disabled={exportingPdfMonthKey !== null}
                         accessibilityRole="button"
                         accessibilityLabel={`Export PDF report for ${month.month}`}
@@ -320,7 +404,7 @@ export default function HistoryScreen() {
                         ) : (
                           <Ionicons
                             name="download-outline"
-                            size={20}
+                            size={18}
                             color={colors.primary}
                           />
                         )}
@@ -328,7 +412,7 @@ export default function HistoryScreen() {
 
                       <Ionicons
                         name={expanded ? 'chevron-up' : 'chevron-down'}
-                        size={22}
+                        size={20}
                         color={colors.textSecondary}
                         style={styles.chevron}
                       />
@@ -338,33 +422,19 @@ export default function HistoryScreen() {
 
                 {/* Expanded Content */}
                 {expanded ? (
-                  <View style={styles.expandedContent}>
-                    <TouchableOpacity
-                      style={styles.downloadReportButton}
+                  <View style={[styles.expandedContent, { borderTopColor: colors.border, backgroundColor: colors.surfaceElevated }]}>
+                    <TacticalButton
+                      title={exportingPdfMonthKey === month.monthKey ? 'Exporting PDF…' : 'Export Monthly PDF Report'}
                       onPress={() => handleDownloadPdf(month)}
                       disabled={exportingPdfMonthKey !== null}
-                      activeOpacity={0.85}
-                      accessibilityRole="button"
-                      accessibilityLabel="Download full PDF report"
-                    >
-                      {exportingPdfMonthKey === month.monthKey ? (
-                        <ActivityIndicator size="small" color={colors.primary} />
-                      ) : (
-                        <>
-                          <Ionicons
-                            name="document-text-outline"
-                            size={18}
-                            color={colors.primary}
-                          />
-                          <Text style={styles.downloadReportButtonText}>
-                            EXPORT MONTHLY REPORT (PDF)
-                          </Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
+                      variant="secondary"
+                      size="sm"
+                      style={styles.downloadReportButton}
+                      icon={<Ionicons name="document-text-outline" size={16} color={colors.primary} />}
+                    />
 
                     <View style={styles.gameList}>
-                      {month.results.map((item) => {
+                      {month.results.map((item, roundIdx) => {
                         const gamePos = item.ratingChange > 0;
                         const gameNeg = item.ratingChange < 0;
 
@@ -374,64 +444,54 @@ export default function HistoryScreen() {
                               item.id ??
                               `${item.date}-${item.opponentName}-${item.ratingChange}`
                             }
-                            style={styles.gameRow}
+                            style={[
+                              styles.gameRow,
+                              {
+                                backgroundColor: colors.surface,
+                                borderColor: colors.border,
+                                borderRadius: radii.control,
+                              },
+                            ]}
                             activeOpacity={0.7}
                             onPress={() => openEdit(item)}
                             accessibilityRole="button"
                             accessibilityLabel={`Game vs ${item.opponentName || 'Opponent'}`}
                           >
-                            <View style={styles.gameIconWrap}>
-                              <Ionicons
-                                name="person-outline"
-                                size={18}
-                                color={colors.primary}
-                              />
+                            <View style={[styles.roundChip, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
+                              <Text style={[styles.roundChipText, { color: colors.accent }]}>
+                                #{month.results.length - roundIdx}
+                              </Text>
                             </View>
 
                             <View style={styles.gameMain}>
-                              <Text style={styles.gameOpponent}>
-                                {item.opponentName || 'Opponent'}
+                              <Text style={[styles.gameOpponent, { color: colors.textPrimary }]} numberOfLines={1}>
+                                {item.opponentName || 'Opponent'} ({item.opponentRating})
                               </Text>
-                              <Text style={styles.gameMeta}>
-                                {item.ratingType?.toUpperCase() ?? 'STANDARD'} · {item.date}
+                              <Text style={[styles.gameMeta, { color: colors.textSecondary }]}>
+                                {item.result?.toUpperCase()} · K={item.kFactor} · {item.date}
                               </Text>
                             </View>
 
                             <View
                               style={[
                                 styles.gameChangeBadge,
-                                gamePos
-                                  ? styles.badgePositive
-                                  : gameNeg
-                                    ? styles.badgeNegative
-                                    : styles.badgeZero,
+                                {
+                                  backgroundColor: gamePos ? colors.winBg : gameNeg ? colors.lossBg : colors.surfaceMuted,
+                                  borderColor: gamePos ? colors.win : gameNeg ? colors.loss : colors.border,
+                                },
                               ]}
                             >
                               <Ionicons
-                                name={
-                                  gamePos
-                                    ? 'arrow-up'
-                                    : gameNeg
-                                      ? 'arrow-down'
-                                      : 'arrow-forward'
-                                }
-                                size={12}
-                                color={
-                                  gamePos
-                                    ? colors.positiveText
-                                    : gameNeg
-                                      ? colors.negativeText
-                                      : colors.textSecondary
-                                }
+                                name={gamePos ? 'arrow-up' : gameNeg ? 'arrow-down' : 'remove'}
+                                size={11}
+                                color={gamePos ? colors.win : gameNeg ? colors.loss : colors.textSecondary}
                               />
                               <Text
                                 style={[
                                   styles.gameChangeBadgeText,
-                                  gamePos
-                                    ? styles.textPositive
-                                    : gameNeg
-                                      ? styles.textNegative
-                                      : styles.textZero,
+                                  {
+                                    color: gamePos ? colors.win : gameNeg ? colors.loss : colors.textSecondary,
+                                  },
                                 ]}
                               >
                                 {item.ratingChange === 0
@@ -442,7 +502,7 @@ export default function HistoryScreen() {
 
                             <Ionicons
                               name="chevron-forward"
-                              size={16}
+                              size={15}
                               color={colors.textMuted}
                               style={styles.gameRowChevron}
                             />
@@ -452,7 +512,7 @@ export default function HistoryScreen() {
                     </View>
                   </View>
                 ) : null}
-              </View>
+              </TacticalCard>
             );
           })}
         </View>
@@ -475,107 +535,103 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.canvas,
   },
   content: {
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing.screenInset,
-    paddingBottom: spacing.xxxl + spacing.xl,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    paddingBottom: 40,
+    gap: 16,
   },
   centered: {
     flex: 1,
-    backgroundColor: colors.canvas,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: 12,
   },
   loadingText: {
-    ...typography.body,
-    color: colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
-
-  // Header
   header: {
-    marginBottom: spacing.lg,
+    gap: 4,
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   title: {
-    ...typography.heading,
-    color: colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   subtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
+    fontSize: 13,
+    lineHeight: 18,
   },
-
-  // Segmented Tabs
+  careerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  careerStatCol: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  careerLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    marginBottom: 2,
+  },
+  careerVal: {
+    fontSize: 16,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+  },
+  careerDivider: {
+    width: 1,
+    height: 24,
+  },
   tabs: {
     flexDirection: 'row',
-    marginBottom: spacing.xl,
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radii.control,
-    padding: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.border,
+    padding: 3,
   },
   tab: {
     flex: 1,
-    minHeight: touchTargets.min,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.control - 2,
-  },
-  tabActive: {
-    backgroundColor: colors.surfaceSelected,
-    borderWidth: 1,
-    borderColor: colors.primary,
   },
   tabText: {
-    ...typography.label,
-    color: colors.textSecondary,
+    fontSize: 11,
+    letterSpacing: 0.6,
   },
-  tabTextActive: {
-    ...typography.label,
-    color: colors.primary,
-    fontWeight: '700',
-  },
-
-  // Empty State
   emptyCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.card,
-    padding: spacing.xxxl,
+    paddingVertical: 32,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...shadows.card,
-    gap: spacing.sm,
+    gap: 10,
   },
   emptyText: {
-    ...typography.subheading,
-    color: colors.textPrimary,
-    marginTop: spacing.sm,
+    fontSize: 16,
+    fontWeight: '800',
   },
   emptyHint: {
-    ...typography.body,
-    color: colors.textSecondary,
+    fontSize: 13,
     textAlign: 'center',
+    lineHeight: 18,
+    paddingHorizontal: 20,
   },
-
-  // Monthly Cards List
   list: {
-    gap: spacing.md,
+    gap: 14,
   },
   monthCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.card,
-    borderWidth: 1,
-    borderColor: colors.border,
     overflow: 'hidden',
-    ...shadows.card,
   },
   monthHeader: {
-    padding: spacing.lg,
+    padding: 14,
   },
   monthTitleRow: {
     flexDirection: 'row',
@@ -584,147 +640,123 @@ const styles = StyleSheet.create({
   },
   monthTitleLeft: {
     flex: 1,
-    marginRight: spacing.md,
+    marginRight: 12,
+  },
+  monthBadgeTitleWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   monthTitle: {
-    ...typography.subheading,
-    color: colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  gamesCountChip: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+    borderWidth: 1,
+  },
+  gamesLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   monthMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: spacing.xs + 2,
-    gap: spacing.sm,
-  },
-  gamesLabel: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontWeight: '700',
-    letterSpacing: 0.6,
+    marginTop: 6,
+    gap: 8,
   },
   monthHeaderActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: 8,
   },
   pdfIconButton: {
-    width: touchTargets.min,
-    height: touchTargets.min,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surfaceSelected,
+    width: 38,
+    height: 38,
+    borderRadius: 6,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   chevron: {
-    marginLeft: spacing.xs,
+    marginLeft: 2,
   },
-
-  // Total Change Badges
   totalChangeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: radii.pill,
-    gap: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    gap: 3,
   },
   totalChangeBadgeText: {
-    ...typography.caption,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
   },
-  badgePositive: {
-    backgroundColor: colors.positiveBg,
-  },
-  badgeNegative: {
-    backgroundColor: colors.negativeBg,
-  },
-  badgeZero: {
-    backgroundColor: colors.neutralBg,
-  },
-  textPositive: {
-    color: colors.positiveText,
-  },
-  textNegative: {
-    color: colors.negativeText,
-  },
-  textZero: {
-    color: colors.textSecondary,
-  },
-
-  // Expanded Content
   expandedContent: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
+    padding: 12,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
   },
   downloadReportButton: {
-    marginTop: spacing.md,
-    marginBottom: spacing.md,
-    minHeight: touchTargets.min,
-    backgroundColor: colors.surfaceSelected,
-    borderRadius: radii.control,
-    borderWidth: 1.5,
-    borderColor: colors.primary,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-  },
-  downloadReportButtonText: {
-    ...typography.label,
-    color: colors.primary,
-    fontWeight: '700',
+    marginBottom: 10,
   },
   gameList: {
-    gap: spacing.xs + 2,
+    gap: 8,
   },
   gameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: touchTargets.min,
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radii.control,
+    minHeight: 48,
     borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
   },
-  gameIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surfaceSelected,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
+  roundChip: {
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+  },
+  roundChipText: {
+    fontSize: 10,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
   },
   gameMain: {
     flex: 1,
-    marginRight: spacing.sm,
+    marginRight: 6,
   },
   gameOpponent: {
-    ...typography.bodyBold,
-    color: colors.textPrimary,
+    fontSize: 13,
+    fontWeight: '700',
   },
   gameMeta: {
-    ...typography.caption,
-    color: colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '600',
     marginTop: 2,
   },
   gameChangeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.pill,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
     gap: 2,
   },
   gameChangeBadgeText: {
-    ...typography.caption,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
   },
   gameRowChevron: {
-    marginLeft: spacing.xs,
+    marginLeft: 2,
   },
 });

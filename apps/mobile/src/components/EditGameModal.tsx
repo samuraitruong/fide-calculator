@@ -21,8 +21,11 @@ import {
   getResultRatingMonth,
   isValidRatingMonth,
 } from '@fide-calculator/shared';
-import { colors, radii, spacing, typography, touchTargets, shadows } from '../theme/tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import DatePickerModal from './DatePickerModal';
+import TacticalCard from './ui/TacticalCard';
+import WinDrawLossSelector from './ui/WinDrawLossSelector';
+import ChessInsignia from './ui/ChessInsignia';
 
 type Props = {
   open: boolean;
@@ -33,6 +36,7 @@ type Props = {
 };
 
 export default function EditGameModal({ open, game, onClose, onSave, onDelete }: Props) {
+  const { colors, radii, borderWidth, typography, touchTargets } = useTheme();
   const [opponentName, setOpponentName] = useState('');
   const [opponentRating, setOpponentRating] = useState(1400);
   const [kFactor, setKFactor] = useState(20);
@@ -145,6 +149,8 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
     );
   };
 
+  const hasIonicons = typeof Ionicons === 'function';
+
   return (
     <Modal
       visible={open}
@@ -152,7 +158,7 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.keyboardView}
@@ -165,24 +171,62 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
             accessibilityLabel="Close edit game modal"
           />
 
-          <View style={styles.sheet}>
+          <View
+            style={[
+              styles.sheet,
+              {
+                backgroundColor: colors.canvas,
+                borderColor: colors.border,
+                borderTopLeftRadius: radii.xl,
+                borderTopRightRadius: radii.xl,
+                borderWidth: borderWidth.heavy,
+              },
+            ]}
+          >
+            {/* Handle bar */}
             <View style={styles.sheetHandleContainer}>
-              <View style={styles.sheetHandle} />
+              <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
             </View>
 
-            <View style={styles.header}>
+            {/* Header */}
+            <View
+              style={[
+                styles.header,
+                {
+                  backgroundColor: colors.surfaceMuted,
+                  borderBottomColor: colors.border,
+                  borderBottomWidth: borderWidth.medium,
+                },
+              ]}
+            >
               <View style={styles.headerTitleRow}>
-                <Text style={styles.headerMotif}>⚔</Text>
-                <Text style={styles.title}>Edit game</Text>
+                <ChessInsignia piece="knight" size={18} color={colors.primary} />
+                <View>
+                  <Text style={[styles.headerTag, { color: colors.primary }]}>
+                    [ MATCH TELEMETRY // REVISION ]
+                  </Text>
+                  <Text style={[styles.title, { color: colors.textPrimary }]}>Edit game</Text>
+                </View>
               </View>
               <TouchableOpacity
                 onPress={onClose}
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                style={styles.closeButton}
+                style={[
+                  styles.closeButton,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                    borderWidth: borderWidth.thin,
+                  },
+                ]}
                 accessibilityRole="button"
                 accessibilityLabel="Close edit game modal"
               >
-                <Ionicons name="close" size={24} color={colors.textPrimary} />
+                {hasIonicons ? (
+                  <Ionicons name="close" size={20} color={colors.textPrimary} />
+                ) : (
+                  <Text style={[styles.closeIconText, { color: colors.textPrimary }]}>✕</Text>
+                )}
               </TouchableOpacity>
             </View>
 
@@ -198,55 +242,75 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
             >
               {!game ? (
                 <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyText}>No game selected.</Text>
+                  <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                    No game selected.
+                  </Text>
                 </View>
               ) : (
                 <>
-                  {/* Estimate Summary Card */}
-                  <View style={styles.estimateCard}>
+                  {/* Precision Scoreboard Card */}
+                  <View
+                    style={[
+                      styles.estimateCard,
+                      {
+                        backgroundColor: colors.surfaceElevated,
+                        borderColor: colors.primary,
+                        borderWidth: borderWidth.medium,
+                        borderRadius: radii.card,
+                      },
+                    ]}
+                  >
                     <View style={styles.estimateRow}>
                       <View style={styles.estimateCol}>
-                        <Text style={styles.estimateLabel}>YOUR RATING</Text>
-                        <Text style={styles.estimateBaseValue}>{game.playerRating}</Text>
+                        <Text style={[styles.estimateLabel, { color: colors.textMuted }]}>
+                          CURRENT RATING
+                        </Text>
+                        <Text
+                          style={[
+                            styles.estimateBaseValue,
+                            { color: colors.textPrimary, ...typography.mono },
+                          ]}
+                        >
+                          {game.playerRating}
+                        </Text>
                       </View>
 
                       <View style={[styles.estimateCol, styles.estimateColRight]}>
-                        <Text style={styles.estimateLabel}>PROJECTED CHANGE</Text>
+                        <Text style={[styles.estimateLabel, { color: colors.textMuted }]}>
+                          PROJECTED DELTA
+                        </Text>
                         <View
                           style={[
                             styles.changeBadge,
-                            newDelta !== null && newDelta > 0
-                              ? styles.badgePositive
-                              : newDelta !== null && newDelta < 0
-                                ? styles.badgeNegative
-                                : styles.badgeZero,
+                            {
+                              backgroundColor:
+                                newDelta !== null && newDelta > 0
+                                  ? colors.positiveBg
+                                  : newDelta !== null && newDelta < 0
+                                    ? colors.negativeBg
+                                    : colors.surfaceMuted,
+                              borderColor:
+                                newDelta !== null && newDelta > 0
+                                  ? colors.positive
+                                  : newDelta !== null && newDelta < 0
+                                    ? colors.negative
+                                    : colors.border,
+                              borderWidth: borderWidth.thin,
+                            },
                           ]}
                         >
-                          <Ionicons
-                            name={
-                              newDelta !== null && newDelta > 0
-                                ? 'arrow-up'
-                                : newDelta !== null && newDelta < 0
-                                  ? 'arrow-down'
-                                  : 'remove'
-                            }
-                            size={16}
-                            color={
-                              newDelta !== null && newDelta > 0
-                                ? colors.positiveText
-                                : newDelta !== null && newDelta < 0
-                                  ? colors.negativeText
-                                  : colors.textSecondary
-                            }
-                          />
                           <Text
                             style={[
                               styles.changeBadgeText,
-                              newDelta !== null && newDelta > 0
-                                ? styles.textPositive
-                                : newDelta !== null && newDelta < 0
-                                  ? styles.textNegative
-                                  : styles.textZero,
+                              {
+                                color:
+                                  newDelta !== null && newDelta > 0
+                                    ? colors.positiveText
+                                    : newDelta !== null && newDelta < 0
+                                      ? colors.negativeText
+                                      : colors.textSecondary,
+                                ...typography.mono,
+                              },
                             ]}
                           >
                             {newDelta === null
@@ -257,24 +321,50 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
                       </View>
                     </View>
 
-                    <Text style={styles.estimateProjected}>
-                      New rating projection:{' '}
-                      <Text style={styles.estimateHighlight}>
-                        {newDelta !== null
-                          ? Math.round((game.playerRating + newDelta) * 10) / 10
-                          : '—'}
+                    <View
+                      style={[
+                        styles.projectedFooter,
+                        {
+                          borderTopColor: colors.borderSubtle,
+                          borderTopWidth: borderWidth.thin,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.estimateProjected, { color: colors.textSecondary }]}>
+                        New rating projection:{' '}
+                        <Text
+                          style={[
+                            styles.estimateHighlight,
+                            { color: colors.primary, ...typography.mono },
+                          ]}
+                        >
+                          {newDelta !== null
+                            ? Math.round((game.playerRating + newDelta) * 10) / 10
+                            : '—'}
+                        </Text>
                       </Text>
-                    </Text>
+                    </View>
                   </View>
 
-                  {/* Group 1: Opponent & Result */}
-                  <View style={styles.groupCard}>
-                    <Text style={styles.groupHeader}>♟ Opponent & Match</Text>
-
+                  {/* Group 1: Opponent & Match */}
+                  <TacticalCard
+                    title="MATCH PARAMETERS"
+                    badge={result.toUpperCase()}
+                    variant="default"
+                  >
                     <View style={styles.fieldSpacing}>
-                      <Text style={styles.label}>Opponent</Text>
+                      <Text style={[styles.label, { color: colors.textMuted }]}>OPPONENT NAME</Text>
                       <TextInput
-                        style={styles.input}
+                        style={[
+                          styles.input,
+                          {
+                            backgroundColor: colors.surface,
+                            borderColor: colors.border,
+                            color: colors.textPrimary,
+                            borderWidth: borderWidth.thin,
+                            borderRadius: radii.sm,
+                          },
+                        ]}
                         value={opponentName}
                         onChangeText={setOpponentName}
                         placeholder="Opponent name"
@@ -284,9 +374,21 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
 
                     <View style={styles.fieldGrid}>
                       <View style={styles.fieldCol}>
-                        <Text style={styles.label}>Opponent rating</Text>
+                        <Text style={[styles.label, { color: colors.textMuted }]}>
+                          OPPONENT RATING
+                        </Text>
                         <TextInput
-                          style={styles.input}
+                          style={[
+                            styles.input,
+                            {
+                              backgroundColor: colors.surface,
+                              borderColor: colors.border,
+                              color: colors.textPrimary,
+                              borderWidth: borderWidth.thin,
+                              borderRadius: radii.sm,
+                              ...typography.mono,
+                            },
+                          ]}
                           value={String(opponentRating)}
                           keyboardType="numeric"
                           placeholder="1400"
@@ -299,9 +401,19 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
                       </View>
 
                       <View style={styles.fieldCol}>
-                        <Text style={styles.label}>K-factor</Text>
+                        <Text style={[styles.label, { color: colors.textMuted }]}>K-FACTOR</Text>
                         <TextInput
-                          style={styles.input}
+                          style={[
+                            styles.input,
+                            {
+                              backgroundColor: colors.surface,
+                              borderColor: colors.border,
+                              color: colors.textPrimary,
+                              borderWidth: borderWidth.thin,
+                              borderRadius: radii.sm,
+                              ...typography.mono,
+                            },
+                          ]}
                           value={String(kFactor)}
                           keyboardType="numeric"
                           placeholder="20"
@@ -315,68 +427,45 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
                     </View>
 
                     <View style={styles.fieldSpacing}>
-                      <Text style={styles.label}>Result</Text>
-                      <View style={styles.resultRow}>
-                        {(['win', 'draw', 'loss'] as GameResult[]).map((r) => {
-                          const isSelected = r === result;
-                          const isWin = r === 'win';
-                          const isDraw = r === 'draw';
-                          const isLoss = r === 'loss';
-                          return (
-                            <TouchableOpacity
-                              key={r}
-                              style={[
-                                styles.resultPill,
-                                isSelected && isWin && styles.pillWinActive,
-                                isSelected && isDraw && styles.pillDrawActive,
-                                isSelected && isLoss && styles.pillLossActive,
-                              ]}
-                              onPress={() => setResult(r)}
-                              activeOpacity={0.8}
-                            >
-                              <Text
-                                style={[
-                                  styles.resultPillText,
-                                  isSelected && isWin && styles.textWinActive,
-                                  isSelected && isDraw && styles.textDrawActive,
-                                  isSelected && isLoss && styles.textLossActive,
-                                ]}
-                              >
-                                {r === 'win'
-                                  ? 'Win'
-                                  : r === 'draw'
-                                    ? 'Draw'
-                                    : 'Loss'}
-                              </Text>
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </View>
+                      <Text style={[styles.label, { color: colors.textMuted }]}>
+                        MATCH OUTCOME
+                      </Text>
+                      <WinDrawLossSelector
+                        value={result === 'win' ? 1 : result === 'draw' ? 0.5 : 0}
+                        onChange={(val) => {
+                          setResult(val === 1 ? 'win' : val === 0.5 ? 'draw' : 'loss');
+                        }}
+                      />
                     </View>
-                  </View>
+                  </TacticalCard>
 
                   {/* Group 2: Date & Rating Period */}
-                  <View style={styles.groupCard}>
-                    <View style={styles.groupHeaderRow}>
-                      <Text style={styles.groupHeader}>📅 Date & Period</Text>
-                      <TouchableOpacity
-                        style={styles.openPickerQuickButton}
-                        onPress={() => setDatePickerOpen(true)}
-                        accessibilityRole="button"
-                        accessibilityLabel="Open calendar date picker"
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <Ionicons name="calendar-outline" size={16} color={colors.primary} />
-                        <Text style={styles.openPickerQuickText}>Pick date</Text>
-                      </TouchableOpacity>
-                    </View>
-
+                  <TacticalCard
+                    title="TEMPORAL AUDIT"
+                    badge={ratingMonth || 'CURRENT'}
+                    variant="default"
+                  >
                     <View style={styles.fieldGrid}>
                       <View style={styles.fieldCol}>
-                        <Text style={styles.label} numberOfLines={1}>Game date</Text>
+                        <Text
+                          style={[styles.label, { color: colors.textMuted }]}
+                          numberOfLines={1}
+                        >
+                          GAME DATE
+                        </Text>
                         <View style={styles.dateInputWrapper}>
                           <TextInput
-                            style={styles.dateInput}
+                            style={[
+                              styles.dateInput,
+                              {
+                                backgroundColor: colors.surface,
+                                borderColor: colors.border,
+                                color: colors.textPrimary,
+                                borderWidth: borderWidth.thin,
+                                borderRadius: radii.sm,
+                                ...typography.mono,
+                              },
+                            ]}
                             value={date}
                             onChangeText={setDate}
                             placeholder="YYYY-MM-DD"
@@ -385,21 +474,44 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
                             accessibilityLabel="Game date"
                           />
                           <TouchableOpacity
-                            style={styles.calendarIconButton}
+                            style={[
+                              styles.calendarIconButton,
+                              {
+                                backgroundColor: colors.surfaceMuted,
+                                borderColor: colors.border,
+                                borderWidth: borderWidth.thin,
+                                borderRadius: radii.sm,
+                              },
+                            ]}
                             onPress={() => setDatePickerOpen(true)}
                             accessibilityRole="button"
                             accessibilityLabel="Calendar date picker"
                             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                           >
-                            <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+                            <Text style={{ fontSize: 16 }}>📅</Text>
                           </TouchableOpacity>
                         </View>
                       </View>
 
                       <View style={styles.fieldCol}>
-                        <Text style={styles.label} numberOfLines={1}>Rating month</Text>
+                        <Text
+                          style={[styles.label, { color: colors.textMuted }]}
+                          numberOfLines={1}
+                        >
+                          RATING MONTH
+                        </Text>
                         <TextInput
-                          style={styles.input}
+                          style={[
+                            styles.input,
+                            {
+                              backgroundColor: colors.surface,
+                              borderColor: colors.border,
+                              color: colors.textPrimary,
+                              borderWidth: borderWidth.thin,
+                              borderRadius: radii.sm,
+                              ...typography.mono,
+                            },
+                          ]}
                           value={ratingMonth}
                           onChangeText={setRatingMonth}
                           placeholder="YYYY-MM"
@@ -413,7 +525,15 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
                     {/* Quick Date Shortcuts */}
                     <View style={styles.quickDateRow}>
                       <TouchableOpacity
-                        style={styles.quickDateChip}
+                        style={[
+                          styles.quickDateChip,
+                          {
+                            backgroundColor: colors.surfaceMuted,
+                            borderColor: colors.borderSubtle,
+                            borderWidth: borderWidth.thin,
+                            borderRadius: radii.sm,
+                          },
+                        ]}
                         onPress={() => {
                           const now = new Date();
                           const y = now.getFullYear();
@@ -423,11 +543,21 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
                         }}
                         accessibilityRole="button"
                       >
-                        <Text style={styles.quickDateChipText}>Today</Text>
+                        <Text style={[styles.quickDateChipText, { color: colors.textPrimary }]}>
+                          [ TODAY ]
+                        </Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
-                        style={styles.quickDateChip}
+                        style={[
+                          styles.quickDateChip,
+                          {
+                            backgroundColor: colors.surfaceMuted,
+                            borderColor: colors.borderSubtle,
+                            borderWidth: borderWidth.thin,
+                            borderRadius: radii.sm,
+                          },
+                        ]}
                         onPress={() => {
                           const yest = new Date();
                           yest.setDate(yest.getDate() - 1);
@@ -438,19 +568,27 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
                         }}
                         accessibilityRole="button"
                       >
-                        <Text style={styles.quickDateChipText}>Yesterday</Text>
+                        <Text style={[styles.quickDateChipText, { color: colors.textPrimary }]}>
+                          [ YESTERDAY ]
+                        </Text>
                       </TouchableOpacity>
                     </View>
-                  </View>
+                  </TacticalCard>
 
                   {!isFormValid ? (
-                    <View style={styles.validationBox}>
-                      <Ionicons
-                        name="information-circle-outline"
-                        size={18}
-                        color={colors.negativeText}
-                      />
-                      <Text style={styles.validationText}>
+                    <View
+                      style={[
+                        styles.validationBox,
+                        {
+                          backgroundColor: colors.negativeBg,
+                          borderColor: colors.negative,
+                          borderWidth: borderWidth.thin,
+                          borderRadius: radii.sm,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.validationIcon, { color: colors.negativeText }]}>⚠</Text>
+                      <Text style={[styles.validationText, { color: colors.negativeText }]}>
                         Please enter valid ratings, a game date and a rating month (YYYY-MM).
                       </Text>
                     </View>
@@ -458,34 +596,52 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
 
                   {/* Secondary Actions Section inside ScrollView */}
                   <View style={styles.secondaryActionsContainer}>
-                    {/* Secondary Move to Current Month */}
+                    {/* Move to Current Month */}
                     <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityLabel="Move to Current Month"
                       style={[
                         styles.secondaryMoveButton,
+                        {
+                          backgroundColor: colors.surfaceMuted,
+                          borderColor: colors.border,
+                          borderWidth: borderWidth.medium,
+                          borderRadius: radii.sm,
+                        },
                         moving && styles.buttonDisabled,
                       ]}
                       onPress={handleMoveToCurrentMonth}
                       disabled={moving}
                       activeOpacity={0.85}
                     >
-                      <Text style={styles.secondaryMoveButtonText}>
+                      <Text style={[styles.secondaryMoveButtonText, { color: colors.textPrimary }]}>
                         Move to Current Month
                       </Text>
                     </TouchableOpacity>
 
-                    {/* Restrained, Separated Delete Game */}
+                    {/* Restrained Delete Game Button */}
                     {canDelete ? (
                       <View style={styles.deleteSection}>
                         <TouchableOpacity
+                          accessibilityRole="button"
+                          accessibilityLabel="Delete game"
                           style={[
                             styles.deleteButton,
+                            {
+                              backgroundColor: colors.negativeBg,
+                              borderColor: colors.negative,
+                              borderWidth: borderWidth.medium,
+                              borderRadius: radii.sm,
+                            },
                             moving && styles.buttonDisabled,
                           ]}
                           onPress={handleDelete}
                           disabled={moving}
                           activeOpacity={0.8}
                         >
-                          <Text style={styles.deleteButtonText}>Delete game</Text>
+                          <Text style={[styles.deleteButtonText, { color: colors.negativeText }]}>
+                            Delete game
+                          </Text>
                         </TouchableOpacity>
                       </View>
                     ) : null}
@@ -499,12 +655,26 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
               <View
                 style={[
                   styles.stickyFooter,
-                  { paddingBottom: Math.max(insets.bottom, spacing.md) },
+                  {
+                    backgroundColor: colors.surfaceElevated,
+                    borderTopColor: colors.border,
+                    borderTopWidth: borderWidth.medium,
+                    paddingBottom: Math.max(insets.bottom, 16),
+                  },
                 ]}
               >
                 <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Save changes"
                   style={[
                     styles.primarySaveButton,
+                    {
+                      backgroundColor: colors.primary,
+                      borderColor: colors.border,
+                      borderWidth: borderWidth.medium,
+                      borderRadius: radii.sm,
+                      minHeight: touchTargets.primaryControl,
+                    },
                     (moving || !isFormValid || newDelta === null) &&
                       styles.buttonDisabled,
                   ]}
@@ -512,7 +682,9 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
                   disabled={moving || !isFormValid || newDelta === null}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.primarySaveButtonText}>Save changes</Text>
+                  <Text style={[styles.primarySaveButtonText, { color: colors.primaryText }]}>
+                    Save changes
+                  </Text>
                 </TouchableOpacity>
               </View>
             ) : null}
@@ -536,7 +708,6 @@ export default function EditGameModal({ open, game, onClose, onSave, onDelete }:
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: colors.overlay,
     justifyContent: 'flex-end',
   },
   keyboardView: {
@@ -547,71 +718,72 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   sheet: {
-    maxHeight: '92%',
-    backgroundColor: colors.canvas,
-    borderTopLeftRadius: radii.sheet,
-    borderTopRightRadius: radii.sheet,
-    borderTopWidth: 1,
-    borderColor: colors.border,
-    ...shadows.sheet,
+    maxHeight: '94%',
     overflow: 'hidden',
+  },
+  sheetHandleContainer: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: 10,
   },
-  headerMotif: {
-    fontSize: 20,
-    color: colors.primary,
+  headerTag: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
   title: {
-    ...typography.subheading,
-    color: colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
   closeButton: {
-    width: touchTargets.min,
-    height: touchTargets.min,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.pill,
+    borderRadius: 4,
+  },
+  closeIconText: {
+    fontSize: 16,
+    fontWeight: '900',
   },
   scrollView: {
     flexGrow: 1,
     flexShrink: 1,
   },
   scrollContent: {
-    paddingHorizontal: spacing.screenInset,
-    paddingVertical: spacing.xl,
-    gap: spacing.lg,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 14,
   },
   emptyContainer: {
-    paddingVertical: spacing.xxxl,
+    paddingVertical: 40,
     alignItems: 'center',
   },
   emptyText: {
-    ...typography.body,
-    color: colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '600',
   },
 
   // Estimate Summary Card
   estimateCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.card,
-    borderWidth: 1.5,
-    borderColor: colors.primary,
-    padding: spacing.lg,
-    ...shadows.card,
+    padding: 16,
   },
   estimateRow: {
     flexDirection: 'row',
@@ -625,299 +797,155 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   estimateLabel: {
-    ...typography.caption,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+    marginBottom: 4,
   },
   estimateBaseValue: {
-    ...typography.subheading,
-    color: colors.textPrimary,
+    fontSize: 26,
+    fontWeight: '900',
   },
   changeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.pill,
-    gap: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
   },
   changeBadgeText: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '900',
   },
-  badgePositive: {
-    backgroundColor: colors.positiveBg,
-  },
-  badgeNegative: {
-    backgroundColor: colors.negativeBg,
-  },
-  badgeZero: {
-    backgroundColor: colors.neutralBg,
-  },
-  textPositive: {
-    color: colors.positiveText,
-  },
-  textNegative: {
-    color: colors.negativeText,
-  },
-  textZero: {
-    color: colors.textSecondary,
+  projectedFooter: {
+    marginTop: 12,
+    paddingTop: 10,
   },
   estimateProjected: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginTop: spacing.md,
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    fontSize: 13,
+    fontWeight: '700',
   },
   estimateHighlight: {
-    fontWeight: '700',
-    color: colors.primary,
+    fontWeight: '900',
+    fontSize: 16,
   },
 
-  // Grouped Cards
-  groupCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
-    ...shadows.card,
-  },
-  groupHeader: {
-    ...typography.subheading,
-    color: colors.primary,
-    marginBottom: spacing.xs,
-  },
   fieldSpacing: {
-    marginTop: spacing.md,
-  },
-  label: {
-    ...typography.label,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs + 2,
-    minHeight: 20,
-  },
-  input: {
-    minHeight: touchTargets.min,
-    borderWidth: 1.5,
-    borderColor: colors.borderInput,
-    borderRadius: radii.control,
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md - 2,
-    ...typography.body,
-    color: colors.textPrimary,
-    ...(Platform.OS === 'web' ? ({ touchAction: 'pan-y' } as Record<string, unknown>) : {}),
-  },
-  groupHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.xs,
-  },
-  openPickerQuickButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surfaceSelected,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  openPickerQuickText: {
-    ...typography.caption,
-    color: colors.primary,
-    fontWeight: '700',
-  },
-  dateInputWrapper: {
-    position: 'relative',
-    justifyContent: 'center',
-  },
-  dateInput: {
-    minHeight: touchTargets.min,
-    borderWidth: 1.5,
-    borderColor: colors.borderInput,
-    borderRadius: radii.control,
-    backgroundColor: colors.surface,
-    paddingLeft: spacing.md,
-    paddingRight: 42,
-    paddingVertical: spacing.md - 2,
-    ...typography.body,
-    color: colors.textPrimary,
-    ...(Platform.OS === 'web' ? ({ touchAction: 'pan-y' } as Record<string, unknown>) : {}),
-  },
-  calendarIconButton: {
-    position: 'absolute',
-    right: spacing.xs,
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radii.pill,
-  },
-  quickDateRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.md,
-  },
-  quickDateChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surfaceSelected,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  quickDateChipText: {
-    ...typography.caption,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  sheetHandleContainer: {
-    alignItems: 'center',
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.xs,
-    backgroundColor: colors.surface,
-  },
-  sheetHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: radii.pill,
-    backgroundColor: colors.border,
+    marginTop: 10,
   },
   fieldGrid: {
     flexDirection: 'row',
-    gap: spacing.md,
-    marginTop: spacing.md,
+    gap: 10,
+    marginTop: 10,
   },
   fieldCol: {
     flex: 1,
   },
-
-  // Result Pills
-  resultRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
+  label: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+    marginBottom: 6,
   },
-  resultPill: {
+  input: {
+    minHeight: 44,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  dateInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  dateInput: {
     flex: 1,
-    minHeight: touchTargets.min,
-    borderRadius: radii.control,
-    borderWidth: 1.5,
-    borderColor: colors.borderInput,
-    backgroundColor: colors.surface,
+    minHeight: 44,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  calendarIconButton: {
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.xs,
   },
-  pillWinActive: {
-    backgroundColor: colors.positiveBg,
-    borderColor: colors.positiveText,
+  quickDateRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
   },
-  pillDrawActive: {
-    backgroundColor: colors.surfaceSelected,
-    borderColor: colors.primary,
+  quickDateChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
-  pillLossActive: {
-    backgroundColor: colors.negativeBg,
-    borderColor: colors.negativeText,
-  },
-  resultPillText: {
-    ...typography.label,
-    color: colors.textSecondary,
-  },
-  textWinActive: {
-    color: colors.positiveText,
-    fontWeight: '700',
-  },
-  textDrawActive: {
-    color: colors.primary,
-    fontWeight: '700',
-  },
-  textLossActive: {
-    color: colors.negativeText,
-    fontWeight: '700',
+  quickDateChipText: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.6,
   },
 
-  // Validation
   validationBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.negativeBg,
-    padding: spacing.md,
-    borderRadius: radii.control,
-    gap: spacing.sm,
+    padding: 10,
+    gap: 8,
+  },
+  validationIcon: {
+    fontSize: 14,
+    fontWeight: '900',
   },
   validationText: {
     flex: 1,
-    ...typography.caption,
-    color: colors.negativeText,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 16,
   },
 
-  // Actions
   secondaryActionsContainer: {
-    gap: spacing.md,
-    marginTop: spacing.xs,
-  },
-  stickyFooter: {
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingHorizontal: spacing.screenInset,
-    paddingTop: spacing.md,
-  },
-  primarySaveButton: {
-    minHeight: touchTargets.primaryControl,
-    backgroundColor: colors.primary,
-    borderRadius: radii.control,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primarySaveButtonText: {
-    ...typography.bodyBold,
-    color: colors.primaryText,
+    marginTop: 8,
+    marginBottom: 16,
+    gap: 12,
   },
   secondaryMoveButton: {
-    minHeight: touchTargets.primaryControl,
-    backgroundColor: colors.surfaceSelected,
-    borderRadius: radii.control,
-    borderWidth: 1.5,
-    borderColor: colors.primary,
+    minHeight: 46,
     alignItems: 'center',
     justifyContent: 'center',
   },
   secondaryMoveButtonText: {
-    ...typography.bodyBold,
-    color: colors.primary,
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.6,
   },
   deleteSection: {
-    marginTop: spacing.xs,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    marginTop: 4,
   },
   deleteButton: {
-    minHeight: 48,
-    backgroundColor: colors.negativeBg,
-    borderRadius: radii.control,
-    borderWidth: 1,
-    borderColor: colors.negativeText,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
   deleteButtonText: {
-    ...typography.label,
-    color: colors.negativeText,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.6,
+  },
+
+  stickyFooter: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  primarySaveButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primarySaveButtonText: {
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.8,
   },
   buttonDisabled: {
-    opacity: 0.5,
+    opacity: 0.45,
   },
 });

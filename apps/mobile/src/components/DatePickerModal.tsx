@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radii, shadows, spacing, touchTargets, typography } from '../theme/tokens';
+import { useTheme } from '../contexts/ThemeContext';
 
 type Props = {
   open: boolean;
@@ -61,6 +61,7 @@ export default function DatePickerModal({
   onSelect,
   title = 'Select Game Date',
 }: Props) {
+  const { colors, radii, borderWidth, typography, touchTargets } = useTheme();
   const today = useMemo(() => new Date(), []);
   const todayStr = useMemo(
     () => formatYYYYMMDD(today.getFullYear(), today.getMonth(), today.getDate()),
@@ -77,7 +78,6 @@ export default function DatePickerModal({
   const [viewMonth, setViewMonth] = useState(initial.month);
   const [selectedDate, setSelectedDate] = useState(value || todayStr);
 
-  // Sync state if initial value changes or modal opens
   React.useEffect(() => {
     if (open) {
       const parsed = parseYYYYMMDD(value);
@@ -125,7 +125,6 @@ export default function DatePickerModal({
     [viewYear, viewMonth],
   );
 
-  // Monday = 0, Sunday = 6
   const startDayOffset = useMemo(() => {
     const day = new Date(viewYear, viewMonth, 1).getDay();
     return (day + 6) % 7;
@@ -152,6 +151,8 @@ export default function DatePickerModal({
     onClose();
   };
 
+  const hasIonicons = typeof Ionicons === 'function';
+
   if (!open) return null;
 
   return (
@@ -161,7 +162,7 @@ export default function DatePickerModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
         <Pressable
           style={styles.backdrop}
           onPress={onClose}
@@ -169,21 +170,56 @@ export default function DatePickerModal({
           accessibilityLabel="Dismiss date picker"
         />
 
-        <View style={styles.dialog}>
+        <View
+          style={[
+            styles.dialog,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              borderWidth: borderWidth.heavy,
+              borderRadius: radii.xl,
+            },
+          ]}
+        >
           {/* Header */}
-          <View style={styles.header}>
+          <View
+            style={[
+              styles.header,
+              {
+                borderBottomColor: colors.border,
+                borderBottomWidth: borderWidth.thin,
+              },
+            ]}
+          >
             <View style={styles.headerTitleRow}>
-              <Text style={styles.headerMotif}>📅</Text>
-              <Text style={styles.title}>{title}</Text>
+              <Text style={[styles.headerMotif, { color: colors.primary }]}>📅</Text>
+              <View>
+                <Text style={[styles.headerTag, { color: colors.primary }]}>
+                  [ TEMPORAL SELECTION ]
+                </Text>
+                <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
+              </View>
             </View>
             <TouchableOpacity
               onPress={onClose}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              style={styles.closeButton}
+              style={[
+                styles.closeButton,
+                {
+                  backgroundColor: colors.surfaceMuted,
+                  borderColor: colors.border,
+                  borderWidth: borderWidth.thin,
+                  borderRadius: radii.sm,
+                },
+              ]}
               accessibilityRole="button"
               accessibilityLabel="Close date picker"
             >
-              <Ionicons name="close" size={22} color={colors.textPrimary} />
+              {hasIonicons ? (
+                <Ionicons name="close" size={20} color={colors.textPrimary} />
+              ) : (
+                <Text style={[styles.closeIconText, { color: colors.textPrimary }]}>✕</Text>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -192,7 +228,12 @@ export default function DatePickerModal({
             <TouchableOpacity
               style={[
                 styles.quickChip,
-                selectedDate === todayStr && styles.quickChipActive,
+                {
+                  backgroundColor: selectedDate === todayStr ? colors.primary : colors.surfaceMuted,
+                  borderColor: selectedDate === todayStr ? colors.border : colors.borderSubtle,
+                  borderWidth: borderWidth.thin,
+                  borderRadius: radii.sm,
+                },
               ]}
               onPress={() => handleSelectQuick(0)}
               activeOpacity={0.8}
@@ -200,10 +241,12 @@ export default function DatePickerModal({
               <Text
                 style={[
                   styles.quickChipText,
-                  selectedDate === todayStr && styles.quickChipTextActive,
+                  {
+                    color: selectedDate === todayStr ? colors.primaryText : colors.textPrimary,
+                  },
                 ]}
               >
-                Today
+                [ TODAY ]
               </Text>
             </TouchableOpacity>
 
@@ -213,8 +256,14 @@ export default function DatePickerModal({
                 (() => {
                   const yest = new Date();
                   yest.setDate(yest.getDate() - 1);
-                  return selectedDate === formatYYYYMMDD(yest.getFullYear(), yest.getMonth(), yest.getDate());
-                })() && styles.quickChipActive,
+                  const isYest = selectedDate === formatYYYYMMDD(yest.getFullYear(), yest.getMonth(), yest.getDate());
+                  return {
+                    backgroundColor: isYest ? colors.primary : colors.surfaceMuted,
+                    borderColor: isYest ? colors.border : colors.borderSubtle,
+                    borderWidth: borderWidth.thin,
+                    borderRadius: radii.sm,
+                  };
+                })(),
               ]}
               onPress={() => handleSelectQuick(-1)}
               activeOpacity={0.8}
@@ -225,28 +274,50 @@ export default function DatePickerModal({
                   (() => {
                     const yest = new Date();
                     yest.setDate(yest.getDate() - 1);
-                    return selectedDate === formatYYYYMMDD(yest.getFullYear(), yest.getMonth(), yest.getDate());
-                  })() && styles.quickChipTextActive,
+                    const isYest = selectedDate === formatYYYYMMDD(yest.getFullYear(), yest.getMonth(), yest.getDate());
+                    return {
+                      color: isYest ? colors.primaryText : colors.textPrimary,
+                    };
+                  })(),
                 ]}
               >
-                Yesterday
+                [ YESTERDAY ]
               </Text>
             </TouchableOpacity>
           </View>
 
           {/* Month & Year Navigator */}
-          <View style={styles.navRow}>
+          <View
+            style={[
+              styles.navRow,
+              {
+                backgroundColor: colors.surfaceElevated,
+                borderColor: colors.border,
+                borderWidth: borderWidth.thin,
+                borderRadius: radii.sm,
+              },
+            ]}
+          >
             <TouchableOpacity
               style={styles.navArrowButton}
               onPress={handlePrevMonth}
               accessibilityRole="button"
               accessibilityLabel="Previous month"
             >
-              <Ionicons name="chevron-back" size={20} color={colors.primary} />
+              {hasIonicons ? (
+                <Ionicons name="chevron-back" size={20} color={colors.primary} />
+              ) : (
+                <Text style={{ fontSize: 18, color: colors.primary, fontWeight: '900' }}>‹</Text>
+              )}
             </TouchableOpacity>
 
-            <Text style={styles.monthTitle}>
-              {MONTH_NAMES[viewMonth]} {viewYear}
+            <Text
+              style={[
+                styles.monthTitle,
+                { color: colors.textPrimary, ...typography.mono },
+              ]}
+            >
+              {MONTH_NAMES[viewMonth].toUpperCase()} {viewYear}
             </Text>
 
             <TouchableOpacity
@@ -255,7 +326,11 @@ export default function DatePickerModal({
               accessibilityRole="button"
               accessibilityLabel="Next month"
             >
-              <Ionicons name="chevron-forward" size={20} color={colors.primary} />
+              {hasIonicons ? (
+                <Ionicons name="chevron-forward" size={20} color={colors.primary} />
+              ) : (
+                <Text style={{ fontSize: 18, color: colors.primary, fontWeight: '900' }}>›</Text>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -263,7 +338,7 @@ export default function DatePickerModal({
           <View style={styles.weekdayRow}>
             {WEEKDAY_NAMES.map((name) => (
               <View key={name} style={styles.weekdayCell}>
-                <Text style={styles.weekdayText}>{name}</Text>
+                <Text style={[styles.weekdayText, { color: colors.textMuted }]}>{name}</Text>
               </View>
             ))}
           </View>
@@ -282,8 +357,20 @@ export default function DatePickerModal({
                   key={cell.dateStr}
                   style={[
                     styles.dayCell,
-                    isSelected && styles.dayCellSelected,
-                    !isSelected && isCellToday && styles.dayCellToday,
+                    {
+                      backgroundColor: isSelected
+                        ? colors.primary
+                        : isCellToday
+                          ? colors.accentMuted
+                          : 'transparent',
+                      borderColor: isSelected
+                        ? colors.border
+                        : isCellToday
+                          ? colors.accent
+                          : 'transparent',
+                      borderWidth: isSelected || isCellToday ? borderWidth.thin : 0,
+                      borderRadius: radii.sm,
+                    },
                   ]}
                   onPress={() => {
                     setSelectedDate(cell.dateStr!);
@@ -293,8 +380,14 @@ export default function DatePickerModal({
                   <Text
                     style={[
                       styles.dayText,
-                      isSelected && styles.dayTextSelected,
-                      !isSelected && isCellToday && styles.dayTextToday,
+                      {
+                        color: isSelected
+                          ? colors.primaryText
+                          : isCellToday
+                            ? colors.accent
+                            : colors.textPrimary,
+                        ...typography.mono,
+                      },
                     ]}
                   >
                     {cell.day}
@@ -307,20 +400,40 @@ export default function DatePickerModal({
           {/* Footer Action Buttons */}
           <View style={styles.footer}>
             <TouchableOpacity
-              style={styles.cancelButton}
+              style={[
+                styles.cancelButton,
+                {
+                  backgroundColor: colors.surfaceMuted,
+                  borderColor: colors.border,
+                  borderWidth: borderWidth.medium,
+                  borderRadius: radii.sm,
+                  minHeight: touchTargets.primaryControl,
+                },
+              ]}
               onPress={onClose}
               activeOpacity={0.8}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>
+                Cancel
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.confirmButton}
+              style={[
+                styles.confirmButton,
+                {
+                  backgroundColor: colors.primary,
+                  borderColor: colors.border,
+                  borderWidth: borderWidth.medium,
+                  borderRadius: radii.sm,
+                  minHeight: touchTargets.primaryControl,
+                },
+              ]}
               onPress={handleConfirm}
               activeOpacity={0.85}
             >
-              <Text style={styles.confirmButtonText}>
-                {selectedDate ? `Set ${selectedDate}` : 'Select Date'}
+              <Text style={[styles.confirmButtonText, { color: colors.primaryText }]}>
+                {selectedDate ? `Set [ ${selectedDate} ]` : 'Select Date'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -333,177 +446,141 @@ export default function DatePickerModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing.lg,
+    padding: 16,
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
   },
   dialog: {
     width: '100%',
-    maxWidth: 360,
-    backgroundColor: colors.canvas,
-    borderRadius: radii.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
-    ...shadows.sheet,
+    maxWidth: 380,
+    padding: 16,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.md,
+    marginBottom: 14,
+    paddingBottom: 10,
   },
   headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: 10,
   },
   headerMotif: {
     fontSize: 20,
-    color: colors.primary,
+  },
+  headerTag: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
   title: {
-    ...typography.subheading,
-    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
   closeButton: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.pill,
+  },
+  closeIconText: {
+    fontSize: 16,
+    fontWeight: '900',
   },
   quickChipsRow: {
     flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
+    gap: 8,
+    marginBottom: 12,
   },
   quickChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  quickChipActive: {
-    backgroundColor: colors.surfaceSelected,
-    borderColor: colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
   quickChipText: {
-    ...typography.caption,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  quickChipTextActive: {
-    color: colors.primary,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
   navRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: spacing.xs,
-    marginBottom: spacing.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    marginBottom: 10,
   },
   navArrowButton: {
-    width: touchTargets.min,
-    height: touchTargets.min,
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.pill,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
   monthTitle: {
-    ...typography.bodyBold,
-    color: colors.textPrimary,
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
   weekdayRow: {
     flexDirection: 'row',
-    marginBottom: spacing.xs,
+    marginBottom: 6,
   },
   weekdayCell: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: spacing.xs,
+    paddingVertical: 4,
   },
   weekdayText: {
-    ...typography.caption,
-    fontWeight: '700',
-    color: colors.textMuted,
-    fontSize: 12,
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: spacing.lg,
   },
   dayCellPlaceholder: {
-    width: `${100 / 7}%`,
+    width: '14.28%',
     height: 40,
   },
   dayCell: {
-    width: `${100 / 7}%`,
+    width: '14.28%',
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.pill,
-  },
-  dayCellSelected: {
-    backgroundColor: colors.primary,
-  },
-  dayCellToday: {
-    borderWidth: 1.5,
-    borderColor: colors.primary,
   },
   dayText: {
-    ...typography.body,
     fontSize: 14,
-    color: colors.textPrimary,
-  },
-  dayTextSelected: {
-    color: colors.primaryText,
-    fontWeight: '800',
-  },
-  dayTextToday: {
-    color: colors.primary,
     fontWeight: '700',
   },
   footer: {
     flexDirection: 'row',
-    gap: spacing.md,
+    gap: 10,
+    marginTop: 16,
   },
   cancelButton: {
     flex: 1,
-    minHeight: touchTargets.min,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.control,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
   },
   cancelButtonText: {
-    ...typography.label,
-    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   confirmButton: {
     flex: 2,
-    minHeight: touchTargets.min,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.control,
-    backgroundColor: colors.primary,
   },
   confirmButtonText: {
-    ...typography.label,
-    fontWeight: '700',
-    color: colors.primaryText,
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
 });
